@@ -9,3 +9,4 @@
 *.swp
 .task/
 ROADMAP.md
+/local_scripts/resume.sh
