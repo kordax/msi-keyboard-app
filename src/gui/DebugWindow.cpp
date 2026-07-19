@@ -25,6 +25,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <limits>
 
 namespace strikepro {
 namespace {
@@ -239,7 +240,9 @@ void DebugWindow::retranslateUi()
 
 void DebugWindow::updateReportCount()
 {
-    const qsizetype count = m_reportLog.size();
+    constexpr qsizetype kMaximumPluralCount = std::numeric_limits<int>::max();
+    const int count =
+        static_cast<int>(std::min(m_reportLog.size(), kMaximumPluralCount));
     m_reportCount->setText(tr("%n packet(s)", nullptr, count));
 }
 

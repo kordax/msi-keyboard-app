@@ -410,7 +410,7 @@ parseGitHubRelease(const QByteArray &json, QString *error)
         return std::nullopt;
     }
 
-    for (const QJsonValue &assetValue : assetsValue.toArray()) {
+    for (const QJsonValue assetValue : assetsValue.toArray()) {
         if (!assetValue.isObject()) {
             setError(error, tr("GitHub release contains an invalid asset."));
             return std::nullopt;

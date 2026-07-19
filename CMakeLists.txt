@@ -9,6 +9,9 @@ project(
 
 include(GNUInstallDirs)
 
+option(MSI_KEYBOARD_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+option(MSI_KEYBOARD_ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
+
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -19,6 +22,9 @@ add_library(strikepro_project_options INTERFACE)
 target_compile_features(strikepro_project_options INTERFACE cxx_std_20)
 if(MSVC)
     target_compile_options(strikepro_project_options INTERFACE /W4 /permissive-)
+    if(MSI_KEYBOARD_WARNINGS_AS_ERRORS)
+        target_compile_options(strikepro_project_options INTERFACE /WX)
+    endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(
         strikepro_project_options
@@ -27,6 +33,25 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
             -Wextra
             -Wpedantic
     )
+    if(MSI_KEYBOARD_WARNINGS_AS_ERRORS)
+        target_compile_options(strikepro_project_options INTERFACE -Werror)
+    endif()
+    if(MSI_KEYBOARD_ENABLE_SANITIZERS)
+        target_compile_options(
+            strikepro_project_options
+            INTERFACE
+                -fsanitize=address,undefined
+                -fno-omit-frame-pointer
+        )
+        target_link_options(
+            strikepro_project_options
+            INTERFACE
+                -fsanitize=address,undefined
+                -fno-omit-frame-pointer
+        )
+    endif()
+elseif(MSI_KEYBOARD_ENABLE_SANITIZERS)
+    message(FATAL_ERROR "Sanitizers require GCC or Clang")
 endif()
 
 add_library(strikepro_i18n STATIC

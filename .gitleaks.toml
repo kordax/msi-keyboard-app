@@ -1,0 +1,12 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated and local-only files"
+paths = [
+  '''(^|/)\.cache(/|$)''',
+  '''(^|/)\.git(/|$)''',
+  '''(^|/)\.gortex(/|$)''',
+  '''(^|/)build[^/]*(/|$)''',
+  '''(^|/)captures/private(/|$)''',
+]

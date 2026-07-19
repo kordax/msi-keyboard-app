@@ -26,8 +26,8 @@
 namespace msikeyboard::update {
 namespace {
 
-constexpr qint64 kMaximumMetadataBytes = 1024 * 1024;
-constexpr qint64 kMaximumPackageBytes = 512 * 1024 * 1024;
+constexpr qint64 kMaximumMetadataBytes = qint64{1024} * 1024;
+constexpr qint64 kMaximumPackageBytes = qint64{512} * 1024 * 1024;
 constexpr int kMetadataTimeoutMs = 30'000;
 constexpr int kPackageTimeoutMs = 300'000;
 
@@ -224,7 +224,7 @@ QString downloadPackage(
         *error = tr("The package download timed out.");
     } else if (untrustedRedirect || !isAllowedGitHubUrl(reply->url())) {
         *error = tr("The server redirected to an untrusted URL.");
-    } else if (sizeMismatch) {
+    } else if (sizeMismatch) { // NOLINT(bugprone-branch-clone)
         *error = tr(
             "The downloaded package size does not match the release metadata.");
     } else if (writeFailed) {
@@ -407,7 +407,7 @@ int executeCommand(
     }
     if (standardOutput != nullptr) {
         *standardOutput = process.readAllStandardOutput();
-        if (standardOutput->size() > 64 * 1024) {
+        if (standardOutput->size() > qsizetype{64} * 1024) {
             *error = tr("A system utility returned unexpectedly large output.");
             return -1;
         }

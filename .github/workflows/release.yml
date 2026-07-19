@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install system dependencies
         run: |
@@ -122,7 +124,7 @@ jobs:
         working-directory: dist
         run: |
           set -euo pipefail
-          sha256sum *.deb *.rpm | sort --key=2 > SHA256SUMS
+          sha256sum -- ./*.deb ./*.rpm | sort --key=2 > SHA256SUMS
           sha256sum --check SHA256SUMS
 
       - name: Publish release

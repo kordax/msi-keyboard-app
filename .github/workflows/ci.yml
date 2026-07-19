@@ -12,6 +12,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  quality:
+    name: Lint and security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install system dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            clang-format \
+            clang-tidy \
+            cmake \
+            curl \
+            g++ \
+            libgl1-mesa-dev \
+            qt6-base-dev \
+            qt6-image-formats-plugins \
+            qt6-l10n-tools \
+            qt6-tools-dev \
+            qt6-tools-dev-tools \
+            shellcheck
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.26.5"
+          cache: false
+
+      - name: Install Task
+        run: |
+          set -euo pipefail
+          go install github.com/go-task/task/v3/cmd/task@v3.52.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Lint
+        run: task lint
+
+      - name: Scan for secrets
+        run: task security
+
   build-and-test:
     name: Build, test and smoke
     runs-on: ubuntu-24.04
@@ -20,6 +68,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install system dependencies
         run: |
@@ -48,4 +98,44 @@ jobs:
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Build, test and smoke
-        run: task
+        run: task smoke
+
+  sanitizers:
+    name: Sanitizers and leaks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install system dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            cmake \
+            g++ \
+            libgl1-mesa-dev \
+            qt6-base-dev \
+            qt6-image-formats-plugins \
+            qt6-l10n-tools \
+            qt6-tools-dev \
+            qt6-tools-dev-tools
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.26.5"
+          cache: false
+
+      - name: Install Task
+        run: |
+          set -euo pipefail
+          go install github.com/go-task/task/v3/cmd/task@v3.52.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Run sanitizers and leak detection
+        run: task sanitize
