@@ -3,9 +3,13 @@
 #include "BatteryGauge.h"
 #include "DebugWindow.h"
 #include "device/AppPaths.h"
+#include "i18n/LanguageManager.h"
 
 #include <QAction>
+#include <QActionGroup>
+#include <QEvent>
 #include <QFrame>
+#include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMenu>
@@ -19,8 +23,8 @@
 namespace strikepro {
 namespace {
 
-constexpr int kBatteryPollIntervalMs = 15'000;
-constexpr int kBatteryResponseTimeoutMs = 2'500;
+constexpr int kBatteryPollIntervalMs = 2'000;
+constexpr int kBatteryResponseTimeoutMs = 900;
 
 void refreshStyle(QWidget *widget)
 {
@@ -40,6 +44,8 @@ QFrame *makeCard(QWidget *parent)
 QWidget *makeMetaTile(
     const QString &value,
     const QString &caption,
+    QLabel **valueOutput,
+    QLabel **captionOutput,
     QWidget *parent)
 {
     auto *tile = new QWidget(parent);
@@ -53,6 +59,12 @@ QWidget *makeMetaTile(
     valueLabel->setProperty("role", QStringLiteral("metaValue"));
     auto *captionLabel = new QLabel(caption, tile);
     captionLabel->setProperty("role", QStringLiteral("muted"));
+    if (valueOutput != nullptr) {
+        *valueOutput = valueLabel;
+    }
+    if (captionOutput != nullptr) {
+        *captionOutput = captionLabel;
+    }
     layout->addWidget(valueLabel);
     layout->addWidget(captionLabel);
     return tile;
@@ -60,37 +72,55 @@ QWidget *makeMetaTile(
 
 QWidget *makeStatusRow(
     const QString &title,
+    QLabel **titleOutput,
     QLabel **dot,
     QLabel **detail,
     QWidget *parent)
 {
     auto *row = new QWidget(parent);
     row->setMinimumHeight(50);
-    auto *layout = new QHBoxLayout(row);
+    auto *layout = new QVBoxLayout(row);
     layout->setContentsMargins(0, 4, 0, 4);
-    layout->setSpacing(12);
+    layout->setSpacing(2);
 
-    *dot = new QLabel(QStringLiteral("●"), row);
+    *dot = new QLabel(row);
     (*dot)->setProperty("role", QStringLiteral("statusDot"));
     (*dot)->setProperty("tone", QStringLiteral("off"));
-    (*dot)->setFixedWidth(14);
+    (*dot)->setFixedSize(10, 10);
+    auto *glow = new QGraphicsDropShadowEffect(*dot);
+    glow->setBlurRadius(24.0);
+    glow->setColor(QColor(QStringLiteral("#55e89b")));
+    glow->setOffset(0.0, 0.0);
+    glow->setEnabled(false);
+    (*dot)->setGraphicsEffect(glow);
 
-    auto *labels = new QVBoxLayout;
-    labels->setSpacing(2);
+    auto *titleRow = new QHBoxLayout;
+    titleRow->setContentsMargins(10, 0, 0, 0);
+    titleRow->setSpacing(12);
     auto *titleLabel = new QLabel(title, row);
     titleLabel->setProperty("role", QStringLiteral("statusTitle"));
-    *detail = new QLabel(row);
-    (*detail)->setProperty("role", QStringLiteral("muted"));
-    (*detail)->setWordWrap(false);
-    labels->addWidget(titleLabel);
-    labels->addWidget(*detail);
+    if (titleOutput != nullptr) {
+        *titleOutput = titleLabel;
+    }
+    titleRow->addWidget(*dot, 0, Qt::AlignVCenter);
+    titleRow->addWidget(titleLabel, 1, Qt::AlignVCenter);
 
-    layout->addWidget(*dot, 0, Qt::AlignTop);
-    layout->addLayout(labels, 1);
+    *detail = new QLabel(row);
+    (*detail)->setProperty("role", QStringLiteral("statusDetail"));
+    (*detail)->setProperty("tone", QStringLiteral("off"));
+    (*detail)->setWordWrap(false);
+
+    auto *detailRow = new QHBoxLayout;
+    detailRow->setContentsMargins(32, 0, 0, 0);
+    detailRow->addWidget(*detail, 1);
+
+    layout->addLayout(titleRow);
+    layout->addLayout(detailRow);
     return row;
 }
 
-const HidInterface *preferredBatteryInterface(const QList<HidInterface> &interfaces)
+const HidInterface *
+preferredBatteryInterface(const QList<HidInterface> &interfaces)
 {
     for (const quint16 productId :
          {kStrikeProWiredProductId, kStrikeProWirelessProductId}) {
@@ -98,7 +128,7 @@ const HidInterface *preferredBatteryInterface(const QList<HidInterface> &interfa
             interfaces,
             [productId](const HidInterface &interface) {
                 return interface.productId == productId
-                    && interface.interfaceNumber == 1;
+                       && interface.interfaceNumber == 1;
             });
         if (found != interfaces.end()) {
             return &*found;
@@ -107,10 +137,28 @@ const HidInterface *preferredBatteryInterface(const QList<HidInterface> &interfa
     return nullptr;
 }
 
+bool hasAccessibleBatteryInterface(const QList<HidInterface> &interfaces)
+{
+    return std::ranges::any_of(interfaces, [](const HidInterface &interface) {
+        return interface.interfaceNumber == 1 && interface.readable
+               && interface.writable;
+    });
+}
+
+bool hasProduct(const QList<HidInterface> &interfaces, const quint16 productId)
+{
+    return std::ranges::any_of(
+        interfaces,
+        [productId](const HidInterface &interface) {
+            return interface.productId == productId;
+        });
+}
+
 } // namespace
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(LanguageManager *languageManager, QWidget *parent)
     : QMainWindow(parent)
+    , m_languageManager(languageManager)
     , m_monitor(new HidMonitor(this))
 {
     buildUi();
@@ -129,12 +177,18 @@ MainWindow::MainWindow(QWidget *parent)
         this,
         &MainWindow::recordReport);
     connect(
+        m_monitor,
+        &HidMonitor::deviceEvent,
+        this,
+        &MainWindow::handleDeviceEvent);
+    connect(
         m_debugWindow,
         &DebugWindow::protocolReloadRequested,
         this,
         &MainWindow::reloadProtocolProfile);
 
     m_batteryPollTimer.setInterval(kBatteryPollIntervalMs);
+    m_batteryPollTimer.setTimerType(Qt::CoarseTimer);
     connect(
         &m_batteryPollTimer,
         &QTimer::timeout,
@@ -148,17 +202,42 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::buildUi()
 {
-    setWindowTitle(QStringLiteral("MSI Keyboard"));
     setMinimumSize(920, 600);
     resize(1080, 680);
 
     menuBar()->setNativeMenuBar(false);
-    QMenu *debugMenu = menuBar()->addMenu(QStringLiteral("Debug"));
-    QAction *logsAction = debugMenu->addAction(QStringLiteral("Logs"));
-    QAction *telemetryAction = debugMenu->addAction(QStringLiteral("Telemetry"));
-    connect(logsAction, &QAction::triggered, this, &MainWindow::showDebugLogs);
+    m_settingsMenu = menuBar()->addMenu(QString());
+    m_languageMenu = m_settingsMenu->addMenu(QString());
+    m_languageActions = new QActionGroup(this);
+    m_languageActions->setExclusive(true);
+    m_englishAction = m_languageMenu->addAction(QString());
+    m_englishAction->setCheckable(true);
+    m_languageActions->addAction(m_englishAction);
+    m_russianAction = m_languageMenu->addAction(QString());
+    m_russianAction->setCheckable(true);
+    m_languageActions->addAction(m_russianAction);
+    connect(m_englishAction, &QAction::triggered, this, [this] {
+        if (m_languageManager != nullptr) {
+            m_languageManager->setLanguage(QStringLiteral("en"), true);
+        }
+    });
+    connect(m_russianAction, &QAction::triggered, this, [this] {
+        if (m_languageManager != nullptr) {
+            m_languageManager->setLanguage(QStringLiteral("ru"), true);
+        }
+    });
+    m_languageMenu->setEnabled(m_languageManager != nullptr);
+
+    m_debugMenu = menuBar()->addMenu(QString());
+    m_logsAction = m_debugMenu->addAction(QString());
+    m_telemetryAction = m_debugMenu->addAction(QString());
     connect(
-        telemetryAction,
+        m_logsAction,
+        &QAction::triggered,
+        this,
+        &MainWindow::showDebugLogs);
+    connect(
+        m_telemetryAction,
         &QAction::triggered,
         this,
         &MainWindow::showDebugTelemetry);
@@ -167,33 +246,23 @@ void MainWindow::buildUi()
     central->setObjectName(QStringLiteral("surface"));
     central->setAttribute(Qt::WA_StyledBackground);
     auto *root = new QVBoxLayout(central);
-    root->setContentsMargins(30, 22, 30, 28);
-    root->setSpacing(20);
+    root->setContentsMargins(28, 20, 28, 26);
+    root->setSpacing(14);
 
     auto *header = new QHBoxLayout;
     header->setSpacing(14);
 
     auto *titleColumn = new QVBoxLayout;
     titleColumn->setSpacing(1);
-    auto *title = new QLabel(QStringLiteral("STRIKE PRO"), central);
-    title->setObjectName(QStringLiteral("title"));
-    auto *subtitle = new QLabel(
-        QStringLiteral("Battery manager for Linux"),
-        central);
-    subtitle->setProperty("role", QStringLiteral("muted"));
-    titleColumn->addWidget(title);
-    titleColumn->addWidget(subtitle);
+    m_title = new QLabel(central);
+    m_title->setObjectName(QStringLiteral("title"));
+    titleColumn->addWidget(m_title);
     header->addLayout(titleColumn);
     header->addStretch();
-
-    m_connectionBadge = new QLabel(QStringLiteral("НЕ ПОДКЛЮЧЕНА"), central);
-    m_connectionBadge->setObjectName(QStringLiteral("connectionBadge"));
-    m_connectionBadge->setProperty("tone", QStringLiteral("off"));
-    header->addWidget(m_connectionBadge, 0, Qt::AlignVCenter);
     root->addLayout(header);
 
     auto *dashboard = new QHBoxLayout;
-    dashboard->setSpacing(18);
+    dashboard->setSpacing(1);
 
     auto *batteryCard = makeCard(central);
     batteryCard->setMinimumHeight(390);
@@ -206,29 +275,27 @@ void MainWindow::buildUi()
 
     auto *batteryDetails = new QVBoxLayout;
     batteryDetails->setSpacing(8);
-    auto *batteryCaption = new QLabel(QStringLiteral("АККУМУЛЯТОР"), batteryCard);
-    batteryCaption->setProperty("role", QStringLiteral("eyebrow"));
-    m_batteryValue = new QLabel(QStringLiteral("Нет данных"), batteryCard);
+    m_batteryCaption = new QLabel(batteryCard);
+    m_batteryCaption->setProperty("role", QStringLiteral("eyebrow"));
+    m_batteryValue = new QLabel(batteryCard);
     m_batteryValue->setObjectName(QStringLiteral("batteryHeadline"));
     m_batteryValue->setWordWrap(true);
-    m_batteryState = new QLabel(
-        QStringLiteral("Подключите клавиатуру, чтобы начать мониторинг."),
-        batteryCard);
+    m_batteryState = new QLabel(batteryCard);
     m_batteryState->setProperty("role", QStringLiteral("muted"));
     m_batteryState->setWordWrap(true);
-    batteryDetails->addWidget(batteryCaption);
+    batteryDetails->addWidget(m_batteryCaption);
     batteryDetails->addWidget(m_batteryValue);
     batteryDetails->addWidget(m_batteryState);
     batteryDetails->addStretch();
 
     auto *meta = new QHBoxLayout;
     meta->setSpacing(8);
-    meta->addWidget(
-        makeMetaTile(QStringLiteral("AUTO"), QStringLiteral("опрос"), batteryCard));
-    meta->addWidget(
-        makeMetaTile(QStringLiteral("15 сек"), QStringLiteral("интервал"), batteryCard));
-    meta->addWidget(
-        makeMetaTile(QStringLiteral("READ ONLY"), QStringLiteral("режим"), batteryCard));
+    meta->addWidget(makeMetaTile(
+        QString(),
+        QString(),
+        &m_modeValue,
+        &m_modeCaption,
+        batteryCard));
     batteryDetails->addLayout(meta);
     batteryLayout->addLayout(batteryDetails, 1);
     dashboard->addWidget(batteryCard, 3);
@@ -239,56 +306,49 @@ void MainWindow::buildUi()
     deviceLayout->setContentsMargins(23, 21, 23, 21);
     deviceLayout->setSpacing(9);
 
-    auto *deviceCaption = new QLabel(QStringLiteral("УСТРОЙСТВО"), deviceCard);
-    deviceCaption->setProperty("role", QStringLiteral("eyebrow"));
-    m_deviceLabel = new QLabel(QStringLiteral("MSI Strike Pro"), deviceCard);
+    auto *deviceHeader = new QHBoxLayout;
+    deviceHeader->setSpacing(12);
+    auto *deviceTitleColumn = new QVBoxLayout;
+    deviceTitleColumn->setSpacing(3);
+    m_deviceCaption = new QLabel(deviceCard);
+    m_deviceCaption->setProperty("role", QStringLiteral("eyebrow"));
+    m_deviceLabel = new QLabel(deviceCard);
     m_deviceLabel->setObjectName(QStringLiteral("deviceName"));
     m_deviceLabel->setWordWrap(true);
-    deviceLayout->addWidget(deviceCaption);
-    deviceLayout->addWidget(m_deviceLabel);
+    deviceTitleColumn->addWidget(m_deviceCaption);
+    deviceTitleColumn->addWidget(m_deviceLabel);
+    deviceHeader->addLayout(deviceTitleColumn, 1);
+    deviceHeader->addWidget(
+        makeStatusRow(
+            QString(),
+            &m_deviceStatusTitle,
+            &m_deviceDot,
+            &m_deviceStatus,
+            deviceCard),
+        0,
+        Qt::AlignVCenter);
+    deviceLayout->addLayout(deviceHeader);
 
     m_deviceImage = new QLabel(deviceCard);
     m_deviceImage->setObjectName(QStringLiteral("deviceArtwork"));
     m_deviceImage->setAlignment(Qt::AlignCenter);
     m_deviceImage->setMinimumHeight(175);
     m_deviceImage->setVisible(false);
-    const QPixmap artwork(QStringLiteral(":/assets/keyboard/strike_pro.png"));
+    QPixmap artwork(QStringLiteral(":/assets/keyboard/strike_pro.webp"));
+    if (artwork.isNull()) {
+        artwork.load(QStringLiteral(":/assets/keyboard/strike_pro.png"));
+    }
     if (!artwork.isNull()) {
-        m_deviceImage->setPixmap(
-            artwork.scaled(
-                360,
-                230,
-                Qt::KeepAspectRatio,
-                Qt::SmoothTransformation));
+        m_deviceImage->setPixmap(artwork.scaled(
+            360,
+            230,
+            Qt::KeepAspectRatio,
+            Qt::SmoothTransformation));
     } else {
-        m_deviceImage->setText(QStringLiteral("MSI STRIKE PRO"));
+        m_deviceImage->setText(tr("MSI STRIKE PRO"));
     }
     deviceLayout->addWidget(m_deviceImage);
 
-    deviceLayout->addWidget(
-        makeStatusRow(
-            QStringLiteral("Подключение"),
-            &m_deviceDot,
-            &m_deviceStatus,
-            deviceCard));
-    deviceLayout->addWidget(
-        makeStatusRow(
-            QStringLiteral("Доступ к батарее"),
-            &m_accessDot,
-            &m_accessStatus,
-            deviceCard));
-    deviceLayout->addWidget(
-        makeStatusRow(
-            QStringLiteral("Протокол"),
-            &m_protocolDot,
-            &m_protocolStatus,
-            deviceCard));
-
-    m_accessLabel = new QLabel(deviceCard);
-    m_accessLabel->setObjectName(QStringLiteral("accessBanner"));
-    m_accessLabel->setWordWrap(true);
-    m_accessLabel->setProperty("tone", QStringLiteral("off"));
-    deviceLayout->addWidget(m_accessLabel);
     deviceLayout->addStretch();
 
     dashboard->addWidget(deviceCard, 2);
@@ -296,65 +356,52 @@ void MainWindow::buildUi()
     setCentralWidget(central);
 
     setStyleSheet(QStringLiteral(R"(
-        QMainWindow, QDialog#debugWindow { background: #0c0e12; }
+        QMainWindow, QDialog#debugWindow { background: #0d0d0d; }
         QWidget {
-            color: #f0f2f6;
+            color: #f1f1f1;
             font-family: "Inter", "Noto Sans", sans-serif;
             font-size: 13px;
         }
-        QWidget#surface { background: #0f1116; }
+        QWidget#surface { background: #111111; }
         QMenuBar {
-            background: #0f1116;
-            color: #aeb5c2;
-            border-bottom: 1px solid #232832;
+            background: #111111;
+            color: #b6b6b6;
+            border-bottom: 1px solid #292929;
             padding: 3px 8px;
         }
         QMenuBar::item {
             background: transparent;
             padding: 6px 10px;
         }
-        QMenuBar::item:selected { background: #242933; color: #ffffff; }
+        QMenuBar::item:selected { background: #292929; color: #ffffff; }
         QMenu {
-            background: #1a1e25;
-            color: #dce0e8;
-            border: 1px solid #303642;
+            background: #1b1b1b;
+            color: #dddddd;
+            border: 1px solid #343434;
             padding: 5px;
         }
         QMenu::item { padding: 7px 26px 7px 10px; }
-        QMenu::item:selected { background: #292f3a; color: #ffffff; }
+        QMenu::item:selected { background: #303030; color: #ffffff; }
         QLabel#title {
             color: #ffffff;
             font-size: 25px;
             font-weight: 750;
             letter-spacing: 1.6px;
         }
-        QLabel#connectionBadge {
-            border-radius: 12px;
-            padding: 6px 11px;
-            font-size: 10px;
-            font-weight: 750;
-            letter-spacing: 0.7px;
-        }
-        QLabel#connectionBadge[tone="off"] {
-            background: #222630;
-            color: #858c9a;
-        }
-        QLabel#connectionBadge[tone="ok"] {
-            background: #123525;
-            color: #73e2a8;
-        }
         QFrame#card {
-            background: #171a21;
-            border: 1px solid #292e38;
-            border-radius: 14px;
+            background: #181818;
+            border: none;
+            border-top: 1px solid #353535;
+            border-bottom: 1px solid #2c2c2c;
+            border-radius: 0;
         }
         QLabel[role="eyebrow"] {
-            color: #7f8796;
+            color: #8c8c8c;
             font-size: 10px;
             font-weight: 750;
             letter-spacing: 1.4px;
         }
-        QLabel[role="muted"] { color: #9299a8; }
+        QLabel[role="muted"] { color: #9c9c9c; }
         QLabel#batteryHeadline {
             color: #ffffff;
             font-size: 24px;
@@ -372,44 +419,41 @@ void MainWindow::buildUi()
             font-weight: 700;
         }
         QWidget[role="metaTile"] {
-            background: #20242c;
-            border: 1px solid #2d323d;
-            border-radius: 9px;
+            background: transparent;
+            border: none;
+            border-left: 2px solid #484848;
+            border-radius: 0;
         }
         QLabel[role="metaValue"] {
-            color: #f2f4f8;
+            color: #eeeeee;
             font-size: 12px;
             font-weight: 700;
         }
         QLabel[role="statusTitle"] {
-            color: #dfe3ea;
+            color: #dedede;
             font-size: 12px;
             font-weight: 650;
         }
-        QLabel[role="statusDot"] { font-size: 10px; }
-        QLabel[role="statusDot"][tone="off"] { color: #4d5360; }
-        QLabel[role="statusDot"][tone="ok"] { color: #57d696; }
-        QLabel[role="statusDot"][tone="warn"] { color: #ffb454; }
-        QLabel#accessBanner {
-            border-radius: 8px;
-            padding: 9px 11px;
-            font-size: 11px;
+        QLabel[role="statusDot"] {
+            border-radius: 5px;
+            background: #555555;
         }
-        QLabel#accessBanner[tone="off"] {
-            background: #20242c;
-            color: #868e9d;
+        QLabel[role="statusDot"][tone="off"] { background: #555555; }
+        QLabel[role="statusDot"][tone="ok"] {
+            background: #55e89b;
+            border: 1px solid #9affc7;
         }
-        QLabel#accessBanner[tone="ok"] {
-            background: #123024;
-            color: #72dba7;
+        QLabel[role="statusDot"][tone="warn"],
+        QLabel[role="statusDot"][tone="problem"] {
+            background: #df6464;
+            border: 1px solid #f28c8c;
         }
-        QLabel#accessBanner[tone="warn"] {
-            background: #352619;
-            color: #f1bb75;
-        }
+        QLabel[role="statusDetail"] { color: #9c9c9c; }
+        QLabel[role="statusDetail"][tone="ok"] { color: #65e6a0; }
+        QLabel[role="statusDetail"][tone="problem"] { color: #ef7777; }
         QLabel[role="counter"] {
-            background: #222630;
-            color: #aeb5c2;
+            background: #282828;
+            color: #b9b9b9;
             border-radius: 9px;
             padding: 4px 9px;
             font-size: 10px;
@@ -417,53 +461,53 @@ void MainWindow::buildUi()
         QPushButton {
             min-height: 18px;
             padding: 8px 13px;
-            border-radius: 8px;
+            border-radius: 3px;
             font-weight: 600;
         }
         QPushButton[role="quiet"] {
-            background: #22262f;
-            color: #cdd2dc;
-            border: 1px solid #343a46;
+            background: #262626;
+            color: #d0d0d0;
+            border: 1px solid #3a3a3a;
         }
-        QPushButton[role="quiet"]:hover { background: #2b303b; }
+        QPushButton[role="quiet"]:hover { background: #313131; }
         QPushButton:disabled {
-            background: #20232a;
-            color: #555c69;
-            border-color: #292d35;
+            background: #202020;
+            color: #616161;
+            border-color: #2b2b2b;
         }
         QTabWidget::pane {
-            background: #15181e;
-            border: 1px solid #2b303a;
-            border-radius: 9px;
+            background: #161616;
+            border: 1px solid #303030;
+            border-radius: 0;
         }
         QTabBar::tab {
-            background: #171a21;
-            color: #8e96a5;
-            border: 1px solid #2b303a;
+            background: #191919;
+            color: #999999;
+            border: 1px solid #303030;
             padding: 8px 16px;
         }
-        QTabBar::tab:selected { background: #242933; color: #ffffff; }
+        QTabBar::tab:selected { background: #303030; color: #ffffff; }
         QPlainTextEdit#logView,
         QTableWidget#reportTable {
-            background: #11141a;
-            alternate-background-color: #15181e;
-            color: #c7ccd6;
-            border: 1px solid #292e38;
+            background: #121212;
+            alternate-background-color: #181818;
+            color: #cecece;
+            border: 1px solid #303030;
             border-radius: 9px;
             selection-background-color: #3a1b25;
             selection-color: #ffffff;
         }
         QHeaderView::section {
-            background: #1c2027;
-            color: #7f8796;
+            background: #202020;
+            color: #949494;
             border: none;
-            border-bottom: 1px solid #2a2f39;
+            border-bottom: 1px solid #303030;
             padding: 8px;
             font-size: 10px;
             font-weight: 700;
         }
         QTableCornerButton::section {
-            background: #1c2027;
+            background: #202020;
             border: none;
         }
         QScrollBar:vertical {
@@ -472,18 +516,60 @@ void MainWindow::buildUi()
             margin: 3px;
         }
         QScrollBar::handle:vertical {
-            background: #353b47;
+            background: #3b3b3b;
             border-radius: 3px;
             min-height: 24px;
         }
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
         QToolTip {
-            background: #252a33;
+            background: #292929;
             color: #f4f5f7;
-            border: 1px solid #3a414e;
+            border: 1px solid #444444;
             padding: 5px;
         }
     )"));
+    retranslateUi();
+}
+
+void MainWindow::changeEvent(QEvent *event)
+{
+    QMainWindow::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange && m_title != nullptr) {
+        retranslateUi();
+    }
+}
+
+void MainWindow::retranslateUi()
+{
+    setWindowTitle(tr("MSI Keyboard"));
+    m_settingsMenu->setTitle(tr("Settings"));
+    m_languageMenu->setTitle(tr("Language"));
+    m_englishAction->setText(tr("English"));
+    m_russianAction->setText(tr("Russian"));
+    m_debugMenu->setTitle(tr("Debug"));
+    m_logsAction->setText(tr("Logs"));
+    m_telemetryAction->setText(tr("Telemetry"));
+
+    const QString language = m_languageManager == nullptr
+                                 ? LanguageManager::defaultLanguage()
+                                 : m_languageManager->language();
+    m_englishAction->setChecked(language == QStringLiteral("en"));
+    m_russianAction->setChecked(language == QStringLiteral("ru"));
+
+    m_title->setText(tr("MSI Keyboard manager for Linux"));
+    m_batteryCaption->setText(tr("BATTERY"));
+    m_modeValue->setText(tr("READ ONLY MODE"));
+    m_modeCaption->clear();
+    m_modeCaption->setVisible(false);
+    m_deviceCaption->setText(tr("DEVICE"));
+    m_deviceStatusTitle->setText(tr("Status"));
+
+    refreshConnectionUi();
+    if (m_connectionState == ConnectionState::Connected
+        && m_lastBatteryReading.has_value()) {
+        setBattery(*m_lastBatteryReading);
+    }
+    m_batteryGauge->update();
 }
 
 QString MainWindow::profilePath() const
@@ -492,14 +578,17 @@ QString MainWindow::profilePath() const
 }
 
 void MainWindow::setStatus(
-    QLabel *dot,
-    QLabel *detail,
-    const QString &tone,
-    const QString &text)
+    QLabel *dot, QLabel *detail, const QString &tone, const QString &text)
 {
     dot->setProperty("tone", tone);
+    detail->setProperty("tone", tone);
     detail->setText(text);
+    if (auto *glow =
+            qobject_cast<QGraphicsDropShadowEffect *>(dot->graphicsEffect())) {
+        glow->setEnabled(tone == QStringLiteral("ok"));
+    }
     refreshStyle(dot);
+    refreshStyle(detail);
 }
 
 void MainWindow::logDebug(const QString &message)
@@ -514,129 +603,153 @@ void MainWindow::reloadProtocolProfile()
     QString error;
     m_profile = BatteryDecoder::loadProfile(profilePath(), &error);
     if (m_profile.has_value() && m_profile->canDecodePercentage()) {
-        m_protocolStatus->setToolTip(m_profile->path);
-        setStatus(
-            m_protocolDot,
-            m_protocolStatus,
-            QStringLiteral("ok"),
-            QStringLiteral("Декодер готов"));
-        logDebug(QStringLiteral("Профиль протокола загружен: %1").arg(m_profile->path));
+        logDebug(tr("Protocol profile loaded: %1").arg(m_profile->path));
         QTimer::singleShot(0, this, &MainWindow::requestBattery);
     } else {
         m_profile.reset();
-        m_protocolStatus->setToolTip(profilePath());
-        setStatus(
-            m_protocolDot,
-            m_protocolStatus,
-            QStringLiteral("warn"),
-            QStringLiteral("Профиль батареи недоступен"));
         logDebug(
-            error.isEmpty()
-                ? QStringLiteral("Профиль батареи недоступен")
-                : QStringLiteral("Ошибка профиля: %1").arg(error));
+            error.isEmpty() ? tr("Battery profile unavailable")
+                            : tr("Profile error: %1").arg(error));
+    }
+}
+
+void MainWindow::clearBattery()
+{
+    m_lastBatteryReading.reset();
+    m_batteryGauge->setValue(std::nullopt);
+}
+
+void MainWindow::setConnectionState(const ConnectionState state)
+{
+    m_connectionState = state;
+    refreshConnectionUi();
+}
+
+void MainWindow::refreshConnectionUi()
+{
+    const bool connected = m_connectionState == ConnectionState::Connected;
+    m_batteryGauge->setDeviceConnected(connected);
+    m_deviceImage->setVisible(connected);
+
+    switch (m_connectionState) {
+    case ConnectionState::Absent:
+        m_deviceLabel->setText(tr("No MSI keyboard detected"));
+        m_batteryValue->setText(tr("No device"));
+        m_batteryState->setText(tr("Connect a keyboard or its USB receiver."));
+        setStatus(
+            m_deviceDot,
+            m_deviceStatus,
+            QStringLiteral("off"),
+            tr("No supported keyboard detected"));
+        break;
+    case ConnectionState::Probing:
+        m_deviceLabel->setText(tr("MSI Strike Pro"));
+        m_batteryValue->setText(tr("Checking…"));
+        m_batteryState->setText(
+            tr("Waiting for a response from the keyboard."));
+        setStatus(
+            m_deviceDot,
+            m_deviceStatus,
+            QStringLiteral("off"),
+            tr("Checking connection"));
+        break;
+    case ConnectionState::Connected: {
+        const bool wired = m_activeProductId == kStrikeProWiredProductId;
+        m_deviceLabel->setText(
+            wired ? tr("MSI Strike Pro · USB")
+                  : tr("MSI Strike Pro · 2.4 GHz"));
+        setStatus(
+            m_deviceDot,
+            m_deviceStatus,
+            QStringLiteral("ok"),
+            wired ? tr("Connected via USB") : tr("Connected via 2.4 GHz"));
+        if (!m_lastBatteryReading.has_value()) {
+            m_batteryValue->setText(tr("Reading battery…"));
+            m_batteryState->setText(tr("Waiting for battery data."));
+        }
+        break;
+    }
+    case ConnectionState::AccessDenied:
+        m_deviceLabel->setText(tr("MSI Strike Pro"));
+        m_batteryValue->setText(tr("HID access required"));
+        m_batteryState->setText(
+            tr("The device is present, but Linux denied HID access."));
+        setStatus(
+            m_deviceDot,
+            m_deviceStatus,
+            QStringLiteral("problem"),
+            tr("Permission problem"));
+        break;
+    case ConnectionState::Unresponsive:
+        m_deviceLabel->setText(tr("MSI Strike Pro receiver"));
+        m_batteryValue->setText(tr("No response"));
+        m_batteryState->setText(tr(
+            "The USB transport is present, but the keyboard did not answer."));
+        setStatus(
+            m_deviceDot,
+            m_deviceStatus,
+            QStringLiteral("problem"),
+            tr("Keyboard not responding"));
+        break;
     }
 }
 
 void MainWindow::updateInterfaces(const QList<HidInterface> &interfaces)
 {
+    const ConnectionState previousState = m_connectionState;
     m_interfaces = interfaces;
-    const bool connected = !interfaces.isEmpty();
-    const HidInterface *batteryInterface = preferredBatteryInterface(interfaces);
-    const quint16 activeProductId =
-        batteryInterface == nullptr ? 0 : batteryInterface->productId;
-    const bool transportChanged = activeProductId != m_activeProductId;
-    m_activeProductId = activeProductId;
-    m_canQueryBattery =
-        batteryInterface != nullptr && batteryInterface->readable
-        && batteryInterface->writable;
+    const HidInterface *batteryInterface =
+        preferredBatteryInterface(interfaces);
+    const bool transportPresent = batteryInterface != nullptr;
+    m_canQueryBattery = hasAccessibleBatteryInterface(interfaces);
 
-    m_batteryGauge->setDeviceConnected(connected);
-    m_deviceImage->setVisible(connected);
-
-    m_connectionBadge->setText(
-        connected ? QStringLiteral("ПОДКЛЮЧЕНА") : QStringLiteral("НЕ ПОДКЛЮЧЕНА"));
-    m_connectionBadge->setProperty(
-        "tone", connected ? QStringLiteral("ok") : QStringLiteral("off"));
-    refreshStyle(m_connectionBadge);
-
-    if (!connected) {
-        if (transportChanged) {
-            logDebug(QStringLiteral("MSI Strike Pro отключена"));
+    if (!transportPresent) {
+        if (previousState != ConnectionState::Absent) {
+            logDebug(tr("MSI Strike Pro disconnected"));
         }
         ++m_batteryRequestGeneration;
         m_batteryRequestPending = false;
-        m_batteryGauge->setValue(std::nullopt);
-        m_batteryValue->setText(QStringLiteral("Нет устройства"));
-        m_batteryState->setText(
-            QStringLiteral("Ожидается USB-приёмник или проводное подключение."));
-        setStatus(
-            m_deviceDot,
-            m_deviceStatus,
-            QStringLiteral("off"),
-            QStringLiteral("Клавиатура не обнаружена"));
-        setStatus(
-            m_accessDot,
-            m_accessStatus,
-            QStringLiteral("off"),
-            QStringLiteral("Ожидание устройства"));
-        m_accessLabel->setText(
-            QStringLiteral("Подключите клавиатуру. Поиск выполняется автоматически."));
-        m_accessLabel->setProperty("tone", QStringLiteral("off"));
-        refreshStyle(m_accessLabel);
+        m_activeProductId = 0;
+        clearBattery();
+        setConnectionState(ConnectionState::Absent);
         return;
     }
 
-    const bool wired = activeProductId == kStrikeProWiredProductId;
-    m_deviceLabel->setText(
-        wired
-            ? QStringLiteral("MSI Strike Pro · USB")
-            : QStringLiteral("MSI Strike Pro · 2.4 ГГц"));
-    setStatus(
-        m_deviceDot,
-        m_deviceStatus,
-        QStringLiteral("ok"),
-        wired
-            ? QStringLiteral("Проводное подключение")
-            : QStringLiteral("Беспроводной приёмник"));
-
-    if (transportChanged) {
-        logDebug(
-            wired
-                ? QStringLiteral("MSI Strike Pro обнаружена через USB")
-                : QStringLiteral("MSI Strike Pro обнаружена через приёмник 2.4 ГГц"));
+    if (!m_canQueryBattery) {
         ++m_batteryRequestGeneration;
         m_batteryRequestPending = false;
-        m_batteryGauge->setValue(std::nullopt);
-        m_batteryValue->setText(QStringLiteral("Получение заряда…"));
-        m_batteryState->setText(QStringLiteral("Первый запрос выполняется автоматически."));
+        m_activeProductId = 0;
+        clearBattery();
+        setConnectionState(ConnectionState::AccessDenied);
+        return;
     }
 
-    if (m_canQueryBattery) {
-        setStatus(
-            m_accessDot,
-            m_accessStatus,
-            QStringLiteral("ok"),
-            QStringLiteral("Канал батареи доступен"));
-        m_accessLabel->setText(
-            QStringLiteral("Заряд обновляется автоматически каждые 15 секунд."));
-        m_accessLabel->setProperty("tone", QStringLiteral("ok"));
-        QTimer::singleShot(0, this, &MainWindow::requestBattery);
-    } else {
-        setStatus(
-            m_accessDot,
-            m_accessStatus,
-            QStringLiteral("warn"),
-            QStringLiteral("Нет доступа к hidraw"));
-        m_accessLabel->setText(
-            QStringLiteral("Установите udev-правило, чтобы читать заряд."));
-        m_accessLabel->setProperty("tone", QStringLiteral("warn"));
-        if (!m_batteryGauge->value().has_value()) {
-            m_batteryValue->setText(QStringLiteral("Нужен доступ к HID"));
-            m_batteryState->setText(
-                QStringLiteral("Устройство найдено, но чтение батареи закрыто системой."));
-        }
+    const bool activeTransportStillPresent =
+        m_activeProductId != 0 && hasProduct(interfaces, m_activeProductId);
+    if (m_connectionState == ConnectionState::Connected
+        && activeTransportStillPresent) {
+        refreshConnectionUi();
+        return;
     }
-    refreshStyle(m_accessLabel);
+
+    ++m_batteryRequestGeneration;
+    m_batteryRequestPending = false;
+    m_activeProductId = 0;
+    clearBattery();
+    setConnectionState(ConnectionState::Probing);
+    QTimer::singleShot(0, this, &MainWindow::requestBattery);
+}
+
+void MainWindow::handleDeviceEvent()
+{
+    ++m_batteryRequestGeneration;
+    m_batteryRequestPending = false;
+    m_activeProductId = 0;
+    clearBattery();
+    if (m_canQueryBattery) {
+        setConnectionState(ConnectionState::Probing);
+    }
+    QTimer::singleShot(125, this, &MainWindow::requestBattery);
 }
 
 void MainWindow::requestBattery()
@@ -648,36 +761,31 @@ void MainWindow::requestBattery()
 
     QString error;
     if (!m_monitor->requestBattery(&error)) {
-        logDebug(QStringLiteral("Battery query: %1").arg(error));
-        if (!m_batteryGauge->value().has_value()) {
-            m_batteryValue->setText(QStringLiteral("Нет ответа"));
-            m_batteryState->setText(error);
-        }
+        logDebug(tr("Battery query: %1").arg(error));
+        ++m_batteryRequestGeneration;
+        m_batteryRequestPending = false;
+        m_activeProductId = 0;
+        clearBattery();
+        setConnectionState(
+            m_canQueryBattery ? ConnectionState::Unresponsive
+                              : ConnectionState::AccessDenied);
         return;
     }
 
     m_batteryRequestPending = true;
     const quint64 generation = ++m_batteryRequestGeneration;
-    if (!m_batteryGauge->value().has_value()) {
-        m_batteryValue->setText(QStringLiteral("Получение заряда…"));
-    }
 
-    QTimer::singleShot(
-        kBatteryResponseTimeoutMs,
-        this,
-        [this, generation] {
-            if (!m_batteryRequestPending
-                || generation != m_batteryRequestGeneration) {
-                return;
-            }
-            m_batteryRequestPending = false;
-            logDebug(QStringLiteral("Клавиатура не ответила на battery-query"));
-            if (!m_batteryGauge->value().has_value()) {
-                m_batteryValue->setText(QStringLiteral("Нет ответа"));
-                m_batteryState->setText(
-                    QStringLiteral("Следующая попытка будет выполнена автоматически."));
-            }
-        });
+    QTimer::singleShot(kBatteryResponseTimeoutMs, this, [this, generation] {
+        if (!m_batteryRequestPending
+            || generation != m_batteryRequestGeneration) {
+            return;
+        }
+        m_batteryRequestPending = false;
+        logDebug(tr("The keyboard did not answer the battery query"));
+        m_activeProductId = 0;
+        clearBattery();
+        setConnectionState(ConnectionState::Unresponsive);
+    });
 }
 
 void MainWindow::recordReport(const HidReport &report)
@@ -691,24 +799,32 @@ void MainWindow::recordReport(const HidReport &report)
     }
 
     m_batteryRequestPending = false;
+    m_activeProductId = report.productId;
+    if (m_connectionState != ConnectionState::Connected) {
+        logDebug(
+            report.productId == kStrikeProWiredProductId
+                ? tr("MSI Strike Pro answered over USB")
+                : tr("MSI Strike Pro answered through the 2.4 GHz receiver"));
+    }
+    setConnectionState(ConnectionState::Connected);
     setBattery(*reading);
 }
 
 void MainWindow::setBattery(const BatteryReading &reading)
 {
+    m_lastBatteryReading = reading;
     const std::optional<int> previousValue = m_batteryGauge->value();
     m_batteryGauge->setValue(reading.percent);
     m_batteryValue->setText(QStringLiteral("%1%").arg(reading.percent));
     if (reading.charging.has_value()) {
         m_batteryState->setText(
-            *reading.charging
-                ? QStringLiteral("Клавиатура подключена к зарядке.")
-                : QStringLiteral("Клавиатура работает от аккумулятора."));
+            *reading.charging ? tr("The keyboard is charging.")
+                              : tr("The keyboard is running on battery."));
     } else {
-        m_batteryState->setText(QStringLiteral("Заряд получен через USB HID."));
+        m_batteryState->setText(tr("Battery status received over USB HID."));
     }
     if (!previousValue.has_value() || *previousValue != reading.percent) {
-        logDebug(QStringLiteral("Заряд обновлён: %1%").arg(reading.percent));
+        logDebug(tr("Battery updated: %1%").arg(reading.percent));
     }
 }
 

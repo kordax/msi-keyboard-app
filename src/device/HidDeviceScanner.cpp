@@ -39,7 +39,8 @@ QMap<QString, QString> readProperties(const QString &path)
 
 int interfaceNumberFromPath(const QString &canonicalPath)
 {
-    static const QRegularExpression pattern(QStringLiteral(R"(:1\.([0-9]+)(?:/|$))"));
+    static const QRegularExpression pattern(
+        QStringLiteral(R"(:1\.([0-9]+)(?:/|$))"));
     const QRegularExpressionMatch match = pattern.match(canonicalPath);
     return match.hasMatch() ? match.captured(1).toInt() : -1;
 }
@@ -52,12 +53,15 @@ QList<HidInterface> HidDeviceScanner::scan()
     const QDir hidraw(QStringLiteral("/sys/class/hidraw"));
 
     for (const QString &entry : hidraw.entryList(
-             {QStringLiteral("hidraw*")}, QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
+             {QStringLiteral("hidraw*")},
+             QDir::Dirs | QDir::NoDotAndDotDot,
+             QDir::Name)) {
         const QString classPath = hidraw.absoluteFilePath(entry);
         const QString devicePath = classPath + QStringLiteral("/device");
         const QMap<QString, QString> properties =
             readProperties(devicePath + QStringLiteral("/uevent"));
-        const QStringList hidId = properties.value(QStringLiteral("HID_ID")).split(':');
+        const QStringList hidId =
+            properties.value(QStringLiteral("HID_ID")).split(':');
         if (hidId.size() != 3) {
             continue;
         }
@@ -77,9 +81,12 @@ QList<HidInterface> HidDeviceScanner::scan()
         interface.name = properties.value(QStringLiteral("HID_NAME"));
         interface.vendorId = vendorId;
         interface.productId = productId;
-        interface.interfaceNumber = interfaceNumberFromPath(interface.sysfsPath);
-        interface.readable = ::access(interface.devNode.toLocal8Bit().constData(), R_OK) == 0;
-        interface.writable = ::access(interface.devNode.toLocal8Bit().constData(), W_OK) == 0;
+        interface.interfaceNumber =
+            interfaceNumberFromPath(interface.sysfsPath);
+        interface.readable =
+            ::access(interface.devNode.toLocal8Bit().constData(), R_OK) == 0;
+        interface.writable =
+            ::access(interface.devNode.toLocal8Bit().constData(), W_OK) == 0;
 
         QFile descriptor(devicePath + QStringLiteral("/report_descriptor"));
         if (descriptor.open(QIODevice::ReadOnly)) {
@@ -89,12 +96,14 @@ QList<HidInterface> HidDeviceScanner::scan()
         result.push_back(interface);
     }
 
-    std::ranges::sort(result, [](const HidInterface &left, const HidInterface &right) {
-        if (left.productId != right.productId) {
-            return left.productId < right.productId;
-        }
-        return left.interfaceNumber < right.interfaceNumber;
-    });
+    std::ranges::sort(
+        result,
+        [](const HidInterface &left, const HidInterface &right) {
+            if (left.productId != right.productId) {
+                return left.productId < right.productId;
+            }
+            return left.interfaceNumber < right.interfaceNumber;
+        });
     return result;
 }
 

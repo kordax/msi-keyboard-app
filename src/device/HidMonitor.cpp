@@ -9,7 +9,9 @@
 #include <cstring>
 #include <fcntl.h>
 #include <linux/hidraw.h>
+#include <linux/netlink.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 namespace strikepro {
@@ -19,26 +21,26 @@ QString interfaceSignature(const QList<HidInterface> &interfaces)
 {
     QStringList parts;
     for (const HidInterface &interface : interfaces) {
-        parts.push_back(
-            QStringLiteral("%1:%2:%3:%4:%5")
-                .arg(interface.devNode)
-                .arg(interface.productId)
-                .arg(interface.interfaceNumber)
-                .arg(interface.readable)
-                .arg(interface.writable));
+        parts.push_back(QStringLiteral("%1:%2:%3:%4:%5")
+                            .arg(interface.devNode)
+                            .arg(interface.productId)
+                            .arg(interface.interfaceNumber)
+                            .arg(interface.readable)
+                            .arg(interface.writable));
     }
     return parts.join('|');
 }
 
-const HidInterface *findInterface(const QList<HidInterface> &interfaces, const QString &devNode)
+const HidInterface *
+findInterface(const QList<HidInterface> &interfaces, const QString &devNode)
 {
-    const auto found = std::ranges::find(interfaces, devNode, &HidInterface::devNode);
+    const auto found =
+        std::ranges::find(interfaces, devNode, &HidInterface::devNode);
     return found == interfaces.end() ? nullptr : &*found;
 }
 
 const HidInterface *findPreferredInterface(
-    const QList<HidInterface> &interfaces,
-    int interfaceNumber)
+    const QList<HidInterface> &interfaces, int interfaceNumber)
 {
     for (const quint16 productId :
          {kStrikeProWiredProductId, kStrikeProWirelessProductId}) {
@@ -46,7 +48,7 @@ const HidInterface *findPreferredInterface(
             interfaces,
             [productId, interfaceNumber](const HidInterface &interface) {
                 return interface.productId == productId
-                    && interface.interfaceNumber == interfaceNumber;
+                       && interface.interfaceNumber == interfaceNumber;
             });
         if (found != interfaces.end()) {
             return &*found;
@@ -55,53 +57,49 @@ const HidInterface *findPreferredInterface(
     return nullptr;
 }
 
+bool isTargetDeviceEvent(const QByteArray &event)
+{
+    const QByteArray lower = event.toLower();
+    const bool relevantSubsystem = lower.contains("subsystem=hidraw")
+                                   || lower.contains("subsystem=hid")
+                                   || lower.contains("subsystem=usb");
+    const bool relevantAction =
+        lower.startsWith("add@") || lower.startsWith("remove@")
+        || lower.startsWith("change@") || lower.startsWith("bind@")
+        || lower.startsWith("unbind@") || lower.contains("action=add")
+        || lower.contains("action=remove") || lower.contains("action=change")
+        || lower.contains("action=bind") || lower.contains("action=unbind");
+    const bool strikePro =
+        lower.contains("0db0")
+        && (lower.contains("1620") || lower.contains("b231"));
+    return relevantSubsystem && relevantAction && strikePro;
+}
+
 } // namespace
 
 HidMonitor::HidMonitor(QObject *parent)
     : QObject(parent)
 {
-    m_refreshTimer.setInterval(2000);
+    m_refreshTimer.setInterval(1000);
     connect(&m_refreshTimer, &QTimer::timeout, this, &HidMonitor::refresh);
     m_refreshTimer.start();
+
+    m_eventRefreshTimer.setSingleShot(true);
+    m_eventRefreshTimer.setInterval(75);
+    connect(&m_eventRefreshTimer, &QTimer::timeout, this, &HidMonitor::refresh);
+    setupUeventMonitor();
+
     QTimer::singleShot(0, this, &HidMonitor::refresh);
 }
 
 HidMonitor::~HidMonitor()
 {
+    closeUeventMonitor();
     closeReaders();
 }
 
 bool HidMonitor::requestBattery(QString *error)
 {
-    const HidInterface *interface = findPreferredInterface(m_interfaces, 1);
-    if (interface == nullptr) {
-        if (error != nullptr) {
-            *error = QStringLiteral("HID-интерфейс 1 не найден");
-        }
-        return false;
-    }
-    if (!interface->readable || !interface->writable) {
-        if (error != nullptr) {
-            *error = QStringLiteral(
-                         "Нет доступа к interface 1 устройства 0db0:%1. "
-                         "Переустановите udev-правило.")
-                         .arg(interface->productId, 4, 16, QLatin1Char('0'));
-        }
-        return false;
-    }
-
-    const QByteArray nativePath = interface->devNode.toLocal8Bit();
-    const int fd = ::open(nativePath.constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
-    if (fd < 0) {
-        if (error != nullptr) {
-            *error = QStringLiteral("Нет доступа на запись к %1: %2")
-                         .arg(
-                             interface->devNode,
-                             QString::fromLocal8Bit(std::strerror(errno)));
-        }
-        return false;
-    }
-
     // Interface 1 has an unnumbered 64-byte output report. hidraw requires
     // a leading zero report ID, followed by the exact query captured from
     // MSI Center ten times across wireless and wired traces.
@@ -111,28 +109,80 @@ bool HidMonitor::requestBattery(QString *error)
     report[3] = static_cast<char>(0x01);
     report[7] = static_cast<char>(0x05);
 
-    const ssize_t written = ::write(fd, report.constData(), report.size());
-    const int savedErrno = errno;
-    ::close(fd);
-    if (written != report.size()) {
-        if (error != nullptr) {
-            *error =
-                written < 0
-                ? QStringLiteral("Не удалось отправить запрос батареи: %1")
+    bool interfaceFound = false;
+    bool accessibleInterfaceFound = false;
+    bool querySent = false;
+    QString lastError;
+    for (const quint16 productId :
+         {kStrikeProWiredProductId, kStrikeProWirelessProductId}) {
+        const auto found = std::ranges::find_if(
+            m_interfaces,
+            [productId](const HidInterface &interface) {
+                return interface.productId == productId
+                       && interface.interfaceNumber == 1;
+            });
+        if (found == m_interfaces.end()) {
+            continue;
+        }
+
+        interfaceFound = true;
+        if (!found->readable || !found->writable) {
+            lastError = tr("No access to interface 1 of device 0db0:%1. "
+                           "Reinstall the udev rule.")
+                            .arg(found->productId, 4, 16, QLatin1Char('0'));
+            continue;
+        }
+        accessibleInterfaceFound = true;
+
+        const QByteArray nativePath = found->devNode.toLocal8Bit();
+        const int fd =
+            ::open(nativePath.constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
+        if (fd < 0) {
+            lastError = tr("No write access to %1: %2")
+                            .arg(
+                                found->devNode,
+                                QString::fromLocal8Bit(std::strerror(errno)));
+            continue;
+        }
+
+        const ssize_t written = ::write(fd, report.constData(), report.size());
+        const int savedErrno = errno;
+        ::close(fd);
+        if (written == report.size()) {
+            querySent = true;
+            continue;
+        }
+        lastError =
+            written < 0
+                ? tr("Could not send the battery query: %1")
                       .arg(QString::fromLocal8Bit(std::strerror(savedErrno)))
-                : QStringLiteral("Запрос батареи отправлен не полностью: %1 из %2 байт")
+                : tr("Battery query was incomplete: %1 of %2 bytes")
                       .arg(written)
                       .arg(report.size());
-        }
-        return false;
     }
-    return true;
+
+    if (querySent) {
+        return true;
+    }
+    if (error != nullptr) {
+        if (!interfaceFound) {
+            *error = tr("HID interface 1 was not found");
+        } else if (!accessibleInterfaceFound && lastError.isEmpty()) {
+            *error = tr("No accessible HID interface 1 was found");
+        } else {
+            *error = lastError;
+        }
+    }
+    return false;
 }
 
 void HidMonitor::refresh()
 {
     const QList<HidInterface> current = HidDeviceScanner::scan();
-    const bool changed = interfaceSignature(current) != interfaceSignature(m_interfaces);
+    const bool changed =
+        !m_hasRefreshed
+        || interfaceSignature(current) != interfaceSignature(m_interfaces);
+    m_hasRefreshed = true;
     m_interfaces = current;
     if (!changed) {
         return;
@@ -140,6 +190,85 @@ void HidMonitor::refresh()
 
     rebuildReaders();
     emit interfacesChanged(m_interfaces);
+}
+
+void HidMonitor::setupUeventMonitor()
+{
+    m_ueventFd = ::socket(
+        AF_NETLINK,
+        SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC,
+        NETLINK_KOBJECT_UEVENT);
+    if (m_ueventFd < 0) {
+        return;
+    }
+
+    int receiveBufferSize = 256 * 1024;
+    ::setsockopt(
+        m_ueventFd,
+        SOL_SOCKET,
+        SO_RCVBUF,
+        &receiveBufferSize,
+        sizeof(receiveBufferSize));
+
+    sockaddr_nl address{};
+    address.nl_family = AF_NETLINK;
+    address.nl_groups = 1;
+    if (::bind(
+            m_ueventFd,
+            reinterpret_cast<const sockaddr *>(&address),
+            sizeof(address))
+        < 0) {
+        ::close(m_ueventFd);
+        m_ueventFd = -1;
+        return;
+    }
+
+    m_ueventNotifier =
+        new QSocketNotifier(m_ueventFd, QSocketNotifier::Read, this);
+    connect(
+        m_ueventNotifier,
+        &QSocketNotifier::activated,
+        this,
+        &HidMonitor::readUevents);
+}
+
+void HidMonitor::closeUeventMonitor()
+{
+    if (m_ueventNotifier != nullptr) {
+        m_ueventNotifier->setEnabled(false);
+        delete m_ueventNotifier;
+        m_ueventNotifier = nullptr;
+    }
+    if (m_ueventFd >= 0) {
+        ::close(m_ueventFd);
+        m_ueventFd = -1;
+    }
+}
+
+void HidMonitor::readUevents()
+{
+    bool targetEventReceived = false;
+    for (;;) {
+        char buffer[8192] = {};
+        const ssize_t count =
+            ::recv(m_ueventFd, buffer, sizeof(buffer), MSG_DONTWAIT);
+        if (count > 0) {
+            targetEventReceived |=
+                isTargetDeviceEvent(QByteArray(buffer, count));
+            continue;
+        }
+        if (count < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+            emit diagnosticMessage(
+                tr("USB event monitor failed: %1")
+                    .arg(QString::fromLocal8Bit(std::strerror(errno))));
+        }
+        break;
+    }
+
+    if (targetEventReceived) {
+        emit deviceEvent();
+        m_eventRefreshTimer.start();
+    }
 }
 
 void HidMonitor::rebuildReaders()
@@ -150,23 +279,29 @@ void HidMonitor::rebuildReaders()
         // Interface 1 is the bidirectional vendor channel. Interface 4 publishes
         // vendor input report 0x0d. We deliberately do not consume keyboard input.
         if (!interface.readable
-            || (interface.interfaceNumber != 1 && interface.interfaceNumber != 4)) {
+            || (interface.interfaceNumber != 1
+                && interface.interfaceNumber != 4)) {
             continue;
         }
 
         const QByteArray nativePath = interface.devNode.toLocal8Bit();
-        const int fd = ::open(nativePath.constData(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+        const int fd =
+            ::open(nativePath.constData(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
         if (fd < 0) {
             emit diagnosticMessage(
-                QStringLiteral("Не удалось открыть %1: %2")
-                    .arg(interface.devNode, QString::fromLocal8Bit(std::strerror(errno))));
+                tr("Could not open %1: %2")
+                    .arg(
+                        interface.devNode,
+                        QString::fromLocal8Bit(std::strerror(errno))));
             continue;
         }
 
         auto *notifier = new QSocketNotifier(fd, QSocketNotifier::Read, this);
-        connect(notifier, &QSocketNotifier::activated, this, [this, path = interface.devNode] {
-            readAvailable(path);
-        });
+        connect(
+            notifier,
+            &QSocketNotifier::activated,
+            this,
+            [this, path = interface.devNode] { readAvailable(path); });
         m_fds.insert(interface.devNode, fd);
         m_notifiers.insert(interface.devNode, notifier);
     }
@@ -210,8 +345,10 @@ void HidMonitor::readAvailable(const QString &devNode)
         }
         if (count < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
             emit diagnosticMessage(
-                QStringLiteral("Ошибка чтения %1: %2")
-                    .arg(devNode, QString::fromLocal8Bit(std::strerror(errno))));
+                tr("Read error on %1: %2")
+                    .arg(
+                        devNode,
+                        QString::fromLocal8Bit(std::strerror(errno))));
         }
         break;
     }
@@ -240,19 +377,22 @@ void HidMonitor::takeReadOnlySnapshot()
         const HidInterface *interface =
             findPreferredInterface(m_interfaces, query.interfaceNumber);
         if (interface == nullptr) {
-            emit diagnosticMessage(
-                QStringLiteral("HID-интерфейс %1 не найден").arg(query.interfaceNumber));
+            emit diagnosticMessage(tr("HID interface %1 was not found")
+                                       .arg(query.interfaceNumber));
             continue;
         }
 
         const QByteArray nativePath = interface->devNode.toLocal8Bit();
-        int fd = ::open(nativePath.constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
+        int fd =
+            ::open(nativePath.constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
         if (fd < 0) {
-            fd = ::open(nativePath.constData(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+            fd = ::open(
+                nativePath.constData(),
+                O_RDONLY | O_NONBLOCK | O_CLOEXEC);
         }
         if (fd < 0) {
             emit diagnosticMessage(
-                QStringLiteral("Нет доступа к %1. Установите udev-правило из packaging.")
+                tr("No access to %1. Install the udev rule from packaging.")
                     .arg(interface->devNode));
             continue;
         }
@@ -260,19 +400,18 @@ void HidMonitor::takeReadOnlySnapshot()
         QByteArray data(query.size, '\0');
         data[0] = static_cast<char>(query.reportId);
         const unsigned long request =
-            query.source == ReportSource::Feature
-            ? HIDIOCGFEATURE(query.size)
+            query.source == ReportSource::Feature  ? HIDIOCGFEATURE(query.size)
             : query.source == ReportSource::Output ? HIDIOCGOUTPUT(query.size)
                                                    : HIDIOCGINPUT(query.size);
-        const QString operation =
-            query.source == ReportSource::Feature
-            ? QStringLiteral("GET_FEATURE")
-            : query.source == ReportSource::Output ? QStringLiteral("GET_OUTPUT")
-                                                   : QStringLiteral("GET_INPUT");
+        const QString operation = query.source == ReportSource::Feature
+                                      ? QStringLiteral("GET_FEATURE")
+                                  : query.source == ReportSource::Output
+                                      ? QStringLiteral("GET_OUTPUT")
+                                      : QStringLiteral("GET_INPUT");
         const int result = ::ioctl(fd, request, data.data());
         if (result < 0) {
             emit diagnosticMessage(
-                QStringLiteral("%1 if%2 0x%3: %4")
+                tr("%1 if%2 0x%3: %4")
                     .arg(operation)
                     .arg(query.interfaceNumber)
                     .arg(query.reportId, 2, 16, QLatin1Char('0'))

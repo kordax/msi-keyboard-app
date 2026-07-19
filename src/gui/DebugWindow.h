@@ -7,6 +7,8 @@
 #include <QList>
 
 class QLabel;
+class QDialogButtonBox;
+class QEvent;
 class QPlainTextEdit;
 class QPushButton;
 class QTableWidget;
@@ -19,7 +21,7 @@ class HidMonitor;
 class DebugWindow final : public QDialog {
     Q_OBJECT
 
-public:
+  public:
     enum class Tab {
         Logs,
         Telemetry,
@@ -29,29 +31,42 @@ public:
 
     void showTab(Tab tab);
 
-public slots:
+  protected:
+    void changeEvent(QEvent *event) override;
+
+  public slots:
     void setInterfaces(const QList<strikepro::HidInterface> &interfaces);
     void recordReport(const strikepro::HidReport &report);
     void recordMessage(const QString &message);
 
-signals:
+  signals:
     void protocolReloadRequested();
 
-private slots:
+  private slots:
     void clearLogs();
     void clearTelemetry();
     void exportDiagnostics();
 
-private:
+  private:
     void buildUi(HidMonitor *monitor);
+    void retranslateUi();
+    void updateReportCount();
 
     QList<HidInterface> m_interfaces;
     QJsonArray m_reportLog;
     QTabWidget *m_tabs = nullptr;
     QPlainTextEdit *m_logView = nullptr;
     QTableWidget *m_reportTable = nullptr;
+    QLabel *m_logsTitle = nullptr;
+    QLabel *m_telemetryTitle = nullptr;
+    QLabel *m_telemetrySubtitle = nullptr;
     QLabel *m_reportCount = nullptr;
     QPushButton *m_snapshotButton = nullptr;
+    QPushButton *m_clearLogsButton = nullptr;
+    QPushButton *m_reloadButton = nullptr;
+    QPushButton *m_clearTelemetryButton = nullptr;
+    QPushButton *m_exportButton = nullptr;
+    QDialogButtonBox *m_buttons = nullptr;
 };
 
 } // namespace strikepro

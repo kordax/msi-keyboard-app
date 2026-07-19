@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if command -v udevadm >/dev/null 2>&1; then
+    udevadm control --reload-rules || :
+    udevadm trigger --action=add --subsystem-match=hidraw || :
+fi

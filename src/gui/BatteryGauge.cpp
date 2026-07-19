@@ -5,6 +5,8 @@
 #include <QPropertyAnimation>
 
 #include <algorithm>
+#include <cmath>
+#include <numbers>
 
 namespace strikepro {
 namespace {
@@ -19,8 +21,14 @@ BatteryGauge::BatteryGauge(QWidget *parent)
     , m_animation(new QPropertyAnimation(this, "displayedValue", this))
 {
     setAttribute(Qt::WA_TranslucentBackground);
-    m_animation->setDuration(520);
-    m_animation->setEasingCurve(QEasingCurve::OutCubic);
+    m_animation->setDuration(1600);
+    m_animation->setEasingCurve(QEasingCurve::InOutCubic);
+}
+
+QColor BatteryGauge::colorForValue(qreal value)
+{
+    const qreal bounded = std::clamp(value, 0.0, 100.0);
+    return QColor::fromHsvF(static_cast<float>(bounded / 300.0), 0.82F, 0.93F);
 }
 
 void BatteryGauge::setValue(std::optional<int> value)
@@ -34,9 +42,21 @@ void BatteryGauge::setValue(std::optional<int> value)
     }
 
     const int bounded = std::clamp(*value, 0, 100);
-    const qreal previous = m_value.has_value() ? m_displayedValue : bounded;
+    const bool hadValue = m_value.has_value();
+    const qreal previous = hadValue ? m_displayedValue : bounded;
     m_value = bounded;
     m_animation->stop();
+    if (!hadValue || qAbs(previous - bounded) < 0.5) {
+        m_displayedValue = bounded;
+        update();
+        return;
+    }
+
+    const int duration = std::clamp(
+        1100 + static_cast<int>(qAbs(previous - bounded) * 12.0),
+        1100,
+        2300);
+    m_animation->setDuration(duration);
     m_animation->setStartValue(previous);
     m_animation->setEndValue(bounded);
     m_animation->start();
@@ -82,42 +102,67 @@ void BatteryGauge::paintEvent(QPaintEvent *event)
         side - 44.0,
         side - 44.0);
 
-    QPen trackPen(QColor(QStringLiteral("#2b303a")), 13.0, Qt::SolidLine, Qt::RoundCap);
-    if (!m_value.has_value()) {
-        trackPen.setStyle(Qt::CustomDashLine);
-        trackPen.setDashPattern({1.0, 1.1});
-    }
+    QPen trackPen(
+        QColor(QStringLiteral("#303030")),
+        13.0,
+        Qt::SolidLine,
+        Qt::RoundCap);
     painter.setPen(trackPen);
     painter.drawArc(arcRect, kStartAngle, kFullSpan);
 
     if (m_value.has_value()) {
-        QLinearGradient gradient(arcRect.topLeft(), arcRect.bottomRight());
-        gradient.setColorAt(0.0, QColor(QStringLiteral("#ff5a72")));
-        gradient.setColorAt(0.55, QColor(QStringLiteral("#ee2347")));
-        gradient.setColorAt(1.0, QColor(QStringLiteral("#9f102a")));
-        painter.setPen(QPen(QBrush(gradient), 13.0, Qt::SolidLine, Qt::RoundCap));
-        painter.drawArc(
-            arcRect,
-            kStartAngle,
-            static_cast<int>(kFullSpan * (m_displayedValue / 100.0)));
+        const QColor indicatorColor = colorForValue(m_displayedValue);
+        const qreal progress = std::clamp(m_displayedValue / 100.0, 0.0, 1.0);
+        const qreal totalSpan = kFullSpan * progress;
+
+        QColor glowColor = indicatorColor;
+        glowColor.setAlpha(38);
+        painter.setPen(QPen(glowColor, 22.0, Qt::SolidLine, Qt::RoundCap));
+        painter.drawArc(arcRect, kStartAngle, qRound(totalSpan));
+
+        QColor tailColor = indicatorColor;
+        tailColor.setAlpha(54);
+        QColor middleColor = indicatorColor;
+        middleColor.setAlpha(178);
+        QLinearGradient indicatorGradient(
+            arcRect.bottomLeft(),
+            arcRect.bottomRight());
+        indicatorGradient.setColorAt(0.0, tailColor);
+        indicatorGradient.setColorAt(0.52, middleColor);
+        indicatorGradient.setColorAt(1.0, indicatorColor);
+        painter.setPen(
+            QPen(QBrush(indicatorGradient), 13.0, Qt::SolidLine, Qt::RoundCap));
+        painter.drawArc(arcRect, kStartAngle, qRound(totalSpan));
+
+        const qreal radius = arcRect.width() / 2.0;
+        const qreal headAngle =
+            (kStartAngle + totalSpan) / 16.0 * std::numbers::pi / 180.0;
+        const QPointF head(
+            center.x() + radius * std::cos(headAngle),
+            center.y() - radius * std::sin(headAngle));
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(indicatorColor);
+        painter.drawEllipse(head, 6.5, 6.5);
     }
 
-    const QColor primary = m_deviceConnected ? QColor(QStringLiteral("#f7f8fb"))
-                                             : QColor(QStringLiteral("#777e8d"));
+    const QColor primary = m_deviceConnected
+                               ? QColor(QStringLiteral("#f7f8fb"))
+                               : QColor(QStringLiteral("#777e8d"));
     painter.setPen(primary);
     QFont valueFont = font();
     valueFont.setPixelSize(static_cast<int>(side * 0.22));
     valueFont.setWeight(QFont::DemiBold);
     painter.setFont(valueFont);
     const QString valueText =
-        m_value.has_value() ? QStringLiteral("%1%").arg(qRound(m_displayedValue))
-                            : QStringLiteral("—");
+        m_value.has_value()
+            ? QStringLiteral("%1%").arg(qRound(m_displayedValue))
+            : QStringLiteral("—");
     painter.drawText(
         QRectF(0.0, center.y() - side * 0.16, width(), side * 0.25),
         Qt::AlignCenter,
         valueText);
 
-    painter.setPen(QColor(QStringLiteral("#8d95a5")));
+    painter.setPen(QColor(QStringLiteral("#969696")));
     QFont captionFont = font();
     captionFont.setPixelSize(std::max(10, static_cast<int>(side * 0.052)));
     captionFont.setWeight(QFont::DemiBold);
@@ -126,7 +171,7 @@ void BatteryGauge::paintEvent(QPaintEvent *event)
     painter.drawText(
         QRectF(0.0, center.y() + side * 0.09, width(), side * 0.12),
         Qt::AlignHCenter | Qt::AlignTop,
-        QStringLiteral("BATTERY"));
+        tr("BATTERY"));
 }
 
 } // namespace strikepro

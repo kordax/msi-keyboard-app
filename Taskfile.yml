@@ -3,11 +3,16 @@ version: "3"
 vars:
   RELEASE_DIR: build/release
   DEBUG_DIR: build/debug
+  SANITIZER_DIR: build/sanitizers
+  TOOLS_DIR: .cache/tools
+  ACTIONLINT: "{{.TOOLS_DIR}}/actionlint-1.7.12"
+  GITLEAKS: "{{.TOOLS_DIR}}/gitleaks-8.30.1"
+  CMAKE_CONFIGURE_ARGS: '{{default "" .CMAKE_CONFIGURE_ARGS}}'
 
 tasks:
   default:
     cmds:
-      - task: smoke
+      - task: check
 
   build:
     desc: Release build
@@ -17,14 +22,20 @@ tasks:
   build-release:
     internal: true
     cmds:
-      - cmake -S . -B "{{.RELEASE_DIR}}" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - cmake -S . -B "{{.RELEASE_DIR}}" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON {{.CMAKE_CONFIGURE_ARGS}}
       - cmake --build "{{.RELEASE_DIR}}" --parallel
 
   build-debug:
     internal: true
     cmds:
-      - cmake -S . -B "{{.DEBUG_DIR}}" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
+      - cmake -S . -B "{{.DEBUG_DIR}}" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON {{.CMAKE_CONFIGURE_ARGS}}
       - cmake --build "{{.DEBUG_DIR}}" --parallel
+
+  rebuild:
+    desc: Reconfigure and rebuild Release from scratch
+    cmds:
+      - cmake --fresh -S . -B "{{.RELEASE_DIR}}" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON {{.CMAKE_CONFIGURE_ARGS}}
+      - cmake --build "{{.RELEASE_DIR}}" --parallel
 
   test:
     desc: Release build and tests
@@ -37,12 +48,86 @@ tasks:
     cmds:
       - task: test
       - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --version'
+      - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --language ru --version'
 
   debug:
     desc: Debug build and tests
     cmds:
       - task: build-debug
       - ctest --test-dir "{{.DEBUG_DIR}}" --output-on-failure
+
+  quality-prerequisites:
+    internal: true
+    preconditions:
+      - sh: command -v clang-format >/dev/null 2>&1
+        msg: Run `task setup-quality` to install clang-format.
+      - sh: command -v clang-tidy >/dev/null 2>&1
+        msg: Run `task setup-quality` to install clang-tidy.
+      - sh: command -v shellcheck >/dev/null 2>&1
+        msg: Run `task setup-quality` to install ShellCheck.
+
+  quality-tools:
+    internal: true
+    status:
+      - test -x "{{.ACTIONLINT}}"
+      - test -x "{{.GITLEAKS}}"
+    cmds:
+      - TOOLS_DIR="{{.TOOLS_DIR}}" ./scripts/linux/install-quality-tools.sh
+
+  setup-quality:
+    desc: Install local quality tools on Debian or Ubuntu
+    cmds:
+      - sudo apt-get update
+      - sudo apt-get install --yes --no-install-recommends ca-certificates clang-format clang-tidy curl shellcheck
+      - task: quality-tools
+
+  lint:
+    desc: Run C++, shell and GitHub Actions linters
+    cmds:
+      - task: quality-prerequisites
+      - task: quality-tools
+      - task: build-debug
+      - git ls-files -z -- '*.cpp' '*.h' | xargs -0 -r clang-format --dry-run --Werror
+      - git ls-files -z -- 'src/*.cpp' 'src/**/*.cpp' 'tests/*.cpp' | xargs -0 -r -n 1 clang-tidy --quiet -p "{{.DEBUG_DIR}}" --warnings-as-errors='*'
+      - shellcheck scripts/linux/*.sh packaging/debian/postinst packaging/debian/postrm packaging/rpm/*.sh
+      - '"{{.ACTIONLINT}}"'
+
+  security:
+    desc: Scan Git history and the working tree for secrets
+    cmds:
+      - task: quality-tools
+      - '"{{.GITLEAKS}}" git --redact --no-banner --no-color --verbose --log-opts="--all" .'
+      - '"{{.GITLEAKS}}" dir --redact --no-banner --no-color --verbose .'
+
+  build-sanitizers:
+    internal: true
+    cmds:
+      - cmake -S . -B "{{.SANITIZER_DIR}}" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON -DMSI_KEYBOARD_ENABLE_SANITIZERS=ON {{.CMAKE_CONFIGURE_ARGS}}
+      - cmake --build "{{.SANITIZER_DIR}}" --parallel
+
+  sanitize:
+    desc: Run tests with address, undefined behavior and leak sanitizers
+    env:
+      ASAN_OPTIONS: detect_leaks=1:halt_on_error=1:strict_string_checks=1
+      LSAN_OPTIONS: exitcode=23
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    cmds:
+      - task: build-sanitizers
+      - ctest --test-dir "{{.SANITIZER_DIR}}" --output-on-failure
+
+  check:
+    desc: Run all local quality gates
+    cmds:
+      - task: lint
+      - task: security
+      - task: smoke
+      - task: sanitize
+
+  package:
+    desc: Build, test, and create DEB and RPM packages
+    cmds:
+      - task: smoke
+      - cmake --build "{{.RELEASE_DIR}}" --target package
 
   run:
     desc: Build and run GUI

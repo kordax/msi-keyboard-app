@@ -7,10 +7,12 @@ using namespace strikepro;
 class BatteryDecoderTest final : public QObject {
     Q_OBJECT
 
-private slots:
+  private slots:
     void decodesCapturedWirelessBatteryResponse();
     void decodesCapturedWiredChargingResponse();
+    void capsAdjustedWiredBatteryAtOneHundred();
     void rejectsUnavailableWirelessResponse();
+    void rejectsOfflineWirelessSentinel();
     void rejectsDifferentVendorResponse();
     void decodesConfirmedByte();
     void decodesFeatureByRequestedId();
@@ -52,9 +54,26 @@ void BatteryDecoderTest::decodesCapturedWiredChargingResponse()
 
     const auto reading = BatteryDecoder::decode(report, profile);
     QVERIFY(reading.has_value());
-    QCOMPARE(reading->percent, 81);
+    QCOMPARE(reading->percent, 82);
     QVERIFY(reading->charging.has_value());
     QVERIFY(*reading->charging);
+}
+
+void BatteryDecoderTest::capsAdjustedWiredBatteryAtOneHundred()
+{
+    const ProtocolProfile profile = BatteryDecoder::confirmedStrikeProProfile();
+    const HidReport report{
+        .devNode = QStringLiteral("/dev/hidraw-test"),
+        .interfaceNumber = 1,
+        .productId = kStrikeProWiredProductId,
+        .source = ReportSource::Input,
+        .requestedReportId = -1,
+        .data = QByteArray::fromHex("0db00100000005026401000000000000"),
+    };
+
+    const auto reading = BatteryDecoder::decode(report, profile);
+    QVERIFY(reading.has_value());
+    QCOMPARE(reading->percent, 100);
 }
 
 void BatteryDecoderTest::rejectsUnavailableWirelessResponse()
@@ -67,6 +86,21 @@ void BatteryDecoderTest::rejectsUnavailableWirelessResponse()
         .source = ReportSource::Input,
         .requestedReportId = -1,
         .data = QByteArray::fromHex("0db00100000005020001000000000000"),
+    };
+
+    QVERIFY(!BatteryDecoder::decode(report, profile).has_value());
+}
+
+void BatteryDecoderTest::rejectsOfflineWirelessSentinel()
+{
+    const ProtocolProfile profile = BatteryDecoder::confirmedStrikeProProfile();
+    const HidReport report{
+        .devNode = QStringLiteral("/dev/hidraw-test"),
+        .interfaceNumber = 1,
+        .productId = kStrikeProWirelessProductId,
+        .source = ReportSource::Input,
+        .requestedReportId = -1,
+        .data = QByteArray::fromHex("0db00100000005020002000000000000"),
     };
 
     QVERIFY(!BatteryDecoder::decode(report, profile).has_value());

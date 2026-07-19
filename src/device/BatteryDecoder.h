@@ -21,25 +21,29 @@ struct ProtocolProfile {
     QByteArray matchPrefix;
     QString path;
 
-    [[nodiscard]] bool canDecodePercentage() const { return percentageOffset >= 0; }
+    [[nodiscard]] bool canDecodePercentage() const
+    {
+        return percentageOffset >= 0;
+    }
 };
 
 struct BatteryReading {
     int percent = -1;
     std::optional<bool> charging;
 
-    [[nodiscard]] bool isValid() const { return percent >= 0 && percent <= 100; }
+    [[nodiscard]] bool isValid() const
+    {
+        return percent >= 0 && percent <= 100;
+    }
 };
 
 class BatteryDecoder {
-public:
+  public:
     [[nodiscard]] static ProtocolProfile confirmedStrikeProProfile();
-    [[nodiscard]] static std::optional<ProtocolProfile> loadProfile(
-        const QString &path,
-        QString *error = nullptr);
-    [[nodiscard]] static std::optional<BatteryReading> decode(
-        const HidReport &report,
-        const ProtocolProfile &profile);
+    [[nodiscard]] static std::optional<ProtocolProfile>
+    loadProfile(const QString &path, QString *error = nullptr);
+    [[nodiscard]] static std::optional<BatteryReading>
+    decode(const HidReport &report, const ProtocolProfile &profile);
 };
 
 } // namespace strikepro

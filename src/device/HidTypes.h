@@ -12,7 +12,7 @@ constexpr quint16 kStrikeProWiredProductId = 0xb231;
 [[nodiscard]] constexpr bool isStrikeProProduct(quint16 productId)
 {
     return productId == kStrikeProWirelessProductId
-        || productId == kStrikeProWiredProductId;
+           || productId == kStrikeProWiredProductId;
 }
 
 struct HidInterface {

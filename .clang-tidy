@@ -1,0 +1,19 @@
+---
+Checks: >
+  -*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  portability-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -bugprone-unchecked-optional-access,
+  -bugprone-unused-return-value,
+  -performance-enum-size,
+  -performance-no-automatic-move
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/(src|tests)/.*'
+SystemHeaders: false
+FormatStyle: file

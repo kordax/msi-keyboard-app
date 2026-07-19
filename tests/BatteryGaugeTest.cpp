@@ -4,8 +4,8 @@
 #include <QCoreApplication>
 #include <QImage>
 #include <QPainter>
-#include <QTableWidget>
 #include <QTabWidget>
+#include <QTableWidget>
 #include <QTest>
 
 using namespace strikepro;
@@ -13,16 +13,22 @@ using namespace strikepro;
 class BatteryGaugeTest final : public QObject {
     Q_OBJECT
 
-private slots:
+  private slots:
     void loadsKeyboardArtwork();
     void keepsTelemetryOptional();
     void rendersUnknownState();
     void boundsPercentage();
+    void usesBatteryLevelColors();
+    void animatesPercentageChangesSmoothly();
 };
 
 void BatteryGaugeTest::loadsKeyboardArtwork()
 {
-    const QPixmap artwork(QStringLiteral(":/assets/keyboard/strike_pro.png"));
+    QPixmap artwork(QStringLiteral(":/assets/keyboard/strike_pro.webp"));
+    if (artwork.isNull()) {
+        QVERIFY(
+            artwork.load(QStringLiteral(":/assets/keyboard/strike_pro.png")));
+    }
     QVERIFY(!artwork.isNull());
     QVERIFY(artwork.width() > 500);
     QVERIFY(artwork.height() > 300);
@@ -95,6 +101,41 @@ void BatteryGaugeTest::boundsPercentage()
 
     gauge.setValue(std::nullopt);
     QVERIFY(!gauge.value().has_value());
+}
+
+void BatteryGaugeTest::usesBatteryLevelColors()
+{
+    const QColor low = BatteryGauge::colorForValue(0.0);
+    const QColor middle = BatteryGauge::colorForValue(50.0);
+    const QColor high = BatteryGauge::colorForValue(100.0);
+
+    QVERIFY(low.red() > low.green());
+    QVERIFY(middle.red() > 200);
+    QVERIFY(middle.green() > 200);
+    QVERIFY(middle.blue() < 100);
+    QVERIFY(high.green() > high.red());
+    QCOMPARE(BatteryGauge::colorForValue(-20.0), low);
+    QCOMPARE(BatteryGauge::colorForValue(120.0), high);
+}
+
+void BatteryGaugeTest::animatesPercentageChangesSmoothly()
+{
+    BatteryGauge gauge;
+    gauge.setValue(10);
+    QCOMPARE(gauge.property("displayedValue").toReal(), 10.0);
+
+    gauge.setValue(90);
+    const qreal initial = gauge.property("displayedValue").toReal();
+    QVERIFY(initial >= 10.0);
+    QVERIFY(initial < 90.0);
+
+    QTest::qWait(250);
+    const qreal inProgress = gauge.property("displayedValue").toReal();
+    QVERIFY(inProgress > initial);
+    QVERIFY(inProgress < 90.0);
+    QTRY_VERIFY_WITH_TIMEOUT(
+        qAbs(gauge.property("displayedValue").toReal() - 90.0) < 0.1,
+        3000);
 }
 
 QTEST_MAIN(BatteryGaugeTest)

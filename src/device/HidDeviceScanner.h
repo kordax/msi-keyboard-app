@@ -7,7 +7,7 @@
 namespace strikepro {
 
 class HidDeviceScanner {
-public:
+  public:
     [[nodiscard]] static QList<HidInterface> scan();
 };
 

@@ -8,33 +8,57 @@
 #include <optional>
 
 class QLabel;
+class QAction;
+class QActionGroup;
+class QEvent;
+class QMenu;
 
 namespace strikepro {
 
 class BatteryGauge;
 class DebugWindow;
+class LanguageManager;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
 
-public:
-    explicit MainWindow(QWidget *parent = nullptr);
+  public:
+    explicit MainWindow(
+        LanguageManager *languageManager = nullptr, QWidget *parent = nullptr);
 
-private slots:
+  protected:
+    void changeEvent(QEvent *event) override;
+
+  private slots:
     void updateInterfaces(const QList<strikepro::HidInterface> &interfaces);
+    void handleDeviceEvent();
     void recordReport(const strikepro::HidReport &report);
     void reloadProtocolProfile();
     void requestBattery();
     void showDebugLogs();
     void showDebugTelemetry();
 
-private:
+  private:
+    enum class ConnectionState {
+        Absent,
+        Probing,
+        Connected,
+        AccessDenied,
+        Unresponsive,
+    };
+
     void buildUi();
+    void retranslateUi();
+    void refreshConnectionUi();
+    void clearBattery();
+    void setConnectionState(ConnectionState state);
     void setBattery(const BatteryReading &reading);
-    void setStatus(QLabel *dot, QLabel *detail, const QString &tone, const QString &text);
+    void setStatus(
+        QLabel *dot, QLabel *detail, const QString &tone, const QString &text);
     void logDebug(const QString &message);
     [[nodiscard]] QString profilePath() const;
 
+    LanguageManager *m_languageManager = nullptr;
     HidMonitor *m_monitor = nullptr;
     DebugWindow *m_debugWindow = nullptr;
     std::optional<ProtocolProfile> m_profile;
@@ -44,19 +68,29 @@ private:
     quint16 m_activeProductId = 0;
     bool m_canQueryBattery = false;
     bool m_batteryRequestPending = false;
+    ConnectionState m_connectionState = ConnectionState::Absent;
+    std::optional<BatteryReading> m_lastBatteryReading;
 
-    QLabel *m_connectionBadge = nullptr;
+    QMenu *m_settingsMenu = nullptr;
+    QMenu *m_languageMenu = nullptr;
+    QMenu *m_debugMenu = nullptr;
+    QActionGroup *m_languageActions = nullptr;
+    QAction *m_englishAction = nullptr;
+    QAction *m_russianAction = nullptr;
+    QAction *m_logsAction = nullptr;
+    QAction *m_telemetryAction = nullptr;
+    QLabel *m_title = nullptr;
+    QLabel *m_batteryCaption = nullptr;
+    QLabel *m_modeValue = nullptr;
+    QLabel *m_modeCaption = nullptr;
+    QLabel *m_deviceCaption = nullptr;
     QLabel *m_deviceLabel = nullptr;
     QLabel *m_deviceImage = nullptr;
-    QLabel *m_accessLabel = nullptr;
     QLabel *m_batteryValue = nullptr;
     QLabel *m_batteryState = nullptr;
+    QLabel *m_deviceStatusTitle = nullptr;
     QLabel *m_deviceDot = nullptr;
     QLabel *m_deviceStatus = nullptr;
-    QLabel *m_accessDot = nullptr;
-    QLabel *m_accessStatus = nullptr;
-    QLabel *m_protocolDot = nullptr;
-    QLabel *m_protocolStatus = nullptr;
     BatteryGauge *m_batteryGauge = nullptr;
 };
 

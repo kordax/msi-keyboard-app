@@ -47,7 +47,10 @@ CliRunner::CliRunner(CliOptions options, QObject *parent)
         this,
         &CliRunner::handleInterfaces);
     connect(
-        &m_monitor, &HidMonitor::reportReceived, this, &CliRunner::handleReport);
+        &m_monitor,
+        &HidMonitor::reportReceived,
+        this,
+        &CliRunner::handleReport);
     connect(
         &m_monitor,
         &HidMonitor::diagnosticMessage,
@@ -55,19 +58,18 @@ CliRunner::CliRunner(CliOptions options, QObject *parent)
         &CliRunner::handleDiagnostic);
 
     QString profileError;
-    m_profile = BatteryDecoder::loadProfile(m_options.profilePath, &profileError);
+    m_profile =
+        BatteryDecoder::loadProfile(m_options.profilePath, &profileError);
     if (m_profile.has_value() && m_profile->canDecodePercentage()) {
-        log(
-            QStringLiteral("info"),
+        log(QStringLiteral("info"),
             QStringLiteral("profile_loaded"),
-            QStringLiteral("Загружен профиль батареи"),
+            tr("Battery profile loaded"),
             {{QStringLiteral("path"), m_profile->path}});
     } else {
         m_profile.reset();
-        log(
-            QStringLiteral("info"),
+        log(QStringLiteral("info"),
             QStringLiteral("profile_unavailable"),
-            QStringLiteral("Декодер батареи пока не настроен"),
+            tr("The battery decoder is not configured"),
             {{QStringLiteral("path"), m_options.profilePath},
              {QStringLiteral("reason"), profileError}});
     }
@@ -76,10 +78,9 @@ CliRunner::CliRunner(CliOptions options, QObject *parent)
 void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
 {
     if (interfaces.isEmpty()) {
-        log(
-            QStringLiteral("error"),
+        log(QStringLiteral("error"),
             QStringLiteral("device_not_found"),
-            QStringLiteral("MSI Strike Pro 0db0:1620/b231 не найдена"));
+            tr("MSI Strike Pro 0db0:1620/b231 was not found"));
         if (!m_options.logs) {
             finishOnce(2);
         }
@@ -94,15 +95,17 @@ void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
         item.insert(QStringLiteral("number"), interface.interfaceNumber);
         item.insert(
             QStringLiteral("product_id"),
-            QStringLiteral("%1").arg(interface.productId, 4, 16, QLatin1Char('0')));
+            QStringLiteral("%1")
+                .arg(interface.productId, 4, 16, QLatin1Char('0')));
         item.insert(QStringLiteral("readable"), interface.readable);
         item.insert(QStringLiteral("writable"), interface.writable);
-        item.insert(QStringLiteral("descriptor_bytes"), interface.reportDescriptor.size());
+        item.insert(
+            QStringLiteral("descriptor_bytes"),
+            interface.reportDescriptor.size());
         interfaceList.append(item);
-        numbers.push_back(
-            QStringLiteral("%1:if%2")
-                .arg(interface.productId, 4, 16, QLatin1Char('0'))
-                .arg(interface.interfaceNumber));
+        numbers.push_back(QStringLiteral("%1:if%2")
+                              .arg(interface.productId, 4, 16, QLatin1Char('0'))
+                              .arg(interface.interfaceNumber));
 
         if (interface.interfaceNumber == 1 || interface.interfaceNumber == 2
             || interface.interfaceNumber == 4) {
@@ -110,21 +113,17 @@ void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
         }
     }
 
-    log(
-        QStringLiteral("info"),
+    log(QStringLiteral("info"),
         QStringLiteral("device_connected"),
-        QStringLiteral("Найдена MSI Strike Pro, интерфейсы %1")
-            .arg(numbers.join(',')),
+        tr("MSI Strike Pro found, interfaces %1").arg(numbers.join(',')),
         {{QStringLiteral("vendor_id"), QStringLiteral("0db0")},
          {QStringLiteral("interfaces"), interfaceList}});
 
     if (!diagnosticAccess) {
-        log(
-            QStringLiteral("warning"),
+        log(QStringLiteral("warning"),
             QStringLiteral("access_denied"),
-            QStringLiteral(
-                "Нет доступа к vendor hidraw. Установите правило "
-                "через scripts/linux/install-udev-rule.sh"),
+            tr("No access to vendor hidraw. Install the rule with "
+               "scripts/linux/install-udev-rule.sh"),
             {{QStringLiteral("helper"),
               QStringLiteral("scripts/linux/install-udev-rule.sh")}});
     }
@@ -133,23 +132,20 @@ void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
         m_batteryQueryStarted = true;
         QString error;
         if (!m_monitor.requestBattery(&error)) {
-            log(
-                QStringLiteral("error"),
+            log(QStringLiteral("error"),
                 QStringLiteral("battery_query_failed"),
                 error);
             finishOnce(4);
             return;
         }
-        log(
-            QStringLiteral("info"),
+        log(QStringLiteral("info"),
             QStringLiteral("battery_query_sent"),
-            QStringLiteral("Отправлен подтверждённый запрос MSI Center"));
+            tr("Confirmed MSI Center battery query sent"));
         QTimer::singleShot(2500, this, [this] {
             if (m_options.battery && !m_finishScheduled) {
-                log(
-                    QStringLiteral("error"),
+                log(QStringLiteral("error"),
                     QStringLiteral("battery_timeout"),
-                    QStringLiteral("Клавиатура не ответила на запрос батареи"));
+                    tr("The keyboard did not answer the battery query"));
                 finishOnce(4);
             }
         });
@@ -172,19 +168,20 @@ void CliRunner::handleReport(const HidReport &report)
     if (m_options.logs || m_options.once) {
         const QString source = sourceName(report.source);
         const QString responseId = hexId(report.data);
-        const QString requestedId =
-            report.requestedReportId >= 0
-            ? QStringLiteral("0x%1")
-                  .arg(report.requestedReportId, 2, 16, QLatin1Char('0'))
-            : QStringLiteral("none");
+        const QString requestedId = report.requestedReportId >= 0
+                                        ? QStringLiteral("0x%1").arg(
+                                              report.requestedReportId,
+                                              2,
+                                              16,
+                                              QLatin1Char('0'))
+                                        : QStringLiteral("none");
         const QString idSummary =
             report.requestedReportId >= 0
-            ? QStringLiteral("request=%1 response=%2").arg(requestedId, responseId)
-            : QStringLiteral("id=%1").arg(responseId);
-        log(
-            QStringLiteral("info"),
+                ? tr("request=%1 response=%2").arg(requestedId, responseId)
+                : tr("id=%1").arg(responseId);
+        log(QStringLiteral("info"),
             QStringLiteral("hid_report"),
-            QStringLiteral("%1 if%2 %3 size=%4 data=%5")
+            tr("%1 if%2 %3 size=%4 data=%5")
                 .arg(
                     source,
                     QString::number(report.interfaceNumber),
@@ -194,11 +191,13 @@ void CliRunner::handleReport(const HidReport &report)
             {{QStringLiteral("source"), source},
              {QStringLiteral("interface"), report.interfaceNumber},
              {QStringLiteral("product_id"),
-              QStringLiteral("%1").arg(report.productId, 4, 16, QLatin1Char('0'))},
+              QStringLiteral("%1")
+                  .arg(report.productId, 4, 16, QLatin1Char('0'))},
              {QStringLiteral("report_id"), responseId},
              {QStringLiteral("requested_report_id"), requestedId},
              {QStringLiteral("size"), report.data.size()},
-             {QStringLiteral("data_hex"), QString::fromLatin1(report.data.toHex())}});
+             {QStringLiteral("data_hex"),
+              QString::fromLatin1(report.data.toHex())}});
     }
 
     if (!m_profile.has_value()) {
@@ -210,14 +209,12 @@ void CliRunner::handleReport(const HidReport &report)
     }
 
     QJsonObject fields{{QStringLiteral("percent"), reading->percent}};
-    QString message = QStringLiteral("Заряд: %1%").arg(reading->percent);
+    QString message = tr("Battery: %1%").arg(reading->percent);
     if (reading->charging.has_value()) {
         fields.insert(QStringLiteral("charging"), *reading->charging);
-        message += *reading->charging ? QStringLiteral(", зарядка")
-                                      : QStringLiteral(", от батареи");
+        message += *reading->charging ? tr(", charging") : tr(", on battery");
     }
-    log(
-        QStringLiteral("info"),
+    log(QStringLiteral("info"),
         QStringLiteral("battery"),
         message,
         std::move(fields));
@@ -239,7 +236,8 @@ void CliRunner::log(
     const QString &message,
     QJsonObject fields)
 {
-    const QString timestamp = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+    const QString timestamp =
+        QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
     QTextStream output(stdout);
 
     if (m_options.json) {

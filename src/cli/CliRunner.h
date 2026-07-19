@@ -20,15 +20,15 @@ struct CliOptions {
 class CliRunner final : public QObject {
     Q_OBJECT
 
-public:
+  public:
     explicit CliRunner(CliOptions options, QObject *parent = nullptr);
 
-private:
+  private:
     void handleInterfaces(const QList<strikepro::HidInterface> &interfaces);
     void handleReport(const strikepro::HidReport &report);
     void handleDiagnostic(const QString &message);
-    void log(
-        const QString &level,
+    void
+    log(const QString &level,
         const QString &event,
         const QString &message,
         QJsonObject fields = {});
