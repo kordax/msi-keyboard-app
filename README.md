@@ -2,6 +2,10 @@
 
 A Linux application to support several MSI keyboards.
 
+<img src="assets/screenshots/msi-keyboard.png"
+     alt="MSI Keyboard for Linux"
+     width="100%">
+
 ## Supported devices
 
 | Device | VID:PID | Connection |
