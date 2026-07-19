@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QWidget>
 #include <optional>
 
@@ -17,6 +18,7 @@ public:
     void setValue(std::optional<int> value);
     void setDeviceConnected(bool connected);
 
+    [[nodiscard]] static QColor colorForValue(qreal value);
     [[nodiscard]] std::optional<int> value() const { return m_value; }
     [[nodiscard]] QSize sizeHint() const override;
     [[nodiscard]] QSize minimumSizeHint() const override;

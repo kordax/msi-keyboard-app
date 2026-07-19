@@ -23,6 +23,12 @@ BatteryGauge::BatteryGauge(QWidget *parent)
     m_animation->setEasingCurve(QEasingCurve::OutCubic);
 }
 
+QColor BatteryGauge::colorForValue(qreal value)
+{
+    const qreal bounded = std::clamp(value, 0.0, 100.0);
+    return QColor::fromHsvF(bounded / 300.0, 0.82, 0.93);
+}
+
 void BatteryGauge::setValue(std::optional<int> value)
 {
     if (!value.has_value()) {
@@ -91,10 +97,11 @@ void BatteryGauge::paintEvent(QPaintEvent *event)
     painter.drawArc(arcRect, kStartAngle, kFullSpan);
 
     if (m_value.has_value()) {
+        const QColor indicatorColor = colorForValue(m_displayedValue);
         QLinearGradient gradient(arcRect.topLeft(), arcRect.bottomRight());
-        gradient.setColorAt(0.0, QColor(QStringLiteral("#ff5a72")));
-        gradient.setColorAt(0.55, QColor(QStringLiteral("#ee2347")));
-        gradient.setColorAt(1.0, QColor(QStringLiteral("#9f102a")));
+        gradient.setColorAt(0.0, indicatorColor.lighter(112));
+        gradient.setColorAt(0.55, indicatorColor);
+        gradient.setColorAt(1.0, indicatorColor.darker(118));
         painter.setPen(QPen(QBrush(gradient), 13.0, Qt::SolidLine, Qt::RoundCap));
         painter.drawArc(
             arcRect,

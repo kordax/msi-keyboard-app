@@ -18,6 +18,7 @@ private slots:
     void keepsTelemetryOptional();
     void rendersUnknownState();
     void boundsPercentage();
+    void usesBatteryLevelColors();
 };
 
 void BatteryGaugeTest::loadsKeyboardArtwork()
@@ -99,6 +100,21 @@ void BatteryGaugeTest::boundsPercentage()
 
     gauge.setValue(std::nullopt);
     QVERIFY(!gauge.value().has_value());
+}
+
+void BatteryGaugeTest::usesBatteryLevelColors()
+{
+    const QColor low = BatteryGauge::colorForValue(0.0);
+    const QColor middle = BatteryGauge::colorForValue(50.0);
+    const QColor high = BatteryGauge::colorForValue(100.0);
+
+    QVERIFY(low.red() > low.green());
+    QVERIFY(middle.red() > 200);
+    QVERIFY(middle.green() > 200);
+    QVERIFY(middle.blue() < 100);
+    QVERIFY(high.green() > high.red());
+    QCOMPARE(BatteryGauge::colorForValue(-20.0), low);
+    QCOMPARE(BatteryGauge::colorForValue(120.0), high);
 }
 
 QTEST_MAIN(BatteryGaugeTest)
