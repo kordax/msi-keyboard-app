@@ -9,6 +9,7 @@
 #include <QActionGroup>
 #include <QEvent>
 #include <QFrame>
+#include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMenu>
@@ -82,10 +83,16 @@ QWidget *makeStatusRow(
     layout->setContentsMargins(0, 4, 0, 4);
     layout->setSpacing(12);
 
-    *dot = new QLabel(QStringLiteral("●"), row);
+    *dot = new QLabel(row);
     (*dot)->setProperty("role", QStringLiteral("statusDot"));
     (*dot)->setProperty("tone", QStringLiteral("off"));
-    (*dot)->setFixedWidth(14);
+    (*dot)->setFixedSize(10, 10);
+    auto *glow = new QGraphicsDropShadowEffect(*dot);
+    glow->setBlurRadius(18.0);
+    glow->setColor(QColor(QStringLiteral("#55e89b")));
+    glow->setOffset(0.0, 0.0);
+    glow->setEnabled(false);
+    (*dot)->setGraphicsEffect(glow);
 
     auto *labels = new QVBoxLayout;
     labels->setSpacing(2);
@@ -95,12 +102,17 @@ QWidget *makeStatusRow(
         *titleOutput = titleLabel;
     }
     *detail = new QLabel(row);
-    (*detail)->setProperty("role", QStringLiteral("muted"));
+    (*detail)->setProperty("role", QStringLiteral("statusDetail"));
+    (*detail)->setProperty("tone", QStringLiteral("off"));
     (*detail)->setWordWrap(false);
     labels->addWidget(titleLabel);
     labels->addWidget(*detail);
 
-    layout->addWidget(*dot, 0, Qt::AlignTop);
+    auto *indicator = new QVBoxLayout;
+    indicator->setContentsMargins(2, 4, 2, 0);
+    indicator->addWidget(*dot, 0, Qt::AlignTop);
+    indicator->addStretch();
+    layout->addLayout(indicator);
     layout->addLayout(labels, 1);
     return row;
 }
@@ -445,11 +457,23 @@ void MainWindow::buildUi()
             font-size: 12px;
             font-weight: 650;
         }
-        QLabel[role="statusDot"] { font-size: 10px; }
-        QLabel[role="statusDot"][tone="off"] { color: #555555; }
-        QLabel[role="statusDot"][tone="ok"] { color: #bcbcbc; }
+        QLabel[role="statusDot"] {
+            border-radius: 5px;
+            background: #555555;
+        }
+        QLabel[role="statusDot"][tone="off"] { background: #555555; }
+        QLabel[role="statusDot"][tone="ok"] {
+            background: #55e89b;
+            border: 1px solid #9affc7;
+        }
         QLabel[role="statusDot"][tone="warn"],
-        QLabel[role="statusDot"][tone="problem"] { color: #df6464; }
+        QLabel[role="statusDot"][tone="problem"] {
+            background: #df6464;
+            border: 1px solid #f28c8c;
+        }
+        QLabel[role="statusDetail"] { color: #9c9c9c; }
+        QLabel[role="statusDetail"][tone="ok"] { color: #65e6a0; }
+        QLabel[role="statusDetail"][tone="problem"] { color: #ef7777; }
         QLabel[role="counter"] {
             background: #282828;
             color: #b9b9b9;
@@ -581,8 +605,14 @@ void MainWindow::setStatus(
     QLabel *dot, QLabel *detail, const QString &tone, const QString &text)
 {
     dot->setProperty("tone", tone);
+    detail->setProperty("tone", tone);
     detail->setText(text);
+    if (auto *glow =
+            qobject_cast<QGraphicsDropShadowEffect *>(dot->graphicsEffect())) {
+        glow->setEnabled(tone == QStringLiteral("ok"));
+    }
     refreshStyle(dot);
+    refreshStyle(detail);
 }
 
 void MainWindow::logDebug(const QString &message)
