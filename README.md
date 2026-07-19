@@ -13,18 +13,49 @@ A Linux application to support several MSI keyboards.
 | MSI Strike Pro | `0db0:1620` | 2.4 GHz receiver |
 | MSI Strike Pro | `0db0:b231` | USB cable |
 
-## Usage
+## Installation
+
+Download the package for your distribution from
+[GitHub Releases](https://github.com/kordax/msi-keyboard-app/releases).
+
+Debian, Ubuntu, and Linux Mint:
 
 ```bash
-task           # Release build, tests, and smoke check
-task debug     # Debug build and tests
-task package   # DEB and RPM packages
-task run       # GUI
-task battery   # Battery level
-task logs      # Continuous CLI logs
-task json      # JSON
-task udev      # Install the udev rule
+sudo apt install ./msi-keyboard_0.0.1-1_amd64.deb
+```
 
-build/release/msi-keyboard upgrade
-build/release/msi-keyboard --language ru
+Fedora and other RPM-based distributions:
+
+```bash
+sudo dnf install ./msi-keyboard-0.0.1-1.x86_64.rpm
+```
+
+## Usage
+
+Start the GUI:
+
+```bash
+msi-keyboard
+```
+
+Use the CLI:
+
+```bash
+msi-keyboard --cli
+msi-keyboard --cli --battery
+msi-keyboard --cli --battery --json
+msi-keyboard --cli --logs
+msi-keyboard --language ru
+msi-keyboard upgrade
+```
+
+## Development
+
+```bash
+task build       # Incremental release build
+task test        # Build and run tests
+task run         # Build and run the GUI
+task check       # Linters, tests, security, and sanitizers
+task package     # Build DEB and RPM packages
+task rebuild     # Full release rebuild
 ```
