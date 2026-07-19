@@ -80,7 +80,6 @@ class MainWindow final : public QMainWindow {
     QAction *m_logsAction = nullptr;
     QAction *m_telemetryAction = nullptr;
     QLabel *m_title = nullptr;
-    QLabel *m_connectionBadge = nullptr;
     QLabel *m_batteryCaption = nullptr;
     QLabel *m_modeValue = nullptr;
     QLabel *m_modeCaption = nullptr;

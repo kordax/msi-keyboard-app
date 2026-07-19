@@ -764,243 +764,238 @@
 <context>
     <name>strikepro::MainWindow</name>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="543"/>
+        <location filename="../src/gui/MainWindow.cpp" line="544"/>
         <source>MSI Keyboard</source>
         <translation>MSI Keyboard</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="544"/>
+        <location filename="../src/gui/MainWindow.cpp" line="545"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="545"/>
+        <location filename="../src/gui/MainWindow.cpp" line="546"/>
         <source>Language</source>
         <translation>Язык</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="546"/>
+        <location filename="../src/gui/MainWindow.cpp" line="547"/>
         <source>English</source>
         <translation>Английский</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="547"/>
+        <location filename="../src/gui/MainWindow.cpp" line="548"/>
         <source>Russian</source>
         <translation>Русский</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="548"/>
+        <location filename="../src/gui/MainWindow.cpp" line="549"/>
         <source>Debug</source>
         <translation>Отладка</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="549"/>
+        <location filename="../src/gui/MainWindow.cpp" line="550"/>
         <source>Logs</source>
         <translation>Логи</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="550"/>
+        <location filename="../src/gui/MainWindow.cpp" line="551"/>
         <source>Telemetry</source>
         <translation>Телеметрия</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="558"/>
+        <location filename="../src/gui/MainWindow.cpp" line="559"/>
         <source>MSI Keyboard manager for Linux</source>
         <translation>Менеджер клавиатур MSI для Linux</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="559"/>
+        <location filename="../src/gui/MainWindow.cpp" line="560"/>
         <source>BATTERY</source>
         <translation>АККУМУЛЯТОР</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="563"/>
+        <location filename="../src/gui/MainWindow.cpp" line="564"/>
         <source>DEVICE</source>
         <translation>УСТРОЙСТВО</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="605"/>
+        <location filename="../src/gui/MainWindow.cpp" line="611"/>
         <source>Battery profile unavailable</source>
         <translation>Профиль батареи недоступен</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="600"/>
+        <location filename="../src/gui/MainWindow.cpp" line="606"/>
         <source>Protocol profile loaded: %1</source>
         <translation>Профиль протокола загружен: %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="564"/>
+        <location filename="../src/gui/MainWindow.cpp" line="565"/>
         <source>Status</source>
         <translation>Состояние</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="606"/>
+        <location filename="../src/gui/MainWindow.cpp" line="612"/>
         <source>Profile error: %1</source>
         <translation>Ошибка профиля: %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="565"/>
-        <source>CONNECTED</source>
-        <translation>ПОДКЛЮЧЕНА</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="705"/>
+        <location filename="../src/gui/MainWindow.cpp" line="708"/>
         <source>MSI Strike Pro disconnected</source>
         <translation>MSI Strike Pro отключена</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="634"/>
+        <location filename="../src/gui/MainWindow.cpp" line="637"/>
         <source>No device</source>
         <translation>Нет устройства</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="656"/>
+        <location filename="../src/gui/MainWindow.cpp" line="659"/>
         <source>MSI Strike Pro · USB</source>
         <translation>MSI Strike Pro · USB</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="657"/>
+        <location filename="../src/gui/MainWindow.cpp" line="660"/>
         <source>MSI Strike Pro · 2.4 GHz</source>
         <translation>MSI Strike Pro · 2,4 ГГц</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="664"/>
+        <location filename="../src/gui/MainWindow.cpp" line="667"/>
         <source>Reading battery…</source>
         <translation>Получение заряда…</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="671"/>
+        <location filename="../src/gui/MainWindow.cpp" line="674"/>
         <source>HID access required</source>
         <translation>Нужен доступ к HID</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="761"/>
+        <location filename="../src/gui/MainWindow.cpp" line="764"/>
         <source>Battery query: %1</source>
         <translation>Запрос батареи: %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="682"/>
+        <location filename="../src/gui/MainWindow.cpp" line="685"/>
         <source>No response</source>
         <translation>Нет ответа</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="560"/>
+        <location filename="../src/gui/MainWindow.cpp" line="561"/>
         <source>READ ONLY MODE</source>
         <translation>РЕЖИМ ТОЛЬКО ЧТЕНИЯ</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="633"/>
+        <location filename="../src/gui/MainWindow.cpp" line="636"/>
         <source>No MSI keyboard detected</source>
         <translation>Клавиатура MSI не обнаружена</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="635"/>
+        <location filename="../src/gui/MainWindow.cpp" line="638"/>
         <source>Connect a keyboard or its USB receiver.</source>
         <translation>Подключите клавиатуру или её USB-приёмник.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="640"/>
+        <location filename="../src/gui/MainWindow.cpp" line="643"/>
         <source>No supported keyboard detected</source>
         <translation>Поддерживаемая клавиатура не обнаружена</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="643"/>
-        <location filename="../src/gui/MainWindow.cpp" line="670"/>
+        <location filename="../src/gui/MainWindow.cpp" line="646"/>
+        <location filename="../src/gui/MainWindow.cpp" line="673"/>
         <source>MSI Strike Pro</source>
         <translation>MSI Strike Pro</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="644"/>
+        <location filename="../src/gui/MainWindow.cpp" line="647"/>
         <source>Checking…</source>
         <translation>Проверка…</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="646"/>
+        <location filename="../src/gui/MainWindow.cpp" line="649"/>
         <source>Waiting for a response from the keyboard.</source>
         <translation>Ожидание ответа от клавиатуры.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="651"/>
+        <location filename="../src/gui/MainWindow.cpp" line="654"/>
         <source>Checking connection</source>
         <translation>Проверка подключения</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="662"/>
+        <location filename="../src/gui/MainWindow.cpp" line="665"/>
         <source>Connected via USB</source>
         <translation>Подключена по USB</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="662"/>
+        <location filename="../src/gui/MainWindow.cpp" line="665"/>
         <source>Connected via 2.4 GHz</source>
         <translation>Подключена по 2,4 ГГц</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="665"/>
+        <location filename="../src/gui/MainWindow.cpp" line="668"/>
         <source>Waiting for battery data.</source>
         <translation>Ожидание данных аккумулятора.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="673"/>
+        <location filename="../src/gui/MainWindow.cpp" line="676"/>
         <source>The device is present, but Linux denied HID access.</source>
         <translation>Устройство найдено, но Linux запретил доступ к HID.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="678"/>
+        <location filename="../src/gui/MainWindow.cpp" line="681"/>
         <source>Permission problem</source>
         <translation>Проблема с правами доступа</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="681"/>
+        <location filename="../src/gui/MainWindow.cpp" line="684"/>
         <source>MSI Strike Pro receiver</source>
         <translation>Приёмник MSI Strike Pro</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="683"/>
+        <location filename="../src/gui/MainWindow.cpp" line="686"/>
         <source>The USB transport is present, but the keyboard did not answer.</source>
         <translation>USB-подключение доступно, но клавиатура не ответила.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="689"/>
+        <location filename="../src/gui/MainWindow.cpp" line="692"/>
         <source>Keyboard not responding</source>
         <translation>Клавиатура не отвечает</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="781"/>
+        <location filename="../src/gui/MainWindow.cpp" line="784"/>
         <source>The keyboard did not answer the battery query</source>
         <translation>Клавиатура не ответила на запрос батареи</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="803"/>
+        <location filename="../src/gui/MainWindow.cpp" line="806"/>
         <source>MSI Strike Pro answered over USB</source>
         <translation>MSI Strike Pro ответила по USB</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="804"/>
+        <location filename="../src/gui/MainWindow.cpp" line="807"/>
         <source>MSI Strike Pro answered through the 2.4 GHz receiver</source>
         <translation>MSI Strike Pro ответила через приёмник 2,4 ГГц</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="818"/>
+        <location filename="../src/gui/MainWindow.cpp" line="821"/>
         <source>The keyboard is charging.</source>
         <translation>Клавиатура подключена к зарядке.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="819"/>
+        <location filename="../src/gui/MainWindow.cpp" line="822"/>
         <source>The keyboard is running on battery.</source>
         <translation>Клавиатура работает от аккумулятора.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="821"/>
+        <location filename="../src/gui/MainWindow.cpp" line="824"/>
         <source>Battery status received over USB HID.</source>
         <translation>Заряд получен через USB HID.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="824"/>
+        <location filename="../src/gui/MainWindow.cpp" line="827"/>
         <source>Battery updated: %1%</source>
         <translation>Заряд обновлён: %1%</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="331"/>
+        <location filename="../src/gui/MainWindow.cpp" line="348"/>
         <source>MSI STRIKE PRO</source>
         <translation>MSI STRIKE PRO</translation>
     </message>

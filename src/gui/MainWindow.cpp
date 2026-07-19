@@ -318,12 +318,15 @@ void MainWindow::buildUi()
     deviceTitleColumn->addWidget(m_deviceCaption);
     deviceTitleColumn->addWidget(m_deviceLabel);
     deviceHeader->addLayout(deviceTitleColumn, 1);
-
-    m_connectionBadge = new QLabel(deviceCard);
-    m_connectionBadge->setObjectName(QStringLiteral("connectionBadge"));
-    m_connectionBadge->setProperty("tone", QStringLiteral("ok"));
-    m_connectionBadge->setVisible(false);
-    deviceHeader->addWidget(m_connectionBadge, 0, Qt::AlignVCenter);
+    deviceHeader->addWidget(
+        makeStatusRow(
+            QString(),
+            &m_deviceStatusTitle,
+            &m_deviceDot,
+            &m_deviceStatus,
+            deviceCard),
+        0,
+        Qt::AlignVCenter);
     deviceLayout->addLayout(deviceHeader);
 
     m_deviceImage = new QLabel(deviceCard);
@@ -346,12 +349,6 @@ void MainWindow::buildUi()
     }
     deviceLayout->addWidget(m_deviceImage);
 
-    deviceLayout->addWidget(makeStatusRow(
-        QString(),
-        &m_deviceStatusTitle,
-        &m_deviceDot,
-        &m_deviceStatus,
-        deviceCard));
     deviceLayout->addStretch();
 
     dashboard->addWidget(deviceCard, 2);
@@ -390,28 +387,6 @@ void MainWindow::buildUi()
             font-size: 25px;
             font-weight: 750;
             letter-spacing: 1.6px;
-        }
-        QLabel#connectionBadge {
-            padding: 4px 0 4px 10px;
-            font-size: 10px;
-            font-weight: 750;
-            letter-spacing: 0.7px;
-        }
-        QLabel#connectionBadge[tone="off"] {
-            background: transparent;
-            color: #a0a0a0;
-        }
-        QLabel#connectionBadge[tone="ok"] {
-            background: transparent;
-            color: #cfcfcf;
-            border: none;
-            border-left: 2px solid #666666;
-        }
-        QLabel#connectionBadge[tone="problem"] {
-            background: transparent;
-            color: #ef8b8b;
-            border: none;
-            border-left: 2px solid #b84f4f;
         }
         QFrame#card {
             background: #181818;
@@ -588,7 +563,6 @@ void MainWindow::retranslateUi()
     m_modeCaption->setVisible(false);
     m_deviceCaption->setText(tr("DEVICE"));
     m_deviceStatusTitle->setText(tr("Status"));
-    m_connectionBadge->setText(tr("CONNECTED"));
 
     refreshConnectionUi();
     if (m_connectionState == ConnectionState::Connected
@@ -654,9 +628,6 @@ void MainWindow::setConnectionState(const ConnectionState state)
 void MainWindow::refreshConnectionUi()
 {
     const bool connected = m_connectionState == ConnectionState::Connected;
-    m_connectionBadge->setVisible(connected);
-    m_connectionBadge->setProperty("tone", QStringLiteral("ok"));
-    refreshStyle(m_connectionBadge);
     m_batteryGauge->setDeviceConnected(connected);
     m_deviceImage->setVisible(connected);
 

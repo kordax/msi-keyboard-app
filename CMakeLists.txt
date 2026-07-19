@@ -262,7 +262,7 @@ if(BUILD_TESTING)
 
     add_test(
         NAME cli-headless-help
-        COMMAND msi-keyboard --help
+        COMMAND msi-keyboard --language en --help
     )
     set_tests_properties(
         cli-headless-help
