@@ -1,6 +1,6 @@
 # MSI Keyboard for Linux
 
-A Linux application for supported MSI keyboards.
+A Linux application to support several MSI keyboards.
 
 ## Supported devices
 
