@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=MSI Keyboard
+Comment=Manage MSI keyboards on Linux
+Exec=msi-keyboard
+Icon=input-keyboard
+Terminal=false
+Categories=Settings;HardwareSettings;

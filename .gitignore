@@ -1,0 +1,12 @@
+# Local build and research artifacts
+/build*/
+/CMakeFiles/
+/.gortex/
+/.cache/
+/compile_commands.json
+/captures/private/
+/assets/keyboard/strike_pro.webp
+*.user
+*.swp
+.task/
+ROADMAP.md

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "battery": {
+    "source": "input",
+    "interface": 1,
+    "report_id": 13,
+    "match_prefix_hex": "0db0010000000502",
+    "percentage_offset": 8,
+    "transport_offset": 9,
+    "wireless_transport_value": 2,
+    "wired_transport_value": 1,
+    "charging_offset": null,
+    "charging_mask": 0
+  }
+}

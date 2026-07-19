@@ -1,0 +1,74 @@
+version: "3"
+
+vars:
+  RELEASE_DIR: build/release
+  DEBUG_DIR: build/debug
+
+tasks:
+  default:
+    cmds:
+      - task: smoke
+
+  build:
+    desc: Release build
+    cmds:
+      - task: build-release
+
+  build-release:
+    internal: true
+    cmds:
+      - cmake -S . -B "{{.RELEASE_DIR}}" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - cmake --build "{{.RELEASE_DIR}}" --parallel
+
+  build-debug:
+    internal: true
+    cmds:
+      - cmake -S . -B "{{.DEBUG_DIR}}" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
+      - cmake --build "{{.DEBUG_DIR}}" --parallel
+
+  test:
+    desc: Release build and tests
+    cmds:
+      - task: build-release
+      - ctest --test-dir "{{.RELEASE_DIR}}" --output-on-failure
+
+  smoke:
+    desc: Release build, tests and smoke run
+    cmds:
+      - task: test
+      - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --version'
+
+  debug:
+    desc: Debug build and tests
+    cmds:
+      - task: build-debug
+      - ctest --test-dir "{{.DEBUG_DIR}}" --output-on-failure
+
+  run:
+    desc: Build and run GUI
+    cmds:
+      - task: build-release
+      - '"{{.RELEASE_DIR}}/msi-keyboard"'
+
+  battery:
+    desc: Build and read battery
+    cmds:
+      - task: build-release
+      - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --battery'
+
+  logs:
+    desc: Build and run continuous CLI logs
+    cmds:
+      - task: build-release
+      - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --logs'
+
+  json:
+    desc: Build and read battery as JSON
+    cmds:
+      - task: build-release
+      - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --battery --json'
+
+  udev:
+    desc: Install local udev rule
+    cmds:
+      - sudo ./scripts/linux/install-udev-rule.sh
