@@ -76,16 +76,17 @@ bool HidMonitor::requestBattery(QString *error)
     const HidInterface *interface = findPreferredInterface(m_interfaces, 1);
     if (interface == nullptr) {
         if (error != nullptr) {
-            *error = QStringLiteral("HID-интерфейс 1 не найден");
+            *error = tr("HID interface 1 was not found");
         }
         return false;
     }
     if (!interface->readable || !interface->writable) {
         if (error != nullptr) {
-            *error = QStringLiteral(
-                         "Нет доступа к interface 1 устройства 0db0:%1. "
-                         "Переустановите udev-правило.")
-                         .arg(interface->productId, 4, 16, QLatin1Char('0'));
+            *error =
+                tr(
+                    "No access to interface 1 of device 0db0:%1. "
+                    "Reinstall the udev rule.")
+                    .arg(interface->productId, 4, 16, QLatin1Char('0'));
         }
         return false;
     }
@@ -94,7 +95,7 @@ bool HidMonitor::requestBattery(QString *error)
     const int fd = ::open(nativePath.constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
     if (fd < 0) {
         if (error != nullptr) {
-            *error = QStringLiteral("Нет доступа на запись к %1: %2")
+            *error = tr("No write access to %1: %2")
                          .arg(
                              interface->devNode,
                              QString::fromLocal8Bit(std::strerror(errno)));
@@ -118,9 +119,9 @@ bool HidMonitor::requestBattery(QString *error)
         if (error != nullptr) {
             *error =
                 written < 0
-                ? QStringLiteral("Не удалось отправить запрос батареи: %1")
+                ? tr("Could not send the battery query: %1")
                       .arg(QString::fromLocal8Bit(std::strerror(savedErrno)))
-                : QStringLiteral("Запрос батареи отправлен не полностью: %1 из %2 байт")
+                : tr("Battery query was incomplete: %1 of %2 bytes")
                       .arg(written)
                       .arg(report.size());
         }
@@ -132,7 +133,10 @@ bool HidMonitor::requestBattery(QString *error)
 void HidMonitor::refresh()
 {
     const QList<HidInterface> current = HidDeviceScanner::scan();
-    const bool changed = interfaceSignature(current) != interfaceSignature(m_interfaces);
+    const bool changed =
+        !m_hasRefreshed
+        || interfaceSignature(current) != interfaceSignature(m_interfaces);
+    m_hasRefreshed = true;
     m_interfaces = current;
     if (!changed) {
         return;
@@ -158,7 +162,7 @@ void HidMonitor::rebuildReaders()
         const int fd = ::open(nativePath.constData(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
         if (fd < 0) {
             emit diagnosticMessage(
-                QStringLiteral("Не удалось открыть %1: %2")
+                tr("Could not open %1: %2")
                     .arg(interface.devNode, QString::fromLocal8Bit(std::strerror(errno))));
             continue;
         }
@@ -210,7 +214,7 @@ void HidMonitor::readAvailable(const QString &devNode)
         }
         if (count < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
             emit diagnosticMessage(
-                QStringLiteral("Ошибка чтения %1: %2")
+                tr("Read error on %1: %2")
                     .arg(devNode, QString::fromLocal8Bit(std::strerror(errno))));
         }
         break;
@@ -241,7 +245,7 @@ void HidMonitor::takeReadOnlySnapshot()
             findPreferredInterface(m_interfaces, query.interfaceNumber);
         if (interface == nullptr) {
             emit diagnosticMessage(
-                QStringLiteral("HID-интерфейс %1 не найден").arg(query.interfaceNumber));
+                tr("HID interface %1 was not found").arg(query.interfaceNumber));
             continue;
         }
 
@@ -252,7 +256,7 @@ void HidMonitor::takeReadOnlySnapshot()
         }
         if (fd < 0) {
             emit diagnosticMessage(
-                QStringLiteral("Нет доступа к %1. Установите udev-правило из packaging.")
+                tr("No access to %1. Install the udev rule from packaging.")
                     .arg(interface->devNode));
             continue;
         }
@@ -272,7 +276,7 @@ void HidMonitor::takeReadOnlySnapshot()
         const int result = ::ioctl(fd, request, data.data());
         if (result < 0) {
             emit diagnosticMessage(
-                QStringLiteral("%1 if%2 0x%3: %4")
+                tr("%1 if%2 0x%3: %4")
                     .arg(operation)
                     .arg(query.interfaceNumber)
                     .arg(query.reportId, 2, 16, QLatin1Char('0'))

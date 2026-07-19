@@ -3,9 +3,11 @@
 #include "device/HidMonitor.h"
 
 #include <QAbstractItemView>
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDialogButtonBox>
 #include <QDir>
+#include <QEvent>
 #include <QFileDialog>
 #include <QFontDatabase>
 #include <QHeaderView>
@@ -31,13 +33,21 @@ QString reportSourceName(ReportSource source)
 {
     switch (source) {
     case ReportSource::Input:
-        return QStringLiteral("INPUT");
+        return QCoreApplication::translate(
+            "strikepro::DebugWindow",
+            "INPUT");
     case ReportSource::Feature:
-        return QStringLiteral("FEATURE");
+        return QCoreApplication::translate(
+            "strikepro::DebugWindow",
+            "FEATURE");
     case ReportSource::Output:
-        return QStringLiteral("OUTPUT");
+        return QCoreApplication::translate(
+            "strikepro::DebugWindow",
+            "OUTPUT");
     }
-    return QStringLiteral("UNKNOWN");
+    return QCoreApplication::translate(
+        "strikepro::DebugWindow",
+        "UNKNOWN");
 }
 
 QString spacedHex(const QByteArray &data)
@@ -77,7 +87,6 @@ DebugWindow::DebugWindow(HidMonitor *monitor, QWidget *parent)
 void DebugWindow::buildUi(HidMonitor *monitor)
 {
     setObjectName(QStringLiteral("debugWindow"));
-    setWindowTitle(QStringLiteral("Debug · MSI Keyboard"));
     setAttribute(Qt::WA_DeleteOnClose, false);
     setMinimumSize(820, 520);
     resize(1040, 680);
@@ -94,13 +103,13 @@ void DebugWindow::buildUi(HidMonitor *monitor)
     logsLayout->setSpacing(10);
 
     auto *logsHeader = new QHBoxLayout;
-    auto *logsTitle = new QLabel(QStringLiteral("Application logs"), logsTab);
-    logsTitle->setObjectName(QStringLiteral("sectionTitle"));
-    auto *clearLogsButton = new QPushButton(QStringLiteral("Очистить"), logsTab);
-    clearLogsButton->setProperty("role", QStringLiteral("quiet"));
-    logsHeader->addWidget(logsTitle);
+    m_logsTitle = new QLabel(logsTab);
+    m_logsTitle->setObjectName(QStringLiteral("sectionTitle"));
+    m_clearLogsButton = new QPushButton(logsTab);
+    m_clearLogsButton->setProperty("role", QStringLiteral("quiet"));
+    logsHeader->addWidget(m_logsTitle);
     logsHeader->addStretch();
-    logsHeader->addWidget(clearLogsButton);
+    logsHeader->addWidget(m_clearLogsButton);
     logsLayout->addLayout(logsHeader);
 
     m_logView = new QPlainTextEdit(logsTab);
@@ -109,7 +118,7 @@ void DebugWindow::buildUi(HidMonitor *monitor)
     m_logView->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     m_logView->document()->setMaximumBlockCount(500);
     logsLayout->addWidget(m_logView, 1);
-    m_tabs->addTab(logsTab, QStringLiteral("Logs"));
+    m_tabs->addTab(logsTab, QString());
 
     auto *telemetryTab = new QWidget(m_tabs);
     auto *telemetryLayout = new QVBoxLayout(telemetryTab);
@@ -119,43 +128,35 @@ void DebugWindow::buildUi(HidMonitor *monitor)
     auto *telemetryHeader = new QHBoxLayout;
     auto *telemetryTitles = new QVBoxLayout;
     telemetryTitles->setSpacing(1);
-    auto *telemetryTitle = new QLabel(QStringLiteral("HID telemetry"), telemetryTab);
-    telemetryTitle->setObjectName(QStringLiteral("sectionTitle"));
-    auto *telemetrySubtitle = new QLabel(
-        QStringLiteral("Сырые отчёты и инструменты исследования протокола"),
-        telemetryTab);
-    telemetrySubtitle->setProperty("role", QStringLiteral("muted"));
-    telemetryTitles->addWidget(telemetryTitle);
-    telemetryTitles->addWidget(telemetrySubtitle);
+    m_telemetryTitle = new QLabel(telemetryTab);
+    m_telemetryTitle->setObjectName(QStringLiteral("sectionTitle"));
+    m_telemetrySubtitle = new QLabel(telemetryTab);
+    m_telemetrySubtitle->setProperty("role", QStringLiteral("muted"));
+    telemetryTitles->addWidget(m_telemetryTitle);
+    telemetryTitles->addWidget(m_telemetrySubtitle);
     telemetryHeader->addLayout(telemetryTitles);
     telemetryHeader->addStretch();
 
-    m_reportCount = new QLabel(QStringLiteral("0 пакетов"), telemetryTab);
+    m_reportCount = new QLabel(telemetryTab);
     m_reportCount->setProperty("role", QStringLiteral("counter"));
-    m_snapshotButton = new QPushButton(QStringLiteral("Снять снимок"), telemetryTab);
+    m_snapshotButton = new QPushButton(telemetryTab);
     m_snapshotButton->setProperty("role", QStringLiteral("quiet"));
-    auto *reloadButton =
-        new QPushButton(QStringLiteral("Перечитать профиль"), telemetryTab);
-    reloadButton->setProperty("role", QStringLiteral("quiet"));
-    auto *clearButton = new QPushButton(QStringLiteral("Очистить"), telemetryTab);
-    clearButton->setProperty("role", QStringLiteral("quiet"));
-    auto *exportButton = new QPushButton(QStringLiteral("Экспорт JSON"), telemetryTab);
-    exportButton->setProperty("role", QStringLiteral("quiet"));
+    m_reloadButton = new QPushButton(telemetryTab);
+    m_reloadButton->setProperty("role", QStringLiteral("quiet"));
+    m_clearTelemetryButton = new QPushButton(telemetryTab);
+    m_clearTelemetryButton->setProperty("role", QStringLiteral("quiet"));
+    m_exportButton = new QPushButton(telemetryTab);
+    m_exportButton->setProperty("role", QStringLiteral("quiet"));
 
     telemetryHeader->addWidget(m_reportCount);
     telemetryHeader->addWidget(m_snapshotButton);
-    telemetryHeader->addWidget(reloadButton);
-    telemetryHeader->addWidget(clearButton);
-    telemetryHeader->addWidget(exportButton);
+    telemetryHeader->addWidget(m_reloadButton);
+    telemetryHeader->addWidget(m_clearTelemetryButton);
+    telemetryHeader->addWidget(m_exportButton);
     telemetryLayout->addLayout(telemetryHeader);
 
     m_reportTable = new QTableWidget(0, 4, telemetryTab);
     m_reportTable->setObjectName(QStringLiteral("reportTable"));
-    m_reportTable->setHorizontalHeaderLabels(
-        {QStringLiteral("Время"),
-         QStringLiteral("Источник"),
-         QStringLiteral("Отчёт"),
-         QStringLiteral("HEX-данные")});
     m_reportTable->horizontalHeader()->setSectionResizeMode(
         0, QHeaderView::ResizeToContents);
     m_reportTable->horizontalHeader()->setSectionResizeMode(
@@ -171,19 +172,31 @@ void DebugWindow::buildUi(HidMonitor *monitor)
     m_reportTable->setShowGrid(false);
     m_reportTable->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     telemetryLayout->addWidget(m_reportTable, 1);
-    m_tabs->addTab(telemetryTab, QStringLiteral("Telemetry"));
+    m_tabs->addTab(telemetryTab, QString());
 
     root->addWidget(m_tabs, 1);
 
-    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
-    root->addWidget(buttons);
+    m_buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
+    root->addWidget(m_buttons);
 
-    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::hide);
-    connect(clearLogsButton, &QPushButton::clicked, this, &DebugWindow::clearLogs);
-    connect(clearButton, &QPushButton::clicked, this, &DebugWindow::clearTelemetry);
-    connect(exportButton, &QPushButton::clicked, this, &DebugWindow::exportDiagnostics);
+    connect(m_buttons, &QDialogButtonBox::rejected, this, &QDialog::hide);
     connect(
-        reloadButton,
+        m_clearLogsButton,
+        &QPushButton::clicked,
+        this,
+        &DebugWindow::clearLogs);
+    connect(
+        m_clearTelemetryButton,
+        &QPushButton::clicked,
+        this,
+        &DebugWindow::clearTelemetry);
+    connect(
+        m_exportButton,
+        &QPushButton::clicked,
+        this,
+        &DebugWindow::exportDiagnostics);
+    connect(
+        m_reloadButton,
         &QPushButton::clicked,
         this,
         &DebugWindow::protocolReloadRequested);
@@ -194,6 +207,44 @@ void DebugWindow::buildUi(HidMonitor *monitor)
             monitor,
             &HidMonitor::takeReadOnlySnapshot);
     }
+    retranslateUi();
+}
+
+void DebugWindow::changeEvent(QEvent *event)
+{
+    QDialog::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange && m_tabs != nullptr) {
+        retranslateUi();
+    }
+}
+
+void DebugWindow::retranslateUi()
+{
+    setWindowTitle(tr("Debug · MSI Keyboard"));
+    m_logsTitle->setText(tr("Application logs"));
+    m_clearLogsButton->setText(tr("Clear"));
+    m_tabs->setTabText(static_cast<int>(Tab::Logs), tr("Logs"));
+    m_telemetryTitle->setText(tr("HID telemetry"));
+    m_telemetrySubtitle->setText(
+        tr("Raw reports and protocol research tools"));
+    m_snapshotButton->setText(tr("Take snapshot"));
+    m_reloadButton->setText(tr("Reload profile"));
+    m_clearTelemetryButton->setText(tr("Clear"));
+    m_exportButton->setText(tr("Export JSON"));
+    m_reportTable->setHorizontalHeaderLabels(
+        {tr("Time"), tr("Source"), tr("Report"), tr("HEX data")});
+    m_tabs->setTabText(static_cast<int>(Tab::Telemetry), tr("Telemetry"));
+    if (auto *closeButton = m_buttons->button(QDialogButtonBox::Close);
+        closeButton != nullptr) {
+        closeButton->setText(tr("Close"));
+    }
+    updateReportCount();
+}
+
+void DebugWindow::updateReportCount()
+{
+    const qsizetype count = m_reportLog.size();
+    m_reportCount->setText(tr("%n packet(s)", nullptr, count));
 }
 
 void DebugWindow::showTab(Tab tab)
@@ -233,13 +284,13 @@ void DebugWindow::recordReport(const HidReport &report)
         report.data.isEmpty() ? -1 : static_cast<quint8>(report.data.front());
     const QString description =
         report.requestedReportId >= 0
-        ? QStringLiteral("%1:if%2  ·  req 0x%3 / resp 0x%4  ·  %5 B")
+        ? tr("%1:if%2  ·  req 0x%3 / resp 0x%4  ·  %5 B")
               .arg(report.productId, 4, 16, QLatin1Char('0'))
               .arg(report.interfaceNumber)
               .arg(report.requestedReportId, 2, 16, QLatin1Char('0'))
               .arg(reportId, 2, 16, QLatin1Char('0'))
               .arg(report.data.size())
-        : QStringLiteral("%1:if%2  ·  id 0x%3  ·  %4 B")
+        : tr("%1:if%2  ·  id 0x%3  ·  %4 B")
               .arg(report.productId, 4, 16, QLatin1Char('0'))
               .arg(report.interfaceNumber)
               .arg(reportId, 2, 16, QLatin1Char('0'))
@@ -276,11 +327,7 @@ void DebugWindow::recordReport(const HidReport &report)
     while (m_reportLog.size() > 500) {
         m_reportLog.removeFirst();
     }
-    m_reportCount->setText(
-        QStringLiteral("%1 %2")
-            .arg(m_reportLog.size())
-            .arg(m_reportLog.size() == 1 ? QStringLiteral("пакет")
-                                        : QStringLiteral("пакетов")));
+    updateReportCount();
 }
 
 void DebugWindow::recordMessage(const QString &message)
@@ -301,16 +348,16 @@ void DebugWindow::clearTelemetry()
 {
     m_reportTable->setRowCount(0);
     m_reportLog = {};
-    m_reportCount->setText(QStringLiteral("0 пакетов"));
+    updateReportCount();
 }
 
 void DebugWindow::exportDiagnostics()
 {
     const QString path = QFileDialog::getSaveFileName(
         this,
-        QStringLiteral("Экспорт диагностики"),
+        tr("Export diagnostics"),
         QDir::homePath() + QStringLiteral("/msi-keyboard-diagnostics.json"),
-        QStringLiteral("JSON (*.json)"));
+        tr("JSON (*.json)"));
     if (path.isEmpty()) {
         return;
     }
@@ -341,15 +388,15 @@ void DebugWindow::exportDiagnostics()
 
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly)) {
-        recordMessage(QStringLiteral("Не удалось открыть файл экспорта"));
+        recordMessage(tr("Could not open the export file"));
         return;
     }
     file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
     if (!file.commit()) {
-        recordMessage(QStringLiteral("Не удалось завершить экспорт"));
+        recordMessage(tr("Could not finish the export"));
         return;
     }
-    recordMessage(QStringLiteral("Диагностика экспортирована: %1").arg(path));
+    recordMessage(tr("Diagnostics exported: %1").arg(path));
 }
 
 } // namespace strikepro

@@ -12,7 +12,7 @@ include(GNUInstallDirs)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core LinguistTools Network Widgets)
 qt_standard_project_setup()
 
 add_library(strikepro_project_options INTERFACE)
@@ -28,6 +28,33 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
             -Wpedantic
     )
 endif()
+
+add_library(strikepro_i18n STATIC
+    src/i18n/LanguageManager.cpp
+    src/i18n/LanguageManager.h
+)
+target_include_directories(strikepro_i18n PUBLIC src)
+target_link_libraries(
+    strikepro_i18n
+    PUBLIC Qt6::Core
+    PRIVATE strikepro_project_options
+)
+qt_add_translations(
+    strikepro_i18n
+    TS_FILES translations/msi-keyboard_ru.ts
+    RESOURCE_PREFIX "/i18n"
+    LUPDATE_OPTIONS -no-obsolete
+    SOURCES
+        src/main.cpp
+        src/cli/CliRunner.cpp
+        src/device/BatteryDecoder.cpp
+        src/device/HidMonitor.cpp
+        src/gui/BatteryGauge.cpp
+        src/gui/DebugWindow.cpp
+        src/gui/MainWindow.cpp
+        src/update/UpdaterCore.cpp
+        src/update/UpgradeRunner.cpp
+)
 
 add_library(strikepro_device STATIC
     src/device/AppPaths.cpp
@@ -57,6 +84,19 @@ target_link_libraries(
     PRIVATE strikepro_project_options
 )
 
+add_library(msi_keyboard_update STATIC
+    src/update/UpdaterCore.cpp
+    src/update/UpdaterCore.h
+    src/update/UpgradeRunner.cpp
+    src/update/UpgradeRunner.h
+)
+target_include_directories(msi_keyboard_update PUBLIC src)
+target_link_libraries(
+    msi_keyboard_update
+    PUBLIC Qt6::Core
+    PRIVATE Qt6::Network strikepro_project_options
+)
+
 add_library(strikepro_gui STATIC
     src/gui/BatteryGauge.cpp
     src/gui/BatteryGauge.h
@@ -67,7 +107,7 @@ add_library(strikepro_gui STATIC
 )
 target_link_libraries(
     strikepro_gui
-    PUBLIC strikepro_device Qt6::Widgets
+    PUBLIC strikepro_device strikepro_i18n Qt6::Widgets
     PRIVATE strikepro_project_options
 )
 
@@ -76,11 +116,22 @@ qt_add_resources(
     msi-keyboard
     strikepro_assets
     PREFIX "/"
-    FILES assets/keyboard/strike_pro.png
+    FILES
+        assets/keyboard/strike_pro.webp
+        assets/keyboard/strike_pro.png
 )
 target_link_libraries(
     msi-keyboard
-    PRIVATE strikepro_cli strikepro_gui strikepro_project_options
+    PRIVATE
+        strikepro_cli
+        strikepro_gui
+        strikepro_i18n
+        msi_keyboard_update
+        strikepro_project_options
+)
+target_compile_definitions(
+    msi-keyboard
+    PRIVATE MSI_KEYBOARD_VERSION="${PROJECT_VERSION}"
 )
 
 install(TARGETS msi-keyboard RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -88,6 +139,9 @@ install(FILES packaging/io.github.kordax.MsiKeyboard.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 install(FILES LICENSE
         DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/msi-keyboard)
+install(FILES LICENSE
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/msi-keyboard
+        RENAME copyright)
 install(
     FILES packaging/70-msi-strike-pro.rules
     DESTINATION lib/udev/rules.d
@@ -108,6 +162,16 @@ if(BUILD_TESTING)
 
     add_test(NAME battery-decoder-tests COMMAND battery-decoder-tests)
 
+    qt_add_executable(hid-monitor-tests
+        tests/HidMonitorTest.cpp
+    )
+    target_link_libraries(
+        hid-monitor-tests
+        PRIVATE strikepro_device Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME hid-monitor-tests COMMAND hid-monitor-tests)
+
     qt_add_executable(battery-gauge-tests
         tests/BatteryGaugeTest.cpp
     )
@@ -115,7 +179,9 @@ if(BUILD_TESTING)
         battery-gauge-tests
         strikepro_test_assets
         PREFIX "/"
-        FILES assets/keyboard/strike_pro.png
+        FILES
+            assets/keyboard/strike_pro.webp
+            assets/keyboard/strike_pro.png
     )
     target_link_libraries(
         battery-gauge-tests
@@ -123,8 +189,71 @@ if(BUILD_TESTING)
     )
 
     add_test(NAME battery-gauge-tests COMMAND battery-gauge-tests)
+
+    qt_add_executable(localization-tests
+        tests/LocalizationTest.cpp
+    )
+    target_link_libraries(
+        localization-tests
+        PRIVATE strikepro_i18n Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME localization-tests COMMAND localization-tests)
+
+    qt_add_executable(updater-core-tests
+        tests/UpdaterCoreTest.cpp
+    )
+    target_link_libraries(
+        updater-core-tests
+        PRIVATE msi_keyboard_update Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME updater-core-tests COMMAND updater-core-tests)
+
+    add_test(
+        NAME cli-english-default
+        COMMAND msi-keyboard --cli --help
+    )
     set_tests_properties(
-        battery-decoder-tests battery-gauge-tests
+        cli-english-default
+        PROPERTIES
+            ENVIRONMENT "LANG=ru_RU.UTF-8;LC_ALL=ru_RU.UTF-8"
+            LABELS "smoke"
+            PASS_REGULAR_EXPRESSION "Run without the GUI."
+            TIMEOUT 10
+    )
+
+    add_test(
+        NAME cli-russian-language
+        COMMAND msi-keyboard --cli --language ru --help
+    )
+    set_tests_properties(
+        cli-russian-language
+        PROPERTIES
+            LABELS "smoke"
+            PASS_REGULAR_EXPRESSION "Запустить без графического интерфейса."
+            TIMEOUT 10
+    )
+
+    add_test(
+        NAME cli-headless-help
+        COMMAND msi-keyboard --help
+    )
+    set_tests_properties(
+        cli-headless-help
+        PROPERTIES
+            ENVIRONMENT "DISPLAY=;WAYLAND_DISPLAY=;QT_QPA_PLATFORM="
+            LABELS "smoke"
+            PASS_REGULAR_EXPRESSION "Linux application for MSI keyboards"
+            TIMEOUT 10
+    )
+
+    set_tests_properties(
+        battery-decoder-tests
+        hid-monitor-tests
+        battery-gauge-tests
+        localization-tests
+        updater-core-tests
         PROPERTIES
             LABELS "unit"
             TIMEOUT 10
@@ -135,3 +264,5 @@ if(BUILD_TESTING)
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     )
 endif()
+
+include(cmake/Packaging.cmake)

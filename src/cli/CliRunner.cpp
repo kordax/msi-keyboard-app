@@ -60,14 +60,14 @@ CliRunner::CliRunner(CliOptions options, QObject *parent)
         log(
             QStringLiteral("info"),
             QStringLiteral("profile_loaded"),
-            QStringLiteral("Загружен профиль батареи"),
+            tr("Battery profile loaded"),
             {{QStringLiteral("path"), m_profile->path}});
     } else {
         m_profile.reset();
         log(
             QStringLiteral("info"),
             QStringLiteral("profile_unavailable"),
-            QStringLiteral("Декодер батареи пока не настроен"),
+            tr("The battery decoder is not configured"),
             {{QStringLiteral("path"), m_options.profilePath},
              {QStringLiteral("reason"), profileError}});
     }
@@ -79,7 +79,7 @@ void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
         log(
             QStringLiteral("error"),
             QStringLiteral("device_not_found"),
-            QStringLiteral("MSI Strike Pro 0db0:1620/b231 не найдена"));
+            tr("MSI Strike Pro 0db0:1620/b231 was not found"));
         if (!m_options.logs) {
             finishOnce(2);
         }
@@ -113,7 +113,7 @@ void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
     log(
         QStringLiteral("info"),
         QStringLiteral("device_connected"),
-        QStringLiteral("Найдена MSI Strike Pro, интерфейсы %1")
+        tr("MSI Strike Pro found, interfaces %1")
             .arg(numbers.join(',')),
         {{QStringLiteral("vendor_id"), QStringLiteral("0db0")},
          {QStringLiteral("interfaces"), interfaceList}});
@@ -122,9 +122,9 @@ void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
         log(
             QStringLiteral("warning"),
             QStringLiteral("access_denied"),
-            QStringLiteral(
-                "Нет доступа к vendor hidraw. Установите правило "
-                "через scripts/linux/install-udev-rule.sh"),
+            tr(
+                "No access to vendor hidraw. Install the rule with "
+                "scripts/linux/install-udev-rule.sh"),
             {{QStringLiteral("helper"),
               QStringLiteral("scripts/linux/install-udev-rule.sh")}});
     }
@@ -143,13 +143,13 @@ void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
         log(
             QStringLiteral("info"),
             QStringLiteral("battery_query_sent"),
-            QStringLiteral("Отправлен подтверждённый запрос MSI Center"));
+            tr("Confirmed MSI Center battery query sent"));
         QTimer::singleShot(2500, this, [this] {
             if (m_options.battery && !m_finishScheduled) {
                 log(
                     QStringLiteral("error"),
                     QStringLiteral("battery_timeout"),
-                    QStringLiteral("Клавиатура не ответила на запрос батареи"));
+                    tr("The keyboard did not answer the battery query"));
                 finishOnce(4);
             }
         });
@@ -179,12 +179,12 @@ void CliRunner::handleReport(const HidReport &report)
             : QStringLiteral("none");
         const QString idSummary =
             report.requestedReportId >= 0
-            ? QStringLiteral("request=%1 response=%2").arg(requestedId, responseId)
-            : QStringLiteral("id=%1").arg(responseId);
+            ? tr("request=%1 response=%2").arg(requestedId, responseId)
+            : tr("id=%1").arg(responseId);
         log(
             QStringLiteral("info"),
             QStringLiteral("hid_report"),
-            QStringLiteral("%1 if%2 %3 size=%4 data=%5")
+            tr("%1 if%2 %3 size=%4 data=%5")
                 .arg(
                     source,
                     QString::number(report.interfaceNumber),
@@ -210,11 +210,11 @@ void CliRunner::handleReport(const HidReport &report)
     }
 
     QJsonObject fields{{QStringLiteral("percent"), reading->percent}};
-    QString message = QStringLiteral("Заряд: %1%").arg(reading->percent);
+    QString message = tr("Battery: %1%").arg(reading->percent);
     if (reading->charging.has_value()) {
         fields.insert(QStringLiteral("charging"), *reading->charging);
-        message += *reading->charging ? QStringLiteral(", зарядка")
-                                      : QStringLiteral(", от батареи");
+        message += *reading->charging ? tr(", charging")
+                                      : tr(", on battery");
     }
     log(
         QStringLiteral("info"),

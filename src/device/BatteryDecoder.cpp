@@ -1,5 +1,6 @@
 #include "BatteryDecoder.h"
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -34,7 +35,10 @@ std::optional<ProtocolProfile> BatteryDecoder::loadProfile(
     }
     if (!file.open(QIODevice::ReadOnly)) {
         if (error != nullptr) {
-            *error = QStringLiteral("Профиль протокола не найден: %1").arg(path);
+            *error = QCoreApplication::translate(
+                         "BatteryDecoder",
+                         "Protocol profile not found: %1")
+                         .arg(path);
         }
         return std::nullopt;
     }
@@ -43,7 +47,10 @@ std::optional<ProtocolProfile> BatteryDecoder::loadProfile(
     const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
     if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
         if (error != nullptr) {
-            *error = QStringLiteral("Некорректный JSON: %1").arg(parseError.errorString());
+            *error = QCoreApplication::translate(
+                         "BatteryDecoder",
+                         "Invalid JSON: %1")
+                         .arg(parseError.errorString());
         }
         return std::nullopt;
     }
@@ -61,7 +68,9 @@ std::optional<ProtocolProfile> BatteryDecoder::loadProfile(
         profile.source = ReportSource::Feature;
     } else {
         if (error != nullptr) {
-            *error = QStringLiteral("battery.source должен быть input или feature");
+            *error = QCoreApplication::translate(
+                "BatteryDecoder",
+                "battery.source must be input or feature");
         }
         return std::nullopt;
     }
@@ -82,7 +91,9 @@ std::optional<ProtocolProfile> BatteryDecoder::loadProfile(
         profile.matchPrefix = QByteArray::fromHex(matchPrefixHex);
         if (profile.matchPrefix.size() * 2 != matchPrefixHex.size()) {
             if (error != nullptr) {
-                *error = QStringLiteral("battery.match_prefix_hex должен содержать пары hex-цифр");
+                *error = QCoreApplication::translate(
+                    "BatteryDecoder",
+                    "battery.match_prefix_hex must contain pairs of hexadecimal digits");
             }
             return std::nullopt;
         }
@@ -90,7 +101,9 @@ std::optional<ProtocolProfile> BatteryDecoder::loadProfile(
 
     if (profile.interfaceNumber < 0 || profile.reportId < 0) {
         if (error != nullptr) {
-            *error = QStringLiteral("В профиле не заданы interface и report_id");
+            *error = QCoreApplication::translate(
+                "BatteryDecoder",
+                "The profile does not define interface and report_id");
         }
         return std::nullopt;
     }

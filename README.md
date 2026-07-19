@@ -1,6 +1,6 @@
 # MSI Keyboard for Linux
 
-A simple app that can show you the battery charge in your linux environment.
+A Linux application for supported MSI keyboards.
 
 ## Supported devices
 
@@ -14,9 +14,13 @@ A simple app that can show you the battery charge in your linux environment.
 ```bash
 task           # Release build, tests, and smoke check
 task debug     # Debug build and tests
+task package   # DEB and RPM packages
 task run       # GUI
 task battery   # Battery level
 task logs      # Continuous CLI logs
 task json      # JSON
 task udev      # Install the udev rule
+
+build/release/msi-keyboard upgrade
+build/release/msi-keyboard --language ru
 ```

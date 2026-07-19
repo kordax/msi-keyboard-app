@@ -22,7 +22,11 @@ private slots:
 
 void BatteryGaugeTest::loadsKeyboardArtwork()
 {
-    const QPixmap artwork(QStringLiteral(":/assets/keyboard/strike_pro.png"));
+    QPixmap artwork(QStringLiteral(":/assets/keyboard/strike_pro.webp"));
+    if (artwork.isNull()) {
+        QVERIFY(artwork.load(
+            QStringLiteral(":/assets/keyboard/strike_pro.png")));
+    }
     QVERIFY(!artwork.isNull());
     QVERIFY(artwork.width() > 500);
     QVERIFY(artwork.height() > 300);

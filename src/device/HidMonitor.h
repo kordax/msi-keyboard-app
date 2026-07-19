@@ -39,6 +39,7 @@ private:
     QList<HidInterface> m_interfaces;
     QHash<QString, int> m_fds;
     QHash<QString, QSocketNotifier *> m_notifiers;
+    bool m_hasRefreshed = false;
 };
 
 } // namespace strikepro

@@ -126,7 +126,7 @@ void BatteryGauge::paintEvent(QPaintEvent *event)
     painter.drawText(
         QRectF(0.0, center.y() + side * 0.09, width(), side * 0.12),
         Qt::AlignHCenter | Qt::AlignTop,
-        QStringLiteral("BATTERY"));
+        tr("BATTERY"));
 }
 
 } // namespace strikepro
