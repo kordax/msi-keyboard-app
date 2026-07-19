@@ -8,10 +8,9 @@ A Linux application to support several MSI keyboards.
 
 ## Supported devices
 
-| Device | VID:PID | Connection |
-| --- | --- | --- |
-| MSI Strike Pro | `0db0:1620` | 2.4 GHz receiver |
-| MSI Strike Pro | `0db0:b231` | USB cable |
+| Device | Connection |
+| --- | --- |
+| MSI Strike Pro | USB cable, 2.4 GHz receiver |
 
 ## Installation
 
