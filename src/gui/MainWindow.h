@@ -22,15 +22,14 @@ class LanguageManager;
 class MainWindow final : public QMainWindow {
     Q_OBJECT
 
-public:
+  public:
     explicit MainWindow(
-        LanguageManager *languageManager = nullptr,
-        QWidget *parent = nullptr);
+        LanguageManager *languageManager = nullptr, QWidget *parent = nullptr);
 
-protected:
+  protected:
     void changeEvent(QEvent *event) override;
 
-private slots:
+  private slots:
     void updateInterfaces(const QList<strikepro::HidInterface> &interfaces);
     void recordReport(const strikepro::HidReport &report);
     void reloadProtocolProfile();
@@ -38,11 +37,12 @@ private slots:
     void showDebugLogs();
     void showDebugTelemetry();
 
-private:
+  private:
     void buildUi();
     void retranslateUi();
     void setBattery(const BatteryReading &reading);
-    void setStatus(QLabel *dot, QLabel *detail, const QString &tone, const QString &text);
+    void setStatus(
+        QLabel *dot, QLabel *detail, const QString &tone, const QString &text);
     void logDebug(const QString &message);
     [[nodiscard]] QString profilePath() const;
 

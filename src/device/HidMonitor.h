@@ -14,23 +14,26 @@ namespace strikepro {
 class HidMonitor final : public QObject {
     Q_OBJECT
 
-public:
+  public:
     explicit HidMonitor(QObject *parent = nullptr);
     ~HidMonitor() override;
 
-    [[nodiscard]] const QList<HidInterface> &interfaces() const { return m_interfaces; }
+    [[nodiscard]] const QList<HidInterface> &interfaces() const
+    {
+        return m_interfaces;
+    }
     [[nodiscard]] bool requestBattery(QString *error = nullptr);
 
-public slots:
+  public slots:
     void refresh();
     void takeReadOnlySnapshot();
 
-signals:
+  signals:
     void interfacesChanged(const QList<strikepro::HidInterface> &interfaces);
     void reportReceived(const strikepro::HidReport &report);
     void diagnosticMessage(const QString &message);
 
-private:
+  private:
     void rebuildReaders();
     void closeReaders();
     void readAvailable(const QString &devNode);

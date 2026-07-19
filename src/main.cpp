@@ -35,9 +35,8 @@ std::optional<QString> requestedLanguage(int argc, char *argv[])
                 return QString();
             }
             const QString value = QString::fromLocal8Bit(argv[index + 1]);
-            return value.startsWith(QLatin1Char('-'))
-                ? std::optional(QString())
-                : std::optional(value);
+            return value.startsWith(QLatin1Char('-')) ? std::optional(QString())
+                                                      : std::optional(value);
         }
         if (argument.startsWith(QString::fromLatin1(prefix))) {
             return argument.sliced(QString::fromLatin1(prefix).size());
@@ -50,8 +49,7 @@ std::optional<QString> requestedLanguage(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-    const bool cliRequested =
-        hasArgument(argc, argv, QStringView(u"--cli"));
+    const bool cliRequested = hasArgument(argc, argv, QStringView(u"--cli"));
     const bool upgradeRequested =
         hasArgument(argc, argv, QStringView(u"upgrade"));
     const bool terminalOnlyRequested =
@@ -75,18 +73,16 @@ int main(int argc, char *argv[])
     const std::optional<QString> languageOverride =
         requestedLanguage(argc, argv);
     const QString initialLanguage =
-        languageOverride.has_value()
-        ? *languageOverride
+        languageOverride.has_value() ? *languageOverride
         : (cliRequested || upgradeRequested)
             ? strikepro::LanguageManager::defaultLanguage()
             : strikepro::LanguageManager::storedLanguage();
     if (!languageManager.setLanguage(initialLanguage)) {
-        QTextStream(stderr)
-            << QCoreApplication::translate(
-                   "CommandLine",
-                   "Unsupported language \"%1\". Use en or ru.")
-                   .arg(initialLanguage)
-            << '\n';
+        QTextStream(stderr) << QCoreApplication::translate(
+                                   "CommandLine",
+                                   "Unsupported language \"%1\". Use en or ru.")
+                                   .arg(initialLanguage)
+                            << '\n';
         return 1;
     }
 
@@ -141,9 +137,7 @@ int main(int argc, char *argv[])
          languageOption});
     parser.addPositionalArgument(
         QStringLiteral("command"),
-        QCoreApplication::translate(
-            "CommandLine",
-            "Command to run: upgrade."),
+        QCoreApplication::translate("CommandLine", "Command to run: upgrade."),
         QStringLiteral("[upgrade]"));
     parser.process(*application);
 
@@ -151,10 +145,8 @@ int main(int argc, char *argv[])
     if (!positionalArguments.isEmpty()) {
         if (positionalArguments.size() != 1
             || positionalArguments.constFirst() != QStringLiteral("upgrade")
-            || parser.isSet(logsOption)
-            || parser.isSet(onceOption)
-            || parser.isSet(jsonOption)
-            || parser.isSet(batteryOption)
+            || parser.isSet(logsOption) || parser.isSet(onceOption)
+            || parser.isSet(jsonOption) || parser.isSet(batteryOption)
             || parser.isSet(profileOption)) {
             parser.showHelp(1);
         }
@@ -167,20 +159,18 @@ int main(int argc, char *argv[])
         if (profilePath.isEmpty()) {
             profilePath = strikepro::defaultProtocolProfilePath();
         }
-        strikepro::CliRunner runner(
-            strikepro::CliOptions{
-                .json = parser.isSet(jsonOption),
-                .once = parser.isSet(onceOption),
-                .battery = parser.isSet(batteryOption),
-                .logs = parser.isSet(logsOption),
-                .profilePath = profilePath,
-            });
+        strikepro::CliRunner runner(strikepro::CliOptions{
+            .json = parser.isSet(jsonOption),
+            .once = parser.isSet(onceOption),
+            .battery = parser.isSet(batteryOption),
+            .logs = parser.isSet(logsOption),
+            .profilePath = profilePath,
+        });
         return application->exec();
     }
 
     if (parser.isSet(logsOption) || parser.isSet(onceOption)
-        || parser.isSet(jsonOption)
-        || parser.isSet(batteryOption)
+        || parser.isSet(jsonOption) || parser.isSet(batteryOption)
         || parser.isSet(profileOption)) {
         parser.showHelp(1);
     }

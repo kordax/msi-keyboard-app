@@ -10,8 +10,8 @@
 #include <QEvent>
 #include <QFileDialog>
 #include <QFontDatabase>
-#include <QHeaderView>
 #include <QHBoxLayout>
+#include <QHeaderView>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
@@ -33,21 +33,13 @@ QString reportSourceName(ReportSource source)
 {
     switch (source) {
     case ReportSource::Input:
-        return QCoreApplication::translate(
-            "strikepro::DebugWindow",
-            "INPUT");
+        return QCoreApplication::translate("strikepro::DebugWindow", "INPUT");
     case ReportSource::Feature:
-        return QCoreApplication::translate(
-            "strikepro::DebugWindow",
-            "FEATURE");
+        return QCoreApplication::translate("strikepro::DebugWindow", "FEATURE");
     case ReportSource::Output:
-        return QCoreApplication::translate(
-            "strikepro::DebugWindow",
-            "OUTPUT");
+        return QCoreApplication::translate("strikepro::DebugWindow", "OUTPUT");
     }
-    return QCoreApplication::translate(
-        "strikepro::DebugWindow",
-        "UNKNOWN");
+    return QCoreApplication::translate("strikepro::DebugWindow", "UNKNOWN");
 }
 
 QString spacedHex(const QByteArray &data)
@@ -158,12 +150,17 @@ void DebugWindow::buildUi(HidMonitor *monitor)
     m_reportTable = new QTableWidget(0, 4, telemetryTab);
     m_reportTable->setObjectName(QStringLiteral("reportTable"));
     m_reportTable->horizontalHeader()->setSectionResizeMode(
-        0, QHeaderView::ResizeToContents);
+        0,
+        QHeaderView::ResizeToContents);
     m_reportTable->horizontalHeader()->setSectionResizeMode(
-        1, QHeaderView::ResizeToContents);
+        1,
+        QHeaderView::ResizeToContents);
     m_reportTable->horizontalHeader()->setSectionResizeMode(
-        2, QHeaderView::ResizeToContents);
-    m_reportTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
+        2,
+        QHeaderView::ResizeToContents);
+    m_reportTable->horizontalHeader()->setSectionResizeMode(
+        3,
+        QHeaderView::Stretch);
     m_reportTable->verticalHeader()->hide();
     m_reportTable->setAlternatingRowColors(true);
     m_reportTable->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -225,8 +222,7 @@ void DebugWindow::retranslateUi()
     m_clearLogsButton->setText(tr("Clear"));
     m_tabs->setTabText(static_cast<int>(Tab::Logs), tr("Logs"));
     m_telemetryTitle->setText(tr("HID telemetry"));
-    m_telemetrySubtitle->setText(
-        tr("Raw reports and protocol research tools"));
+    m_telemetrySubtitle->setText(tr("Raw reports and protocol research tools"));
     m_snapshotButton->setText(tr("Take snapshot"));
     m_reloadButton->setText(tr("Reload profile"));
     m_clearTelemetryButton->setText(tr("Clear"));
@@ -261,9 +257,9 @@ void DebugWindow::setInterfaces(const QList<HidInterface> &interfaces)
     const bool hasReadableVendorInterface =
         std::ranges::any_of(interfaces, [](const HidInterface &interface) {
             return interface.readable
-                && (interface.interfaceNumber == 1
-                    || interface.interfaceNumber == 2
-                    || interface.interfaceNumber == 4);
+                   && (interface.interfaceNumber == 1
+                       || interface.interfaceNumber == 2
+                       || interface.interfaceNumber == 4);
         });
     m_snapshotButton->setEnabled(hasReadableVendorInterface);
 }
@@ -284,29 +280,34 @@ void DebugWindow::recordReport(const HidReport &report)
         report.data.isEmpty() ? -1 : static_cast<quint8>(report.data.front());
     const QString description =
         report.requestedReportId >= 0
-        ? tr("%1:if%2  ·  req 0x%3 / resp 0x%4  ·  %5 B")
-              .arg(report.productId, 4, 16, QLatin1Char('0'))
-              .arg(report.interfaceNumber)
-              .arg(report.requestedReportId, 2, 16, QLatin1Char('0'))
-              .arg(reportId, 2, 16, QLatin1Char('0'))
-              .arg(report.data.size())
-        : tr("%1:if%2  ·  id 0x%3  ·  %4 B")
-              .arg(report.productId, 4, 16, QLatin1Char('0'))
-              .arg(report.interfaceNumber)
-              .arg(reportId, 2, 16, QLatin1Char('0'))
-              .arg(report.data.size());
+            ? tr("%1:if%2  ·  req 0x%3 / resp 0x%4  ·  %5 B")
+                  .arg(report.productId, 4, 16, QLatin1Char('0'))
+                  .arg(report.interfaceNumber)
+                  .arg(report.requestedReportId, 2, 16, QLatin1Char('0'))
+                  .arg(reportId, 2, 16, QLatin1Char('0'))
+                  .arg(report.data.size())
+            : tr("%1:if%2  ·  id 0x%3  ·  %4 B")
+                  .arg(report.productId, 4, 16, QLatin1Char('0'))
+                  .arg(report.interfaceNumber)
+                  .arg(reportId, 2, 16, QLatin1Char('0'))
+                  .arg(report.data.size());
 
     const int row = m_reportTable->rowCount();
     m_reportTable->insertRow(row);
     m_reportTable->setItem(
         row,
         0,
-        new QTableWidgetItem(
-            QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss.zzz"))));
+        new QTableWidgetItem(QDateTime::currentDateTime().toString(
+            QStringLiteral("HH:mm:ss.zzz"))));
     m_reportTable->setItem(
-        row, 1, new QTableWidgetItem(reportSourceName(report.source)));
+        row,
+        1,
+        new QTableWidgetItem(reportSourceName(report.source)));
     m_reportTable->setItem(row, 2, new QTableWidgetItem(description));
-    m_reportTable->setItem(row, 3, new QTableWidgetItem(spacedHex(report.data)));
+    m_reportTable->setItem(
+        row,
+        3,
+        new QTableWidgetItem(spacedHex(report.data)));
     m_reportTable->scrollToBottom();
 
     QJsonObject json;
@@ -320,9 +321,13 @@ void DebugWindow::recordReport(const HidReport &report)
         QStringLiteral("%1").arg(report.productId, 4, 16, QLatin1Char('0')));
     json.insert(QStringLiteral("report_id"), reportId);
     if (report.requestedReportId >= 0) {
-        json.insert(QStringLiteral("requested_report_id"), report.requestedReportId);
+        json.insert(
+            QStringLiteral("requested_report_id"),
+            report.requestedReportId);
     }
-    json.insert(QStringLiteral("data_hex"), QString::fromLatin1(report.data.toHex()));
+    json.insert(
+        QStringLiteral("data_hex"),
+        QString::fromLatin1(report.data.toHex()));
     m_reportLog.append(json);
     while (m_reportLog.size() > 500) {
         m_reportLog.removeFirst();
@@ -332,11 +337,9 @@ void DebugWindow::recordReport(const HidReport &report)
 
 void DebugWindow::recordMessage(const QString &message)
 {
-    m_logView->appendPlainText(
-        QStringLiteral("%1  %2")
-            .arg(
-                QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss.zzz")),
-                message));
+    m_logView->appendPlainText(QStringLiteral("%1  %2").arg(
+        QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss.zzz")),
+        message));
 }
 
 void DebugWindow::clearLogs()
@@ -369,7 +372,8 @@ void DebugWindow::exportDiagnostics()
         json.insert(QStringLiteral("vendor_id"), QStringLiteral("0db0"));
         json.insert(
             QStringLiteral("product_id"),
-            QStringLiteral("%1").arg(interface.productId, 4, 16, QLatin1Char('0')));
+            QStringLiteral("%1")
+                .arg(interface.productId, 4, 16, QLatin1Char('0')));
         json.insert(QStringLiteral("readable"), interface.readable);
         json.insert(QStringLiteral("writable"), interface.writable);
         json.insert(

@@ -91,14 +91,11 @@ enum class InstallReadiness {
     Ready,
 };
 
-std::optional<GitHubRelease> parseGitHubRelease(
-    const QByteArray &json,
-    QString *error = nullptr);
+std::optional<GitHubRelease>
+parseGitHubRelease(const QByteArray &json, QString *error = nullptr);
 
-std::optional<int> compareVersions(
-    QStringView left,
-    QStringView right,
-    QString *error = nullptr);
+std::optional<int>
+compareVersions(QStringView left, QStringView right, QString *error = nullptr);
 
 bool isAllowedGitHubUrl(const QUrl &url);
 
@@ -129,9 +126,8 @@ std::optional<UpgradeSelection> selectUpgrade(
     QStringView productName = QStringView(u"msi-keyboard"),
     QString *error = nullptr);
 
-std::optional<PackageMetadata> parsePackageMetadata(
-    const QByteArray &output,
-    QString *error = nullptr);
+std::optional<PackageMetadata>
+parsePackageMetadata(const QByteArray &output, QString *error = nullptr);
 
 bool packageMetadataMatches(
     const PackageMetadata &metadata,
@@ -140,9 +136,8 @@ bool packageMetadataMatches(
     QStringView productName = QStringView(u"msi-keyboard"),
     QString *error = nullptr);
 
-std::optional<Sha256Manifest> parseSha256Manifest(
-    const QByteArray &contents,
-    QString *error = nullptr);
+std::optional<Sha256Manifest>
+parseSha256Manifest(const QByteArray &contents, QString *error = nullptr);
 
 std::optional<QByteArray> checksumForAsset(
     const Sha256Manifest &manifest,

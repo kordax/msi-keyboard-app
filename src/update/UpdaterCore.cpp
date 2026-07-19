@@ -75,7 +75,8 @@ std::optional<ParsedVersion> parseVersion(QStringView input, QString *error)
     }
 
     ParsedVersion parsed;
-    const QStringList coreParts = value.split(QLatin1Char('.'), Qt::KeepEmptyParts);
+    const QStringList coreParts =
+        value.split(QLatin1Char('.'), Qt::KeepEmptyParts);
     if (coreParts.isEmpty()) {
         setError(error, tr("Version has no numeric components."));
         return std::nullopt;
@@ -84,7 +85,9 @@ std::optional<ParsedVersion> parseVersion(QStringView input, QString *error)
         bool ok = false;
         const quint64 number = part.toULongLong(&ok);
         if (!ok || part.isEmpty()) {
-            setError(error, tr("Version component is not numeric: %1").arg(part));
+            setError(
+                error,
+                tr("Version component is not numeric: %1").arg(part));
             return std::nullopt;
         }
         parsed.core.append(number);
@@ -121,8 +124,10 @@ int compareParsedVersions(const ParsedVersion &left, const ParsedVersion &right)
 {
     const qsizetype coreCount = std::max(left.core.size(), right.core.size());
     for (qsizetype index = 0; index < coreCount; ++index) {
-        const quint64 leftPart = index < left.core.size() ? left.core.at(index) : 0;
-        const quint64 rightPart = index < right.core.size() ? right.core.at(index) : 0;
+        const quint64 leftPart =
+            index < left.core.size() ? left.core.at(index) : 0;
+        const quint64 rightPart =
+            index < right.core.size() ? right.core.at(index) : 0;
         if (leftPart != rightPart) {
             return leftPart < rightPart ? -1 : 1;
         }
@@ -147,8 +152,10 @@ int compareParsedVersions(const ParsedVersion &left, const ParsedVersion &right)
             return leftPart.numeric ? -1 : 1;
         }
 
-        const int comparison =
-            QString::compare(leftPart.text, rightPart.text, Qt::CaseInsensitive);
+        const int comparison = QString::compare(
+            leftPart.text,
+            rightPart.text,
+            Qt::CaseInsensitive);
         if (comparison != 0) {
             return comparison < 0 ? -1 : 1;
         }
@@ -177,7 +184,8 @@ QString unquoteOsReleaseValue(QString value)
 {
     value = value.trimmed();
     if (value.size() >= 2
-        && ((value.startsWith(QLatin1Char('"')) && value.endsWith(QLatin1Char('"')))
+        && ((value.startsWith(QLatin1Char('"'))
+             && value.endsWith(QLatin1Char('"')))
             || (value.startsWith(QLatin1Char('\''))
                 && value.endsWith(QLatin1Char('\''))))) {
         value = value.mid(1, value.size() - 2);
@@ -198,14 +206,16 @@ QStringList osReleaseFamilies(QStringView contents)
         if (key != QStringLiteral("ID") && key != QStringLiteral("ID_LIKE")) {
             continue;
         }
-        values.append(
-            unquoteOsReleaseValue(line.mid(separator + 1))
-                .split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts));
+        values.append(unquoteOsReleaseValue(line.mid(separator + 1))
+                          .split(
+                              QRegularExpression(QStringLiteral("\\s+")),
+                              Qt::SkipEmptyParts));
     }
     return values;
 }
 
-QString firstAvailable(const QStringList &available, const QStringList &preferred)
+QString
+firstAvailable(const QStringList &available, const QStringList &preferred)
 {
     for (const QString &candidate : preferred) {
         if (available.contains(candidate)) {
@@ -219,14 +229,13 @@ bool isSystemExecutablePath(QStringView path)
 {
     const QString cleanPath = QDir::cleanPath(path.toString());
     return cleanPath.startsWith(QStringLiteral("/usr/bin/"))
-        || cleanPath.startsWith(QStringLiteral("/bin/"))
-        || cleanPath.startsWith(QStringLiteral("/usr/sbin/"))
-        || cleanPath.startsWith(QStringLiteral("/sbin/"));
+           || cleanPath.startsWith(QStringLiteral("/bin/"))
+           || cleanPath.startsWith(QStringLiteral("/usr/sbin/"))
+           || cleanPath.startsWith(QStringLiteral("/sbin/"));
 }
 
 QString originalProgramPath(
-    const QStringList &availablePrograms,
-    const QString &programName)
+    const QStringList &availablePrograms, const QString &programName)
 {
     for (const QString &candidate : availablePrograms) {
         if (QFileInfo(candidate).fileName().compare(
@@ -285,23 +294,25 @@ QString architecturePattern(CpuArchitecture architecture)
 }
 
 int architectureConventionScore(
-    QStringView name,
-    PackageFormat format,
-    CpuArchitecture architecture)
+    QStringView name, PackageFormat format, CpuArchitecture architecture)
 {
     const QString lower = name.toString().toLower();
     if (architecture == CpuArchitecture::X86_64) {
-        if (format == PackageFormat::Deb && lower.contains(QStringLiteral("amd64"))) {
+        if (format == PackageFormat::Deb
+            && lower.contains(QStringLiteral("amd64"))) {
             return 2;
         }
-        if (format == PackageFormat::Rpm && lower.contains(QStringLiteral("x86_64"))) {
+        if (format == PackageFormat::Rpm
+            && lower.contains(QStringLiteral("x86_64"))) {
             return 2;
         }
     } else if (architecture == CpuArchitecture::Arm64) {
-        if (format == PackageFormat::Deb && lower.contains(QStringLiteral("arm64"))) {
+        if (format == PackageFormat::Deb
+            && lower.contains(QStringLiteral("arm64"))) {
             return 2;
         }
-        if (format == PackageFormat::Rpm && lower.contains(QStringLiteral("aarch64"))) {
+        if (format == PackageFormat::Rpm
+            && lower.contains(QStringLiteral("aarch64"))) {
             return 2;
         }
     }
@@ -331,7 +342,8 @@ QString shellQuote(QString value)
 
 bool isValidSha256(const QByteArray &value)
 {
-    static const QRegularExpression sha256Pattern(QStringLiteral("^[0-9a-fA-F]{64}$"));
+    static const QRegularExpression sha256Pattern(
+        QStringLiteral("^[0-9a-fA-F]{64}$"));
     return sha256Pattern.match(QString::fromLatin1(value)).hasMatch();
 }
 
@@ -353,25 +365,27 @@ bool isAllowedGitHubUrl(const QUrl &url)
     }
     const QString host = url.host().toLower();
     return host == QStringLiteral("api.github.com")
-        || host == QStringLiteral("github.com")
-        || host == QStringLiteral("objects.githubusercontent.com")
-        || host == QStringLiteral("release-assets.githubusercontent.com");
+           || host == QStringLiteral("github.com")
+           || host == QStringLiteral("objects.githubusercontent.com")
+           || host == QStringLiteral("release-assets.githubusercontent.com");
 }
 
-std::optional<GitHubRelease> parseGitHubRelease(
-    const QByteArray &json,
-    QString *error)
+std::optional<GitHubRelease>
+parseGitHubRelease(const QByteArray &json, QString *error)
 {
     QJsonParseError parseError;
     const QJsonDocument document = QJsonDocument::fromJson(json, &parseError);
     if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
-        setError(error, tr("Invalid GitHub release JSON: %1")
-                            .arg(parseError.errorString()));
+        setError(
+            error,
+            tr("Invalid GitHub release JSON: %1")
+                .arg(parseError.errorString()));
         return std::nullopt;
     }
 
     const QJsonObject object = document.object();
-    const QString tagName = object.value(QStringLiteral("tag_name")).toString().trimmed();
+    const QString tagName =
+        object.value(QStringLiteral("tag_name")).toString().trimmed();
     if (tagName.isEmpty()) {
         setError(error, tr("GitHub release has no tag_name."));
         return std::nullopt;
@@ -402,10 +416,13 @@ std::optional<GitHubRelease> parseGitHubRelease(
             return std::nullopt;
         }
         const QJsonObject assetObject = assetValue.toObject();
-        const QString name = assetObject.value(QStringLiteral("name")).toString().trimmed();
+        const QString name =
+            assetObject.value(QStringLiteral("name")).toString().trimmed();
         const QUrl downloadUrl(
-            assetObject.value(QStringLiteral("browser_download_url")).toString());
-        const qint64 size = assetObject.value(QStringLiteral("size")).toInteger(-1);
+            assetObject.value(QStringLiteral("browser_download_url"))
+                .toString());
+        const qint64 size =
+            assetObject.value(QStringLiteral("size")).toInteger(-1);
         if (!isPlainAssetName(name) || !isAllowedGitHubUrl(downloadUrl)
             || size < 0) {
             setError(error, tr("GitHub release contains an invalid asset."));
@@ -421,10 +438,8 @@ std::optional<GitHubRelease> parseGitHubRelease(
     return release;
 }
 
-std::optional<int> compareVersions(
-    QStringView left,
-    QStringView right,
-    QString *error)
+std::optional<int>
+compareVersions(QStringView left, QStringView right, QString *error)
 {
     const auto parsedLeft = parseVersion(left, error);
     if (!parsedLeft.has_value()) {
@@ -438,9 +453,7 @@ std::optional<int> compareVersions(
 }
 
 bool isNewerStableRelease(
-    const GitHubRelease &release,
-    QStringView currentVersion,
-    QString *error)
+    const GitHubRelease &release, QStringView currentVersion, QString *error)
 {
     if (release.draft || release.prerelease) {
         setError(error, tr("The release is not a stable published release."));
@@ -454,7 +467,8 @@ bool isNewerStableRelease(
         setError(error, tr("The release version is a prerelease."));
         return false;
     }
-    const auto comparison = compareVersions(release.version, currentVersion, error);
+    const auto comparison =
+        compareVersions(release.version, currentVersion, error);
     return comparison.has_value() && *comparison > 0;
 }
 
@@ -465,7 +479,8 @@ CpuArchitecture normalizeArchitecture(QStringView architecture)
         || value == QStringLiteral("x64")) {
         return CpuArchitecture::X86_64;
     }
-    if (value == QStringLiteral("aarch64") || value == QStringLiteral("arm64")) {
+    if (value == QStringLiteral("aarch64")
+        || value == QStringLiteral("arm64")) {
         return CpuArchitecture::Arm64;
     }
     return CpuArchitecture::Unknown;
@@ -519,7 +534,9 @@ PlatformInfo detectPlatform(const PlatformProbe &probe)
         result.packageFormat = PackageFormat::Deb;
         const QString installerName = firstAvailable(
             programs,
-            {QStringLiteral("apt-get"), QStringLiteral("apt"), QStringLiteral("dpkg")});
+            {QStringLiteral("apt-get"),
+             QStringLiteral("apt"),
+             QStringLiteral("dpkg")});
         result.installerProgram =
             originalProgramPath(probe.availablePrograms, installerName);
     } else if (
@@ -594,8 +611,9 @@ std::optional<ReleaseAsset> selectPackageAsset(
         QStringLiteral("(^|[^a-z0-9])%1([^a-z0-9]|$)").arg(architecture),
         QRegularExpression::CaseInsensitiveOption);
     const QRegularExpression nonRuntimePackageExpression(
-        QStringLiteral("(^|[^a-z0-9])(?:debug|debuginfo|dbgsym|devel|source|src)"
-                       "([^a-z0-9]|$)"),
+        QStringLiteral(
+            "(^|[^a-z0-9])(?:debug|debuginfo|dbgsym|devel|source|src)"
+            "([^a-z0-9]|$)"),
         QRegularExpression::CaseInsensitiveOption);
 
     QList<ReleaseAsset> bestMatches;
@@ -639,9 +657,7 @@ std::optional<ReleaseAsset> selectPackageAsset(
 }
 
 std::optional<ReleaseAsset> selectChecksumAsset(
-    const GitHubRelease &release,
-    QStringView packageAssetName,
-    QString *error)
+    const GitHubRelease &release, QStringView packageAssetName, QString *error)
 {
     const QString packageName = packageAssetName.toString();
     const QString exactName = packageName + QStringLiteral(".sha256");
@@ -680,7 +696,8 @@ std::optional<UpgradeSelection> selectUpgrade(
     if (!isNewerStableRelease(release, currentVersion, error)) {
         return std::nullopt;
     }
-    const auto package = selectPackageAsset(release, platform, productName, error);
+    const auto package =
+        selectPackageAsset(release, platform, productName, error);
     if (!package.has_value()) {
         return std::nullopt;
     }
@@ -695,9 +712,8 @@ std::optional<UpgradeSelection> selectUpgrade(
     };
 }
 
-std::optional<PackageMetadata> parsePackageMetadata(
-    const QByteArray &output,
-    QString *error)
+std::optional<PackageMetadata>
+parsePackageMetadata(const QByteArray &output, QString *error)
 {
     QStringList lines = QString::fromUtf8(output).split(QLatin1Char('\n'));
     while (!lines.isEmpty() && lines.constLast().isEmpty()) {
@@ -749,19 +765,17 @@ bool packageMetadataMatches(
 
     QString expectedArchitecture;
     if (platform.packageFormat == PackageFormat::Deb) {
-        expectedArchitecture =
-            platform.architecture == CpuArchitecture::X86_64
-            ? QStringLiteral("amd64")
-            : platform.architecture == CpuArchitecture::Arm64
-                ? QStringLiteral("arm64")
-                : QString();
+        expectedArchitecture = platform.architecture == CpuArchitecture::X86_64
+                                   ? QStringLiteral("amd64")
+                               : platform.architecture == CpuArchitecture::Arm64
+                                   ? QStringLiteral("arm64")
+                                   : QString();
     } else if (platform.packageFormat == PackageFormat::Rpm) {
-        expectedArchitecture =
-            platform.architecture == CpuArchitecture::X86_64
-            ? QStringLiteral("x86_64")
-            : platform.architecture == CpuArchitecture::Arm64
-                ? QStringLiteral("aarch64")
-                : QString();
+        expectedArchitecture = platform.architecture == CpuArchitecture::X86_64
+                                   ? QStringLiteral("x86_64")
+                               : platform.architecture == CpuArchitecture::Arm64
+                                   ? QStringLiteral("aarch64")
+                                   : QString();
     }
     if (expectedArchitecture.isEmpty()
         || metadata.architecture != expectedArchitecture) {
@@ -774,9 +788,8 @@ bool packageMetadataMatches(
     return true;
 }
 
-std::optional<Sha256Manifest> parseSha256Manifest(
-    const QByteArray &contents,
-    QString *error)
+std::optional<Sha256Manifest>
+parseSha256Manifest(const QByteArray &contents, QString *error)
 {
     static const QRegularExpression gnuPattern(
         QStringLiteral("^([0-9a-fA-F]{64})(?:[ \\t]+[* ]?(.+))?$"));
@@ -811,7 +824,9 @@ std::optional<Sha256Manifest> parseSha256Manifest(
         }
 
         if (fileName.contains(QLatin1Char('\0'))) {
-            setError(error, tr("SHA-256 manifest contains an invalid file name."));
+            setError(
+                error,
+                tr("SHA-256 manifest contains an invalid file name."));
             return std::nullopt;
         }
         const auto existing = manifest.constFind(fileName);
@@ -833,9 +848,7 @@ std::optional<Sha256Manifest> parseSha256Manifest(
 }
 
 std::optional<QByteArray> checksumForAsset(
-    const Sha256Manifest &manifest,
-    QStringView assetName,
-    QString *error)
+    const Sha256Manifest &manifest, QStringView assetName, QString *error)
 {
     const QString requestedName = assetName.toString();
     const auto exact = manifest.constFind(requestedName);
@@ -844,7 +857,8 @@ std::optional<QByteArray> checksumForAsset(
     }
 
     QList<QByteArray> basenameMatches;
-    for (auto iterator = manifest.cbegin(); iterator != manifest.cend(); ++iterator) {
+    for (auto iterator = manifest.cbegin(); iterator != manifest.cend();
+         ++iterator) {
         if (!iterator.key().isEmpty()
             && QFileInfo(iterator.key()).fileName() == requestedName) {
             basenameMatches.append(iterator.value());
@@ -896,8 +910,8 @@ VerificationResult verifyFileSha256(
         *actualHex = actual;
     }
     return actual.compare(expectedHex, Qt::CaseInsensitive) == 0
-        ? VerificationResult::Match
-        : VerificationResult::Mismatch;
+               ? VerificationResult::Match
+               : VerificationResult::Mismatch;
 }
 
 std::optional<InstallPlan> createInstallPlan(
@@ -915,16 +929,21 @@ std::optional<InstallPlan> createInstallPlan(
     const QString cleanPath = QDir::cleanPath(packagePath);
     if (extension.isEmpty() || platform.installerProgram.isEmpty()
         || !isSystemExecutablePath(platform.installerProgram)) {
-        setError(error, tr("No supported system package installer is available."));
+        setError(
+            error,
+            tr("No supported system package installer is available."));
         return std::nullopt;
     }
     if (!QDir::isAbsolutePath(cleanPath)
         || !cleanPath.endsWith(extension, Qt::CaseInsensitive)) {
-        setError(error, tr("Package path is not an absolute %1 file.").arg(extension));
+        setError(
+            error,
+            tr("Package path is not an absolute %1 file.").arg(extension));
         return std::nullopt;
     }
 
-    const QString program = QFileInfo(platform.installerProgram).fileName().toLower();
+    const QString program =
+        QFileInfo(platform.installerProgram).fileName().toLower();
     QStringList arguments;
     if (program == QStringLiteral("apt-get") || program == QStringLiteral("apt")
         || program == QStringLiteral("dnf5") || program == QStringLiteral("dnf")
@@ -935,7 +954,9 @@ std::optional<InstallPlan> createInstallPlan(
     } else if (program == QStringLiteral("rpm")) {
         arguments = {QStringLiteral("--upgrade"), cleanPath};
     } else {
-        setError(error, tr("Unsupported system package installer: %1").arg(program));
+        setError(
+            error,
+            tr("Unsupported system package installer: %1").arg(program));
         return std::nullopt;
     }
 

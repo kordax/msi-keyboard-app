@@ -21,7 +21,7 @@ class HidMonitor;
 class DebugWindow final : public QDialog {
     Q_OBJECT
 
-public:
+  public:
     enum class Tab {
         Logs,
         Telemetry,
@@ -31,23 +31,23 @@ public:
 
     void showTab(Tab tab);
 
-protected:
+  protected:
     void changeEvent(QEvent *event) override;
 
-public slots:
+  public slots:
     void setInterfaces(const QList<strikepro::HidInterface> &interfaces);
     void recordReport(const strikepro::HidReport &report);
     void recordMessage(const QString &message);
 
-signals:
+  signals:
     void protocolReloadRequested();
 
-private slots:
+  private slots:
     void clearLogs();
     void clearTelemetry();
     void exportDiagnostics();
 
-private:
+  private:
     void buildUi(HidMonitor *monitor);
     void retranslateUi();
     void updateReportCount();

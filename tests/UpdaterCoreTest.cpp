@@ -12,7 +12,7 @@ using namespace msikeyboard::update;
 class UpdaterCoreTest final : public QObject {
     Q_OBJECT
 
-private slots:
+  private slots:
     void parsesGitHubRelease();
     void rejectsInsecureReleaseAsset();
     void rejectsNonGitHubReleaseAsset();
@@ -49,14 +49,16 @@ GitHubRelease stableRelease()
         .tagName = QStringLiteral("v0.2.0"),
         .version = QStringLiteral("0.2.0"),
         .name = QStringLiteral("0.2.0"),
-        .pageUrl = QUrl(QStringLiteral("https://github.com/kordax/msi-keyboard/releases/0.2.0")),
-        .assets = {
-            asset(QStringLiteral("msi-keyboard_0.2.0-1_amd64.deb")),
-            asset(QStringLiteral("msi-keyboard_0.2.0-1_arm64.deb")),
-            asset(QStringLiteral("msi-keyboard-0.2.0-1.x86_64.rpm")),
-            asset(QStringLiteral("msi-keyboard-0.2.0-1.aarch64.rpm")),
-            asset(QStringLiteral("SHA256SUMS")),
-        },
+        .pageUrl = QUrl(QStringLiteral(
+            "https://github.com/kordax/msi-keyboard/releases/0.2.0")),
+        .assets =
+            {
+                asset(QStringLiteral("msi-keyboard_0.2.0-1_amd64.deb")),
+                asset(QStringLiteral("msi-keyboard_0.2.0-1_arm64.deb")),
+                asset(QStringLiteral("msi-keyboard-0.2.0-1.x86_64.rpm")),
+                asset(QStringLiteral("msi-keyboard-0.2.0-1.aarch64.rpm")),
+                asset(QStringLiteral("SHA256SUMS")),
+            },
         .draft = false,
         .prerelease = false,
     };
@@ -129,36 +131,37 @@ void UpdaterCoreTest::rejectsAssetPath()
         QStringLiteral(".."),
     };
     for (const QString &name : invalidNames) {
-        const QByteArray json = QJsonDocument(QJsonObject{
-                                                  {
-                                                      QStringLiteral("tag_name"),
-                                                      QStringLiteral("1.0.0"),
-                                                  },
-                                                  {
-                                                      QStringLiteral("assets"),
-                                                      QJsonArray{
-                                                          QJsonObject{
-                                                              {
-                                                                  QStringLiteral("name"),
-                                                                  name,
-                                                              },
-                                                              {
-                                                                  QStringLiteral(
-                                                                      "browser_download_url"),
-                                                                  QStringLiteral(
-                                                                      "https://github.com/kordax/"
-                                                                      "msi-keyboard-app/releases/"
-                                                                      "download/v1.0.0/package.deb"),
-                                                              },
-                                                              {
-                                                                  QStringLiteral("size"),
-                                                                  1234,
-                                                              },
-                                                          },
-                                                      },
-                                                  },
-                                              })
-                                    .toJson(QJsonDocument::Compact);
+        const QByteArray json =
+            QJsonDocument(
+                QJsonObject{
+                    {
+                        QStringLiteral("tag_name"),
+                        QStringLiteral("1.0.0"),
+                    },
+                    {
+                        QStringLiteral("assets"),
+                        QJsonArray{
+                            QJsonObject{
+                                {
+                                    QStringLiteral("name"),
+                                    name,
+                                },
+                                {
+                                    QStringLiteral("browser_download_url"),
+                                    QStringLiteral(
+                                        "https://github.com/kordax/"
+                                        "msi-keyboard-app/releases/"
+                                        "download/v1.0.0/package.deb"),
+                                },
+                                {
+                                    QStringLiteral("size"),
+                                    1234,
+                                },
+                            },
+                        },
+                    },
+                })
+                .toJson(QJsonDocument::Compact);
         QVERIFY2(!parseGitHubRelease(json).has_value(), qPrintable(name));
     }
 }
@@ -185,14 +188,16 @@ void UpdaterCoreTest::comparesVersions_data()
     QTest::addColumn<QString>("right");
     QTest::addColumn<int>("expected");
 
-    QTest::newRow("minor") << QStringLiteral("1.10.0") << QStringLiteral("1.9.9") << 1;
-    QTest::newRow("leading-v") << QStringLiteral("v2.0") << QStringLiteral("2.0.0") << 0;
-    QTest::newRow("prerelease") << QStringLiteral("1.0.0-rc.1")
-                                << QStringLiteral("1.0.0") << -1;
-    QTest::newRow("numeric-prerelease") << QStringLiteral("1.0.0-rc.10")
-                                        << QStringLiteral("1.0.0-rc.2") << 1;
-    QTest::newRow("build-metadata") << QStringLiteral("1.2.3+linux")
-                                    << QStringLiteral("1.2.3+other") << 0;
+    QTest::newRow("minor") << QStringLiteral("1.10.0")
+                           << QStringLiteral("1.9.9") << 1;
+    QTest::newRow("leading-v")
+        << QStringLiteral("v2.0") << QStringLiteral("2.0.0") << 0;
+    QTest::newRow("prerelease")
+        << QStringLiteral("1.0.0-rc.1") << QStringLiteral("1.0.0") << -1;
+    QTest::newRow("numeric-prerelease")
+        << QStringLiteral("1.0.0-rc.10") << QStringLiteral("1.0.0-rc.2") << 1;
+    QTest::newRow("build-metadata")
+        << QStringLiteral("1.2.3+linux") << QStringLiteral("1.2.3+other") << 0;
 }
 
 void UpdaterCoreTest::comparesVersions()
@@ -209,9 +214,11 @@ void UpdaterCoreTest::comparesVersions()
 void UpdaterCoreTest::detectsDebianAndRpmPlatforms()
 {
     const PlatformInfo debian = detectPlatform(PlatformProbe{
-        .osReleaseText = QStringLiteral("ID=linuxmint\nID_LIKE=\"ubuntu debian\"\n"),
+        .osReleaseText =
+            QStringLiteral("ID=linuxmint\nID_LIKE=\"ubuntu debian\"\n"),
         .cpuArchitecture = QStringLiteral("amd64"),
-        .availablePrograms = {QStringLiteral("/usr/bin/apt-get"), QStringLiteral("dpkg")},
+        .availablePrograms =
+            {QStringLiteral("/usr/bin/apt-get"), QStringLiteral("dpkg")},
         .executablePath = QStringLiteral("/usr/bin/msi-keyboard"),
     });
     QCOMPARE(debian.packageFormat, PackageFormat::Deb);
@@ -266,7 +273,8 @@ void UpdaterCoreTest::selectsNativePackageAndChecksum()
 void UpdaterCoreTest::rejectsAmbiguousNativePackages()
 {
     GitHubRelease release = stableRelease();
-    release.assets.append(asset(QStringLiteral("msi-keyboard_0.2.0_linux_amd64.deb")));
+    release.assets.append(
+        asset(QStringLiteral("msi-keyboard_0.2.0_linux_amd64.deb")));
     const PlatformInfo debian{
         .packageFormat = PackageFormat::Deb,
         .architecture = CpuArchitecture::X86_64,
@@ -323,24 +331,14 @@ void UpdaterCoreTest::validatesPackageMetadata()
 
     PackageMetadata wrong = *metadata;
     wrong.version = QStringLiteral("0.1.0-1");
-    QVERIFY(!packageMetadataMatches(
-        wrong,
-        QStringView(u"0.2.0"),
-        platform));
+    QVERIFY(!packageMetadataMatches(wrong, QStringView(u"0.2.0"), platform));
     wrong = *metadata;
     wrong.name = QStringLiteral("other-package");
-    QVERIFY(!packageMetadataMatches(
-        wrong,
-        QStringView(u"0.2.0"),
-        platform));
+    QVERIFY(!packageMetadataMatches(wrong, QStringView(u"0.2.0"), platform));
     wrong = *metadata;
     wrong.architecture = QStringLiteral("arm64");
-    QVERIFY(!packageMetadataMatches(
-        wrong,
-        QStringView(u"0.2.0"),
-        platform));
-    QVERIFY(!parsePackageMetadata(
-                 QByteArrayLiteral("msi-keyboard\n0.2.0-1\n"))
+    QVERIFY(!packageMetadataMatches(wrong, QStringView(u"0.2.0"), platform));
+    QVERIFY(!parsePackageMetadata(QByteArrayLiteral("msi-keyboard\n0.2.0-1\n"))
                  .has_value());
 }
 
@@ -356,7 +354,9 @@ void UpdaterCoreTest::parsesAndResolvesChecksums()
     const auto manifest = parseSha256Manifest(contents, &error);
     QVERIFY2(manifest.has_value(), qPrintable(error));
     QCOMPARE(
-        checksumForAsset(*manifest, QStringLiteral("msi-keyboard_0.2.0_amd64.deb")),
+        checksumForAsset(
+            *manifest,
+            QStringLiteral("msi-keyboard_0.2.0_amd64.deb")),
         std::optional<QByteArray>(first));
     QCOMPARE(
         checksumForAsset(*manifest, QStringLiteral("other.rpm")),
@@ -365,9 +365,8 @@ void UpdaterCoreTest::parsesAndResolvesChecksums()
 
 void UpdaterCoreTest::rejectsConflictingChecksums()
 {
-    const QByteArray contents =
-        QByteArray(64, 'a') + "  package.deb\n" + QByteArray(64, 'b')
-        + "  package.deb\n";
+    const QByteArray contents = QByteArray(64, 'a') + "  package.deb\n"
+                                + QByteArray(64, 'b') + "  package.deb\n";
 
     QVERIFY(!parseSha256Manifest(contents).has_value());
 }
@@ -380,7 +379,8 @@ void UpdaterCoreTest::verifiesDownloadedFile()
     file.close();
 
     const QByteArray expected =
-        QCryptographicHash::hash("verified package", QCryptographicHash::Sha256).toHex();
+        QCryptographicHash::hash("verified package", QCryptographicHash::Sha256)
+            .toHex();
     QByteArray actual;
     QCOMPARE(
         verifyFileSha256(file.fileName(), expected, &actual),

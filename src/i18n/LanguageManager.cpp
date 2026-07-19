@@ -55,7 +55,7 @@ bool LanguageManager::isSupported(const QString &language)
 {
     const QString normalized = normalizedLanguage(language);
     return normalized == QStringLiteral("en")
-        || normalized == QStringLiteral("ru");
+           || normalized == QStringLiteral("ru");
 }
 
 QString LanguageManager::language() const

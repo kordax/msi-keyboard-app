@@ -4,8 +4,8 @@
 #include <QCoreApplication>
 #include <QImage>
 #include <QPainter>
-#include <QTableWidget>
 #include <QTabWidget>
+#include <QTableWidget>
 #include <QTest>
 
 using namespace strikepro;
@@ -13,7 +13,7 @@ using namespace strikepro;
 class BatteryGaugeTest final : public QObject {
     Q_OBJECT
 
-private slots:
+  private slots:
     void loadsKeyboardArtwork();
     void keepsTelemetryOptional();
     void rendersUnknownState();
@@ -25,8 +25,8 @@ void BatteryGaugeTest::loadsKeyboardArtwork()
 {
     QPixmap artwork(QStringLiteral(":/assets/keyboard/strike_pro.webp"));
     if (artwork.isNull()) {
-        QVERIFY(artwork.load(
-            QStringLiteral(":/assets/keyboard/strike_pro.png")));
+        QVERIFY(
+            artwork.load(QStringLiteral(":/assets/keyboard/strike_pro.png")));
     }
     QVERIFY(!artwork.isNull());
     QVERIFY(artwork.width() > 500);

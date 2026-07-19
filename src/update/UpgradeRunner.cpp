@@ -31,9 +31,8 @@ constexpr qint64 kMaximumPackageBytes = 512 * 1024 * 1024;
 constexpr int kMetadataTimeoutMs = 30'000;
 constexpr int kPackageTimeoutMs = 300'000;
 
-const QUrl kLatestReleaseUrl(
-    QStringLiteral(
-        "https://api.github.com/repos/kordax/msi-keyboard-app/releases/latest"));
+const QUrl kLatestReleaseUrl(QStringLiteral(
+    "https://api.github.com/repos/kordax/msi-keyboard-app/releases/latest"));
 
 QString tr(const char *sourceText)
 {
@@ -226,7 +225,8 @@ QString downloadPackage(
     } else if (untrustedRedirect || !isAllowedGitHubUrl(reply->url())) {
         *error = tr("The server redirected to an untrusted URL.");
     } else if (sizeMismatch) {
-        *error = tr("The downloaded package size does not match the release metadata.");
+        *error = tr(
+            "The downloaded package size does not match the release metadata.");
     } else if (writeFailed) {
         *error = tr("The downloaded package could not be written.");
     } else if (reply->error() != QNetworkReply::NoError) {
@@ -234,7 +234,8 @@ QString downloadPackage(
     } else if (httpStatus < 200 || httpStatus >= 300) {
         *error = tr("The server returned HTTP %1.").arg(httpStatus);
     } else if (downloadedBytes != asset.size) {
-        *error = tr("The downloaded package size does not match the release metadata.");
+        *error = tr(
+            "The downloaded package size does not match the release metadata.");
     } else if (!destination.commit()) {
         *error = destination.errorString();
     }
@@ -325,31 +326,29 @@ struct CommandInvocation {
     QStringList arguments;
 };
 
-std::optional<UpgradeTools> findUpgradeTools(
-    PackageFormat format,
-    bool administrator,
-    QString *error)
+std::optional<UpgradeTools>
+findUpgradeTools(PackageFormat format, bool administrator, QString *error)
 {
     UpgradeTools tools{
-        .sudoProgram =
-            administrator ? QString() : findSystemExecutable(QStringView(u"sudo")),
+        .sudoProgram = administrator
+                           ? QString()
+                           : findSystemExecutable(QStringView(u"sudo")),
         .mkdirProgram = findSystemExecutable(QStringView(u"mkdir")),
         .copyProgram = findSystemExecutable(QStringView(u"install")),
         .sha256Program = findSystemExecutable(QStringView(u"sha256sum")),
         .removeProgram = findSystemExecutable(QStringView(u"rm")),
-        .metadataProgram =
-            findSystemExecutable(
-                format == PackageFormat::Deb
-                    ? QStringView(u"dpkg-deb")
-                    : QStringView(u"rpm")),
+        .metadataProgram = findSystemExecutable(
+            format == PackageFormat::Deb ? QStringView(u"dpkg-deb")
+                                         : QStringView(u"rpm")),
     };
     if ((!administrator && tools.sudoProgram.isEmpty())
         || tools.mkdirProgram.isEmpty() || tools.copyProgram.isEmpty()
         || tools.sha256Program.isEmpty() || tools.removeProgram.isEmpty()
         || tools.metadataProgram.isEmpty()) {
         if (error != nullptr) {
-            *error = tr(
-                "A required trusted system utility is not available for the upgrade.");
+            *error =
+                tr("A required trusted system utility is not available for "
+                   "the upgrade.");
         }
         return std::nullopt;
     }
@@ -377,9 +376,7 @@ CommandInvocation elevated(
 }
 
 QString displayElevatedInstallCommand(
-    const InstallPlan &plan,
-    bool administrator,
-    const UpgradeTools &tools)
+    const InstallPlan &plan, bool administrator, const UpgradeTools &tools)
 {
     const CommandInvocation invocation =
         elevated(plan.program, plan.arguments, administrator, tools);
@@ -397,9 +394,8 @@ int executeCommand(
     QProcess process;
     process.setInputChannelMode(QProcess::ForwardedInputChannel);
     process.setProcessChannelMode(
-        standardOutput == nullptr
-            ? QProcess::ForwardedChannels
-            : QProcess::SeparateChannels);
+        standardOutput == nullptr ? QProcess::ForwardedChannels
+                                  : QProcess::SeparateChannels);
     process.start(invocation.program, invocation.arguments);
     if (!process.waitForStarted()) {
         *error = process.errorString();
@@ -424,17 +420,16 @@ int executeCommand(
     if (exitCode != 0) {
         const QString details =
             QString::fromLocal8Bit(process.readAllStandardError()).trimmed();
-        *error = details.isEmpty()
-            ? tr("A system utility exited with status %1.").arg(exitCode)
-            : details;
+        *error =
+            details.isEmpty()
+                ? tr("A system utility exited with status %1.").arg(exitCode)
+                : details;
     }
     return exitCode;
 }
 
 void removeStagingDirectory(
-    const QString &directory,
-    bool administrator,
-    const UpgradeTools &tools)
+    const QString &directory, bool administrator, const UpgradeTools &tools)
 {
     QString ignoredError;
     executeCommand(
@@ -511,8 +506,7 @@ bool stageAndVerifyPackage(
     const QByteArray stagedChecksum =
         checksumOutput.simplified().split(' ').value(0).toLower();
     if (stagedChecksum != expectedChecksum.toLower()) {
-        *error = tr(
-            "The protected package copy failed SHA-256 verification.");
+        *error = tr("The protected package copy failed SHA-256 verification.");
         removeStagingDirectory(stagingDirectory, administrator, tools);
         return false;
     }
@@ -544,11 +538,7 @@ std::optional<PackageMetadata> inspectPackageMetadata(
           };
     QByteArray output;
     if (executeCommand(
-            elevated(
-                tools.metadataProgram,
-                arguments,
-                administrator,
-                tools),
+            elevated(tools.metadataProgram, arguments, administrator, tools),
             &output,
             error)
         != 0) {
@@ -561,17 +551,20 @@ bool confirmInstallation(const QString &command, bool requestsPrivileges)
 {
     QTextStream output(stdout);
     QTextStream input(stdin);
-    output << (requestsPrivileges
-                   ? tr("The following command will request administrator privileges:")
-                   : tr("The following package manager command will be run:"))
-           << '\n'
-           << "  " << command << '\n'
-           << tr("Install the update? [y/N] ");
+    output
+        << (requestsPrivileges
+                ? tr("The following command will request administrator "
+                     "privileges:")
+                : tr("The following package manager command will be run:"))
+        << '\n'
+        << "  " << command << '\n'
+        << tr("Install the update? [y/N] ");
     output.flush();
 
     const QString answer = input.readLine().trimmed().toLower();
     return answer == QStringLiteral("y") || answer == QStringLiteral("yes")
-        || answer == QString::fromUtf8("д") || answer == QString::fromUtf8("да");
+           || answer == QString::fromUtf8("д")
+           || answer == QString::fromUtf8("да");
 }
 
 } // namespace
@@ -587,7 +580,8 @@ int runUpgrade(const QString &currentVersion)
     if (platform.packageFormat == PackageFormat::Unknown
         || platform.architecture == CpuArchitecture::Unknown
         || platform.installerProgram.isEmpty()) {
-        errors << tr("This Linux distribution or CPU architecture is not supported.")
+        errors << tr(
+            "This Linux distribution or CPU architecture is not supported.")
                << '\n';
         return 3;
     }
@@ -601,33 +595,36 @@ int runUpgrade(const QString &currentVersion)
         currentVersion,
         kMaximumMetadataBytes);
     if (releaseResponse.httpStatus == 404) {
-        output << tr("No stable GitHub release has been published yet.") << '\n';
+        output << tr("No stable GitHub release has been published yet.")
+               << '\n';
         return 0;
     }
     if (!releaseResponse.succeeded()) {
-        errors << tr("Could not check for updates: %1")
-                      .arg(releaseResponse.error)
-               << '\n';
+        errors
+            << tr("Could not check for updates: %1").arg(releaseResponse.error)
+            << '\n';
         return 2;
     }
 
     QString error;
     const auto release = parseGitHubRelease(releaseResponse.data, &error);
     if (!release.has_value()) {
-        errors << tr("Could not read the latest release: %1").arg(error) << '\n';
+        errors << tr("Could not read the latest release: %1").arg(error)
+               << '\n';
         return 2;
     }
 
     const auto comparison =
         compareVersions(release->version, currentVersion, &error);
     if (!comparison.has_value()) {
-        errors << tr("Could not compare release versions: %1").arg(error) << '\n';
+        errors << tr("Could not compare release versions: %1").arg(error)
+               << '\n';
         return 2;
     }
     if (*comparison <= 0) {
-        output << tr("MSI Keyboard %1 is already up to date.")
-                      .arg(currentVersion)
-               << '\n';
+        output
+            << tr("MSI Keyboard %1 is already up to date.").arg(currentVersion)
+            << '\n';
         return 0;
     }
 
@@ -678,7 +675,8 @@ int runUpgrade(const QString &currentVersion)
         QStandardPaths::writableLocation(QStandardPaths::TempLocation)
         + QStringLiteral("/msi-keyboard-upgrade-XXXXXX"));
     if (!temporaryDirectory.isValid()) {
-        errors << tr("Could not create a temporary download directory.") << '\n';
+        errors << tr("Could not create a temporary download directory.")
+               << '\n';
         return 2;
     }
 
@@ -692,7 +690,7 @@ int runUpgrade(const QString &currentVersion)
             packagePath,
             currentVersion,
             &error)
-        .isEmpty()) {
+            .isEmpty()) {
         errors << tr("Could not download the package: %1").arg(error) << '\n';
         return 2;
     }
@@ -701,7 +699,8 @@ int runUpgrade(const QString &currentVersion)
         verifyFileSha256(packagePath, *expectedChecksum, nullptr, &error);
     if (verification != VerificationResult::Match) {
         if (verification == VerificationResult::Mismatch) {
-            error = tr("The downloaded package SHA-256 checksum does not match.");
+            error =
+                tr("The downloaded package SHA-256 checksum does not match.");
         }
         errors << tr("Package verification failed: %1").arg(error) << '\n';
         return 4;
@@ -745,9 +744,8 @@ int runUpgrade(const QString &currentVersion)
         displayElevatedInstallCommand(stagedPlan, administrator, *tools);
 
     if (!plan->packageManagedInstall) {
-        output << tr(
-                      "This copy is not managed by the system package manager; "
-                      "the package will be installed system-wide.")
+        output << tr("This copy is not managed by the system package manager; "
+                     "the package will be installed system-wide.")
                << '\n';
     }
     output.flush();

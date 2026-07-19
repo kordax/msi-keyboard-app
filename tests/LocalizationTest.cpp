@@ -11,11 +11,12 @@ using strikepro::LanguageManager;
 class LocalizationTest final : public QObject {
     Q_OBJECT
 
-private slots:
+  private slots:
     void initTestCase()
     {
         QVERIFY(m_settingsDirectory.isValid());
-        QCoreApplication::setOrganizationName(QStringLiteral("msi-keyboard-tests"));
+        QCoreApplication::setOrganizationName(
+            QStringLiteral("msi-keyboard-tests"));
         QCoreApplication::setApplicationName(QStringLiteral("localization"));
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings::setPath(
@@ -57,9 +58,7 @@ private slots:
             QCoreApplication::translate("strikepro::MainWindow", "Settings"),
             QString::fromUtf8("Настройки"));
         QCOMPARE(
-            QCoreApplication::translate(
-                "CommandLine",
-                "Run without the GUI."),
+            QCoreApplication::translate("CommandLine", "Run without the GUI."),
             QString::fromUtf8("Запустить без графического интерфейса."));
         QCOMPARE(
             QCoreApplication::translate(
@@ -78,7 +77,9 @@ private slots:
 
     void invalidStoredLanguageFallsBackToEnglish()
     {
-        QSettings().setValue(QStringLiteral("ui/language"), QStringLiteral("fr"));
+        QSettings().setValue(
+            QStringLiteral("ui/language"),
+            QStringLiteral("fr"));
 
         QCOMPARE(LanguageManager::storedLanguage(), QStringLiteral("en"));
     }
@@ -95,7 +96,7 @@ private slots:
             QStringLiteral("Untranslated marker"));
     }
 
-private:
+  private:
     QTemporaryDir m_settingsDirectory;
 };
 

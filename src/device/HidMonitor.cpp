@@ -19,26 +19,26 @@ QString interfaceSignature(const QList<HidInterface> &interfaces)
 {
     QStringList parts;
     for (const HidInterface &interface : interfaces) {
-        parts.push_back(
-            QStringLiteral("%1:%2:%3:%4:%5")
-                .arg(interface.devNode)
-                .arg(interface.productId)
-                .arg(interface.interfaceNumber)
-                .arg(interface.readable)
-                .arg(interface.writable));
+        parts.push_back(QStringLiteral("%1:%2:%3:%4:%5")
+                            .arg(interface.devNode)
+                            .arg(interface.productId)
+                            .arg(interface.interfaceNumber)
+                            .arg(interface.readable)
+                            .arg(interface.writable));
     }
     return parts.join('|');
 }
 
-const HidInterface *findInterface(const QList<HidInterface> &interfaces, const QString &devNode)
+const HidInterface *
+findInterface(const QList<HidInterface> &interfaces, const QString &devNode)
 {
-    const auto found = std::ranges::find(interfaces, devNode, &HidInterface::devNode);
+    const auto found =
+        std::ranges::find(interfaces, devNode, &HidInterface::devNode);
     return found == interfaces.end() ? nullptr : &*found;
 }
 
 const HidInterface *findPreferredInterface(
-    const QList<HidInterface> &interfaces,
-    int interfaceNumber)
+    const QList<HidInterface> &interfaces, int interfaceNumber)
 {
     for (const quint16 productId :
          {kStrikeProWiredProductId, kStrikeProWirelessProductId}) {
@@ -46,7 +46,7 @@ const HidInterface *findPreferredInterface(
             interfaces,
             [productId, interfaceNumber](const HidInterface &interface) {
                 return interface.productId == productId
-                    && interface.interfaceNumber == interfaceNumber;
+                       && interface.interfaceNumber == interfaceNumber;
             });
         if (found != interfaces.end()) {
             return &*found;
@@ -82,17 +82,16 @@ bool HidMonitor::requestBattery(QString *error)
     }
     if (!interface->readable || !interface->writable) {
         if (error != nullptr) {
-            *error =
-                tr(
-                    "No access to interface 1 of device 0db0:%1. "
-                    "Reinstall the udev rule.")
-                    .arg(interface->productId, 4, 16, QLatin1Char('0'));
+            *error = tr("No access to interface 1 of device 0db0:%1. "
+                        "Reinstall the udev rule.")
+                         .arg(interface->productId, 4, 16, QLatin1Char('0'));
         }
         return false;
     }
 
     const QByteArray nativePath = interface->devNode.toLocal8Bit();
-    const int fd = ::open(nativePath.constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
+    const int fd =
+        ::open(nativePath.constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
     if (fd < 0) {
         if (error != nullptr) {
             *error = tr("No write access to %1: %2")
@@ -117,13 +116,13 @@ bool HidMonitor::requestBattery(QString *error)
     ::close(fd);
     if (written != report.size()) {
         if (error != nullptr) {
-            *error =
-                written < 0
-                ? tr("Could not send the battery query: %1")
-                      .arg(QString::fromLocal8Bit(std::strerror(savedErrno)))
-                : tr("Battery query was incomplete: %1 of %2 bytes")
-                      .arg(written)
-                      .arg(report.size());
+            *error = written < 0
+                         ? tr("Could not send the battery query: %1")
+                               .arg(QString::fromLocal8Bit(
+                                   std::strerror(savedErrno)))
+                         : tr("Battery query was incomplete: %1 of %2 bytes")
+                               .arg(written)
+                               .arg(report.size());
         }
         return false;
     }
@@ -154,23 +153,29 @@ void HidMonitor::rebuildReaders()
         // Interface 1 is the bidirectional vendor channel. Interface 4 publishes
         // vendor input report 0x0d. We deliberately do not consume keyboard input.
         if (!interface.readable
-            || (interface.interfaceNumber != 1 && interface.interfaceNumber != 4)) {
+            || (interface.interfaceNumber != 1
+                && interface.interfaceNumber != 4)) {
             continue;
         }
 
         const QByteArray nativePath = interface.devNode.toLocal8Bit();
-        const int fd = ::open(nativePath.constData(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+        const int fd =
+            ::open(nativePath.constData(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
         if (fd < 0) {
             emit diagnosticMessage(
                 tr("Could not open %1: %2")
-                    .arg(interface.devNode, QString::fromLocal8Bit(std::strerror(errno))));
+                    .arg(
+                        interface.devNode,
+                        QString::fromLocal8Bit(std::strerror(errno))));
             continue;
         }
 
         auto *notifier = new QSocketNotifier(fd, QSocketNotifier::Read, this);
-        connect(notifier, &QSocketNotifier::activated, this, [this, path = interface.devNode] {
-            readAvailable(path);
-        });
+        connect(
+            notifier,
+            &QSocketNotifier::activated,
+            this,
+            [this, path = interface.devNode] { readAvailable(path); });
         m_fds.insert(interface.devNode, fd);
         m_notifiers.insert(interface.devNode, notifier);
     }
@@ -215,7 +220,9 @@ void HidMonitor::readAvailable(const QString &devNode)
         if (count < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
             emit diagnosticMessage(
                 tr("Read error on %1: %2")
-                    .arg(devNode, QString::fromLocal8Bit(std::strerror(errno))));
+                    .arg(
+                        devNode,
+                        QString::fromLocal8Bit(std::strerror(errno))));
         }
         break;
     }
@@ -244,15 +251,18 @@ void HidMonitor::takeReadOnlySnapshot()
         const HidInterface *interface =
             findPreferredInterface(m_interfaces, query.interfaceNumber);
         if (interface == nullptr) {
-            emit diagnosticMessage(
-                tr("HID interface %1 was not found").arg(query.interfaceNumber));
+            emit diagnosticMessage(tr("HID interface %1 was not found")
+                                       .arg(query.interfaceNumber));
             continue;
         }
 
         const QByteArray nativePath = interface->devNode.toLocal8Bit();
-        int fd = ::open(nativePath.constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
+        int fd =
+            ::open(nativePath.constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
         if (fd < 0) {
-            fd = ::open(nativePath.constData(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+            fd = ::open(
+                nativePath.constData(),
+                O_RDONLY | O_NONBLOCK | O_CLOEXEC);
         }
         if (fd < 0) {
             emit diagnosticMessage(
@@ -264,15 +274,14 @@ void HidMonitor::takeReadOnlySnapshot()
         QByteArray data(query.size, '\0');
         data[0] = static_cast<char>(query.reportId);
         const unsigned long request =
-            query.source == ReportSource::Feature
-            ? HIDIOCGFEATURE(query.size)
+            query.source == ReportSource::Feature  ? HIDIOCGFEATURE(query.size)
             : query.source == ReportSource::Output ? HIDIOCGOUTPUT(query.size)
                                                    : HIDIOCGINPUT(query.size);
-        const QString operation =
-            query.source == ReportSource::Feature
-            ? QStringLiteral("GET_FEATURE")
-            : query.source == ReportSource::Output ? QStringLiteral("GET_OUTPUT")
-                                                   : QStringLiteral("GET_INPUT");
+        const QString operation = query.source == ReportSource::Feature
+                                      ? QStringLiteral("GET_FEATURE")
+                                  : query.source == ReportSource::Output
+                                      ? QStringLiteral("GET_OUTPUT")
+                                      : QStringLiteral("GET_INPUT");
         const int result = ::ioctl(fd, request, data.data());
         if (result < 0) {
             emit diagnosticMessage(

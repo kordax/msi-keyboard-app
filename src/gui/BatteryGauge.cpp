@@ -88,7 +88,11 @@ void BatteryGauge::paintEvent(QPaintEvent *event)
         side - 44.0,
         side - 44.0);
 
-    QPen trackPen(QColor(QStringLiteral("#2b303a")), 13.0, Qt::SolidLine, Qt::RoundCap);
+    QPen trackPen(
+        QColor(QStringLiteral("#2b303a")),
+        13.0,
+        Qt::SolidLine,
+        Qt::RoundCap);
     if (!m_value.has_value()) {
         trackPen.setStyle(Qt::CustomDashLine);
         trackPen.setDashPattern({1.0, 1.1});
@@ -102,23 +106,26 @@ void BatteryGauge::paintEvent(QPaintEvent *event)
         gradient.setColorAt(0.0, indicatorColor.lighter(112));
         gradient.setColorAt(0.55, indicatorColor);
         gradient.setColorAt(1.0, indicatorColor.darker(118));
-        painter.setPen(QPen(QBrush(gradient), 13.0, Qt::SolidLine, Qt::RoundCap));
+        painter.setPen(
+            QPen(QBrush(gradient), 13.0, Qt::SolidLine, Qt::RoundCap));
         painter.drawArc(
             arcRect,
             kStartAngle,
             static_cast<int>(kFullSpan * (m_displayedValue / 100.0)));
     }
 
-    const QColor primary = m_deviceConnected ? QColor(QStringLiteral("#f7f8fb"))
-                                             : QColor(QStringLiteral("#777e8d"));
+    const QColor primary = m_deviceConnected
+                               ? QColor(QStringLiteral("#f7f8fb"))
+                               : QColor(QStringLiteral("#777e8d"));
     painter.setPen(primary);
     QFont valueFont = font();
     valueFont.setPixelSize(static_cast<int>(side * 0.22));
     valueFont.setWeight(QFont::DemiBold);
     painter.setFont(valueFont);
     const QString valueText =
-        m_value.has_value() ? QStringLiteral("%1%").arg(qRound(m_displayedValue))
-                            : QStringLiteral("—");
+        m_value.has_value()
+            ? QStringLiteral("%1%").arg(qRound(m_displayedValue))
+            : QStringLiteral("—");
     painter.drawText(
         QRectF(0.0, center.y() - side * 0.16, width(), side * 0.25),
         Qt::AlignCenter,

@@ -7,7 +7,7 @@ using namespace strikepro;
 class BatteryDecoderTest final : public QObject {
     Q_OBJECT
 
-private slots:
+  private slots:
     void decodesCapturedWirelessBatteryResponse();
     void decodesCapturedWiredChargingResponse();
     void rejectsUnavailableWirelessResponse();

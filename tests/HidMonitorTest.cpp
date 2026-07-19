@@ -8,7 +8,7 @@ using strikepro::HidMonitor;
 class HidMonitorTest final : public QObject {
     Q_OBJECT
 
-private slots:
+  private slots:
     void publishesInitialScan()
     {
         HidMonitor monitor;
@@ -17,9 +17,7 @@ private slots:
             &monitor,
             &HidMonitor::interfacesChanged,
             this,
-            [&scanCount](const QList<HidInterface> &) {
-                ++scanCount;
-            });
+            [&scanCount](const QList<HidInterface> &) { ++scanCount; });
 
         QTRY_COMPARE_WITH_TIMEOUT(scanCount, 1, 1000);
     }

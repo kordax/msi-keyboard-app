@@ -12,7 +12,7 @@ namespace strikepro {
 class LanguageManager final : public QObject {
     Q_OBJECT
 
-public:
+  public:
     explicit LanguageManager(QObject *parent = nullptr);
     ~LanguageManager() override;
 
@@ -23,10 +23,10 @@ public:
     [[nodiscard]] QString language() const;
     bool setLanguage(const QString &language, bool persist = false);
 
-signals:
+  signals:
     void languageChanged(const QString &language);
 
-private:
+  private:
     QString m_language = defaultLanguage();
     std::unique_ptr<QTranslator> m_qtTranslator;
     std::unique_ptr<QTranslator> m_translator;
