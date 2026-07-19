@@ -160,6 +160,9 @@ BatteryDecoder::decode(const HidReport &report, const ProtocolProfile &profile)
             if (transport != profile.wiredTransportValue) {
                 return std::nullopt;
             }
+            if (reading.percent < 100) {
+                ++reading.percent;
+            }
             reading.charging = true;
         } else {
             return std::nullopt;

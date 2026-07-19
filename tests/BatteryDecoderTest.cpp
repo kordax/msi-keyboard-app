@@ -10,6 +10,7 @@ class BatteryDecoderTest final : public QObject {
   private slots:
     void decodesCapturedWirelessBatteryResponse();
     void decodesCapturedWiredChargingResponse();
+    void capsAdjustedWiredBatteryAtOneHundred();
     void rejectsUnavailableWirelessResponse();
     void rejectsOfflineWirelessSentinel();
     void rejectsDifferentVendorResponse();
@@ -53,9 +54,26 @@ void BatteryDecoderTest::decodesCapturedWiredChargingResponse()
 
     const auto reading = BatteryDecoder::decode(report, profile);
     QVERIFY(reading.has_value());
-    QCOMPARE(reading->percent, 81);
+    QCOMPARE(reading->percent, 82);
     QVERIFY(reading->charging.has_value());
     QVERIFY(*reading->charging);
+}
+
+void BatteryDecoderTest::capsAdjustedWiredBatteryAtOneHundred()
+{
+    const ProtocolProfile profile = BatteryDecoder::confirmedStrikeProProfile();
+    const HidReport report{
+        .devNode = QStringLiteral("/dev/hidraw-test"),
+        .interfaceNumber = 1,
+        .productId = kStrikeProWiredProductId,
+        .source = ReportSource::Input,
+        .requestedReportId = -1,
+        .data = QByteArray::fromHex("0db00100000005026401000000000000"),
+    };
+
+    const auto reading = BatteryDecoder::decode(report, profile);
+    QVERIFY(reading.has_value());
+    QCOMPARE(reading->percent, 100);
 }
 
 void BatteryDecoderTest::rejectsUnavailableWirelessResponse()
