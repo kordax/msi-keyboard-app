@@ -79,41 +79,43 @@ QWidget *makeStatusRow(
 {
     auto *row = new QWidget(parent);
     row->setMinimumHeight(50);
-    auto *layout = new QHBoxLayout(row);
+    auto *layout = new QVBoxLayout(row);
     layout->setContentsMargins(0, 4, 0, 4);
-    layout->setSpacing(12);
+    layout->setSpacing(2);
 
     *dot = new QLabel(row);
     (*dot)->setProperty("role", QStringLiteral("statusDot"));
     (*dot)->setProperty("tone", QStringLiteral("off"));
     (*dot)->setFixedSize(10, 10);
     auto *glow = new QGraphicsDropShadowEffect(*dot);
-    glow->setBlurRadius(18.0);
+    glow->setBlurRadius(24.0);
     glow->setColor(QColor(QStringLiteral("#55e89b")));
     glow->setOffset(0.0, 0.0);
     glow->setEnabled(false);
     (*dot)->setGraphicsEffect(glow);
 
-    auto *labels = new QVBoxLayout;
-    labels->setSpacing(2);
+    auto *titleRow = new QHBoxLayout;
+    titleRow->setContentsMargins(10, 0, 0, 0);
+    titleRow->setSpacing(12);
     auto *titleLabel = new QLabel(title, row);
     titleLabel->setProperty("role", QStringLiteral("statusTitle"));
     if (titleOutput != nullptr) {
         *titleOutput = titleLabel;
     }
+    titleRow->addWidget(*dot, 0, Qt::AlignVCenter);
+    titleRow->addWidget(titleLabel, 1, Qt::AlignVCenter);
+
     *detail = new QLabel(row);
     (*detail)->setProperty("role", QStringLiteral("statusDetail"));
     (*detail)->setProperty("tone", QStringLiteral("off"));
     (*detail)->setWordWrap(false);
-    labels->addWidget(titleLabel);
-    labels->addWidget(*detail);
 
-    auto *indicator = new QVBoxLayout;
-    indicator->setContentsMargins(2, 4, 2, 0);
-    indicator->addWidget(*dot, 0, Qt::AlignTop);
-    indicator->addStretch();
-    layout->addLayout(indicator);
-    layout->addLayout(labels, 1);
+    auto *detailRow = new QHBoxLayout;
+    detailRow->setContentsMargins(32, 0, 0, 0);
+    detailRow->addWidget(*detail, 1);
+
+    layout->addLayout(titleRow);
+    layout->addLayout(detailRow);
     return row;
 }
 
