@@ -22,8 +22,8 @@
 namespace strikepro {
 namespace {
 
-constexpr int kBatteryPollIntervalMs = 15'000;
-constexpr int kBatteryResponseTimeoutMs = 2'500;
+constexpr int kBatteryPollIntervalMs = 2'000;
+constexpr int kBatteryResponseTimeoutMs = 900;
 
 void refreshStyle(QWidget *widget)
 {
@@ -123,6 +123,23 @@ preferredBatteryInterface(const QList<HidInterface> &interfaces)
     return nullptr;
 }
 
+bool hasAccessibleBatteryInterface(const QList<HidInterface> &interfaces)
+{
+    return std::ranges::any_of(interfaces, [](const HidInterface &interface) {
+        return interface.interfaceNumber == 1 && interface.readable
+               && interface.writable;
+    });
+}
+
+bool hasProduct(const QList<HidInterface> &interfaces, const quint16 productId)
+{
+    return std::ranges::any_of(
+        interfaces,
+        [productId](const HidInterface &interface) {
+            return interface.productId == productId;
+        });
+}
+
 } // namespace
 
 MainWindow::MainWindow(LanguageManager *languageManager, QWidget *parent)
@@ -146,12 +163,18 @@ MainWindow::MainWindow(LanguageManager *languageManager, QWidget *parent)
         this,
         &MainWindow::recordReport);
     connect(
+        m_monitor,
+        &HidMonitor::deviceEvent,
+        this,
+        &MainWindow::handleDeviceEvent);
+    connect(
         m_debugWindow,
         &DebugWindow::protocolReloadRequested,
         this,
         &MainWindow::reloadProtocolProfile);
 
     m_batteryPollTimer.setInterval(kBatteryPollIntervalMs);
+    m_batteryPollTimer.setTimerType(Qt::CoarseTimer);
     connect(
         &m_batteryPollTimer,
         &QTimer::timeout,
@@ -209,8 +232,8 @@ void MainWindow::buildUi()
     central->setObjectName(QStringLiteral("surface"));
     central->setAttribute(Qt::WA_StyledBackground);
     auto *root = new QVBoxLayout(central);
-    root->setContentsMargins(30, 22, 30, 28);
-    root->setSpacing(20);
+    root->setContentsMargins(28, 20, 28, 26);
+    root->setSpacing(14);
 
     auto *header = new QHBoxLayout;
     header->setSpacing(14);
@@ -222,15 +245,10 @@ void MainWindow::buildUi()
     titleColumn->addWidget(m_title);
     header->addLayout(titleColumn);
     header->addStretch();
-
-    m_connectionBadge = new QLabel(central);
-    m_connectionBadge->setObjectName(QStringLiteral("connectionBadge"));
-    m_connectionBadge->setProperty("tone", QStringLiteral("off"));
-    header->addWidget(m_connectionBadge, 0, Qt::AlignVCenter);
     root->addLayout(header);
 
     auto *dashboard = new QHBoxLayout;
-    dashboard->setSpacing(18);
+    dashboard->setSpacing(1);
 
     auto *batteryCard = makeCard(central);
     batteryCard->setMinimumHeight(390);
@@ -274,13 +292,25 @@ void MainWindow::buildUi()
     deviceLayout->setContentsMargins(23, 21, 23, 21);
     deviceLayout->setSpacing(9);
 
+    auto *deviceHeader = new QHBoxLayout;
+    deviceHeader->setSpacing(12);
+    auto *deviceTitleColumn = new QVBoxLayout;
+    deviceTitleColumn->setSpacing(3);
     m_deviceCaption = new QLabel(deviceCard);
     m_deviceCaption->setProperty("role", QStringLiteral("eyebrow"));
     m_deviceLabel = new QLabel(deviceCard);
     m_deviceLabel->setObjectName(QStringLiteral("deviceName"));
     m_deviceLabel->setWordWrap(true);
-    deviceLayout->addWidget(m_deviceCaption);
-    deviceLayout->addWidget(m_deviceLabel);
+    deviceTitleColumn->addWidget(m_deviceCaption);
+    deviceTitleColumn->addWidget(m_deviceLabel);
+    deviceHeader->addLayout(deviceTitleColumn, 1);
+
+    m_connectionBadge = new QLabel(deviceCard);
+    m_connectionBadge->setObjectName(QStringLiteral("connectionBadge"));
+    m_connectionBadge->setProperty("tone", QStringLiteral("ok"));
+    m_connectionBadge->setVisible(false);
+    deviceHeader->addWidget(m_connectionBadge, 0, Qt::AlignVCenter);
+    deviceLayout->addLayout(deviceHeader);
 
     m_deviceImage = new QLabel(deviceCard);
     m_deviceImage->setObjectName(QStringLiteral("deviceArtwork"));
@@ -315,32 +345,32 @@ void MainWindow::buildUi()
     setCentralWidget(central);
 
     setStyleSheet(QStringLiteral(R"(
-        QMainWindow, QDialog#debugWindow { background: #0c0e12; }
+        QMainWindow, QDialog#debugWindow { background: #0d0d0d; }
         QWidget {
-            color: #f0f2f6;
+            color: #f1f1f1;
             font-family: "Inter", "Noto Sans", sans-serif;
             font-size: 13px;
         }
-        QWidget#surface { background: #0f1116; }
+        QWidget#surface { background: #111111; }
         QMenuBar {
-            background: #0f1116;
-            color: #aeb5c2;
-            border-bottom: 1px solid #232832;
+            background: #111111;
+            color: #b6b6b6;
+            border-bottom: 1px solid #292929;
             padding: 3px 8px;
         }
         QMenuBar::item {
             background: transparent;
             padding: 6px 10px;
         }
-        QMenuBar::item:selected { background: #242933; color: #ffffff; }
+        QMenuBar::item:selected { background: #292929; color: #ffffff; }
         QMenu {
-            background: #1a1e25;
-            color: #dce0e8;
-            border: 1px solid #303642;
+            background: #1b1b1b;
+            color: #dddddd;
+            border: 1px solid #343434;
             padding: 5px;
         }
         QMenu::item { padding: 7px 26px 7px 10px; }
-        QMenu::item:selected { background: #292f3a; color: #ffffff; }
+        QMenu::item:selected { background: #303030; color: #ffffff; }
         QLabel#title {
             color: #ffffff;
             font-size: 25px;
@@ -348,32 +378,41 @@ void MainWindow::buildUi()
             letter-spacing: 1.6px;
         }
         QLabel#connectionBadge {
-            border-radius: 12px;
-            padding: 6px 11px;
+            padding: 4px 0 4px 10px;
             font-size: 10px;
             font-weight: 750;
             letter-spacing: 0.7px;
         }
         QLabel#connectionBadge[tone="off"] {
-            background: #222630;
-            color: #858c9a;
+            background: transparent;
+            color: #a0a0a0;
         }
         QLabel#connectionBadge[tone="ok"] {
-            background: #123525;
-            color: #73e2a8;
+            background: transparent;
+            color: #cfcfcf;
+            border: none;
+            border-left: 2px solid #666666;
+        }
+        QLabel#connectionBadge[tone="problem"] {
+            background: transparent;
+            color: #ef8b8b;
+            border: none;
+            border-left: 2px solid #b84f4f;
         }
         QFrame#card {
-            background: #171a21;
-            border: 1px solid #292e38;
-            border-radius: 14px;
+            background: #181818;
+            border: none;
+            border-top: 1px solid #353535;
+            border-bottom: 1px solid #2c2c2c;
+            border-radius: 0;
         }
         QLabel[role="eyebrow"] {
-            color: #7f8796;
+            color: #8c8c8c;
             font-size: 10px;
             font-weight: 750;
             letter-spacing: 1.4px;
         }
-        QLabel[role="muted"] { color: #9299a8; }
+        QLabel[role="muted"] { color: #9c9c9c; }
         QLabel#batteryHeadline {
             color: #ffffff;
             font-size: 24px;
@@ -391,27 +430,29 @@ void MainWindow::buildUi()
             font-weight: 700;
         }
         QWidget[role="metaTile"] {
-            background: #20242c;
-            border: 1px solid #2d323d;
-            border-radius: 9px;
+            background: transparent;
+            border: none;
+            border-left: 2px solid #484848;
+            border-radius: 0;
         }
         QLabel[role="metaValue"] {
-            color: #f2f4f8;
+            color: #eeeeee;
             font-size: 12px;
             font-weight: 700;
         }
         QLabel[role="statusTitle"] {
-            color: #dfe3ea;
+            color: #dedede;
             font-size: 12px;
             font-weight: 650;
         }
         QLabel[role="statusDot"] { font-size: 10px; }
-        QLabel[role="statusDot"][tone="off"] { color: #4d5360; }
-        QLabel[role="statusDot"][tone="ok"] { color: #57d696; }
-        QLabel[role="statusDot"][tone="warn"] { color: #ffb454; }
+        QLabel[role="statusDot"][tone="off"] { color: #555555; }
+        QLabel[role="statusDot"][tone="ok"] { color: #bcbcbc; }
+        QLabel[role="statusDot"][tone="warn"],
+        QLabel[role="statusDot"][tone="problem"] { color: #df6464; }
         QLabel[role="counter"] {
-            background: #222630;
-            color: #aeb5c2;
+            background: #282828;
+            color: #b9b9b9;
             border-radius: 9px;
             padding: 4px 9px;
             font-size: 10px;
@@ -419,53 +460,53 @@ void MainWindow::buildUi()
         QPushButton {
             min-height: 18px;
             padding: 8px 13px;
-            border-radius: 8px;
+            border-radius: 3px;
             font-weight: 600;
         }
         QPushButton[role="quiet"] {
-            background: #22262f;
-            color: #cdd2dc;
-            border: 1px solid #343a46;
+            background: #262626;
+            color: #d0d0d0;
+            border: 1px solid #3a3a3a;
         }
-        QPushButton[role="quiet"]:hover { background: #2b303b; }
+        QPushButton[role="quiet"]:hover { background: #313131; }
         QPushButton:disabled {
-            background: #20232a;
-            color: #555c69;
-            border-color: #292d35;
+            background: #202020;
+            color: #616161;
+            border-color: #2b2b2b;
         }
         QTabWidget::pane {
-            background: #15181e;
-            border: 1px solid #2b303a;
-            border-radius: 9px;
+            background: #161616;
+            border: 1px solid #303030;
+            border-radius: 0;
         }
         QTabBar::tab {
-            background: #171a21;
-            color: #8e96a5;
-            border: 1px solid #2b303a;
+            background: #191919;
+            color: #999999;
+            border: 1px solid #303030;
             padding: 8px 16px;
         }
-        QTabBar::tab:selected { background: #242933; color: #ffffff; }
+        QTabBar::tab:selected { background: #303030; color: #ffffff; }
         QPlainTextEdit#logView,
         QTableWidget#reportTable {
-            background: #11141a;
-            alternate-background-color: #15181e;
-            color: #c7ccd6;
-            border: 1px solid #292e38;
+            background: #121212;
+            alternate-background-color: #181818;
+            color: #cecece;
+            border: 1px solid #303030;
             border-radius: 9px;
             selection-background-color: #3a1b25;
             selection-color: #ffffff;
         }
         QHeaderView::section {
-            background: #1c2027;
-            color: #7f8796;
+            background: #202020;
+            color: #949494;
             border: none;
-            border-bottom: 1px solid #2a2f39;
+            border-bottom: 1px solid #303030;
             padding: 8px;
             font-size: 10px;
             font-weight: 700;
         }
         QTableCornerButton::section {
-            background: #1c2027;
+            background: #202020;
             border: none;
         }
         QScrollBar:vertical {
@@ -474,15 +515,15 @@ void MainWindow::buildUi()
             margin: 3px;
         }
         QScrollBar::handle:vertical {
-            background: #353b47;
+            background: #3b3b3b;
             border-radius: 3px;
             min-height: 24px;
         }
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
         QToolTip {
-            background: #252a33;
+            background: #292929;
             color: #f4f5f7;
-            border: 1px solid #3a414e;
+            border: 1px solid #444444;
             padding: 5px;
         }
     )"));
@@ -516,13 +557,16 @@ void MainWindow::retranslateUi()
 
     m_title->setText(tr("MSI Keyboard manager for Linux"));
     m_batteryCaption->setText(tr("BATTERY"));
-    m_modeValue->setText(tr("READ ONLY"));
-    m_modeCaption->setText(tr("mode"));
+    m_modeValue->setText(tr("READ ONLY MODE"));
+    m_modeCaption->clear();
+    m_modeCaption->setVisible(false);
     m_deviceCaption->setText(tr("DEVICE"));
-    m_deviceStatusTitle->setText(tr("Connection"));
+    m_deviceStatusTitle->setText(tr("Status"));
+    m_connectionBadge->setText(tr("CONNECTED"));
 
-    updateInterfaces(m_interfaces);
-    if (!m_interfaces.isEmpty() && m_lastBatteryReading.has_value()) {
+    refreshConnectionUi();
+    if (m_connectionState == ConnectionState::Connected
+        && m_lastBatteryReading.has_value()) {
         setBattery(*m_lastBatteryReading);
     }
     m_batteryGauge->update();
@@ -563,77 +607,146 @@ void MainWindow::reloadProtocolProfile()
     }
 }
 
-void MainWindow::updateInterfaces(const QList<HidInterface> &interfaces)
+void MainWindow::clearBattery()
 {
-    m_interfaces = interfaces;
-    const bool connected = !interfaces.isEmpty();
-    const HidInterface *batteryInterface =
-        preferredBatteryInterface(interfaces);
-    const quint16 activeProductId =
-        batteryInterface == nullptr ? 0 : batteryInterface->productId;
-    const bool transportChanged = activeProductId != m_activeProductId;
-    m_activeProductId = activeProductId;
-    m_canQueryBattery = batteryInterface != nullptr
-                        && batteryInterface->readable
-                        && batteryInterface->writable;
+    m_lastBatteryReading.reset();
+    m_batteryGauge->setValue(std::nullopt);
+}
 
+void MainWindow::setConnectionState(const ConnectionState state)
+{
+    m_connectionState = state;
+    refreshConnectionUi();
+}
+
+void MainWindow::refreshConnectionUi()
+{
+    const bool connected = m_connectionState == ConnectionState::Connected;
+    m_connectionBadge->setVisible(connected);
+    m_connectionBadge->setProperty("tone", QStringLiteral("ok"));
+    refreshStyle(m_connectionBadge);
     m_batteryGauge->setDeviceConnected(connected);
     m_deviceImage->setVisible(connected);
 
-    m_connectionBadge->setText(
-        connected ? tr("CONNECTED") : tr("NOT CONNECTED"));
-    m_connectionBadge->setProperty(
-        "tone",
-        connected ? QStringLiteral("ok") : QStringLiteral("off"));
-    refreshStyle(m_connectionBadge);
-
-    if (!connected) {
-        if (transportChanged) {
-            logDebug(tr("MSI Strike Pro disconnected"));
-        }
-        ++m_batteryRequestGeneration;
-        m_batteryRequestPending = false;
-        m_batteryGauge->setValue(std::nullopt);
+    switch (m_connectionState) {
+    case ConnectionState::Absent:
+        m_deviceLabel->setText(tr("No MSI keyboard detected"));
         m_batteryValue->setText(tr("No device"));
-        m_batteryState->setText(
-            tr("Waiting for a USB receiver or wired connection."));
+        m_batteryState->setText(tr("Connect a keyboard or its USB receiver."));
         setStatus(
             m_deviceDot,
             m_deviceStatus,
             QStringLiteral("off"),
-            tr("Keyboard not detected"));
+            tr("No supported keyboard detected"));
+        break;
+    case ConnectionState::Probing:
+        m_deviceLabel->setText(tr("MSI Strike Pro"));
+        m_batteryValue->setText(tr("Checking…"));
+        m_batteryState->setText(
+            tr("Waiting for a response from the keyboard."));
+        setStatus(
+            m_deviceDot,
+            m_deviceStatus,
+            QStringLiteral("off"),
+            tr("Checking connection"));
+        break;
+    case ConnectionState::Connected: {
+        const bool wired = m_activeProductId == kStrikeProWiredProductId;
+        m_deviceLabel->setText(
+            wired ? tr("MSI Strike Pro · USB")
+                  : tr("MSI Strike Pro · 2.4 GHz"));
+        setStatus(
+            m_deviceDot,
+            m_deviceStatus,
+            QStringLiteral("ok"),
+            wired ? tr("Connected via USB") : tr("Connected via 2.4 GHz"));
+        if (!m_lastBatteryReading.has_value()) {
+            m_batteryValue->setText(tr("Reading battery…"));
+            m_batteryState->setText(tr("Waiting for battery data."));
+        }
+        break;
+    }
+    case ConnectionState::AccessDenied:
+        m_deviceLabel->setText(tr("MSI Strike Pro"));
+        m_batteryValue->setText(tr("HID access required"));
+        m_batteryState->setText(
+            tr("The device is present, but Linux denied HID access."));
+        setStatus(
+            m_deviceDot,
+            m_deviceStatus,
+            QStringLiteral("problem"),
+            tr("Permission problem"));
+        break;
+    case ConnectionState::Unresponsive:
+        m_deviceLabel->setText(tr("MSI Strike Pro receiver"));
+        m_batteryValue->setText(tr("No response"));
+        m_batteryState->setText(tr(
+            "The USB transport is present, but the keyboard did not answer."));
+        setStatus(
+            m_deviceDot,
+            m_deviceStatus,
+            QStringLiteral("problem"),
+            tr("Keyboard not responding"));
+        break;
+    }
+}
+
+void MainWindow::updateInterfaces(const QList<HidInterface> &interfaces)
+{
+    const ConnectionState previousState = m_connectionState;
+    m_interfaces = interfaces;
+    const HidInterface *batteryInterface =
+        preferredBatteryInterface(interfaces);
+    const bool transportPresent = batteryInterface != nullptr;
+    m_canQueryBattery = hasAccessibleBatteryInterface(interfaces);
+
+    if (!transportPresent) {
+        if (previousState != ConnectionState::Absent) {
+            logDebug(tr("MSI Strike Pro disconnected"));
+        }
+        ++m_batteryRequestGeneration;
+        m_batteryRequestPending = false;
+        m_activeProductId = 0;
+        clearBattery();
+        setConnectionState(ConnectionState::Absent);
         return;
     }
 
-    const bool wired = activeProductId == kStrikeProWiredProductId;
-    m_deviceLabel->setText(
-        wired ? tr("MSI Strike Pro · USB") : tr("MSI Strike Pro · 2.4 GHz"));
-    setStatus(
-        m_deviceDot,
-        m_deviceStatus,
-        QStringLiteral("ok"),
-        wired ? tr("Wired connection") : tr("Wireless receiver"));
-
-    if (transportChanged) {
-        logDebug(
-            wired ? tr("MSI Strike Pro detected over USB")
-                  : tr("MSI Strike Pro detected through the 2.4 GHz receiver"));
+    if (!m_canQueryBattery) {
         ++m_batteryRequestGeneration;
         m_batteryRequestPending = false;
-        m_batteryGauge->setValue(std::nullopt);
-        m_batteryValue->setText(tr("Reading battery…"));
-        m_batteryState->setText(tr("The first query runs automatically."));
+        m_activeProductId = 0;
+        clearBattery();
+        setConnectionState(ConnectionState::AccessDenied);
+        return;
     }
 
-    if (m_canQueryBattery) {
-        QTimer::singleShot(0, this, &MainWindow::requestBattery);
-    } else {
-        if (!m_batteryGauge->value().has_value()) {
-            m_batteryValue->setText(tr("HID access required"));
-            m_batteryState->setText(tr(
-                "The device was found, but the system denied battery access."));
-        }
+    const bool activeTransportStillPresent =
+        m_activeProductId != 0 && hasProduct(interfaces, m_activeProductId);
+    if (m_connectionState == ConnectionState::Connected
+        && activeTransportStillPresent) {
+        refreshConnectionUi();
+        return;
     }
+
+    ++m_batteryRequestGeneration;
+    m_batteryRequestPending = false;
+    m_activeProductId = 0;
+    clearBattery();
+    setConnectionState(ConnectionState::Probing);
+    QTimer::singleShot(0, this, &MainWindow::requestBattery);
+}
+
+void MainWindow::handleDeviceEvent()
+{
+    ++m_batteryRequestGeneration;
+    m_batteryRequestPending = false;
+    m_activeProductId = 0;
+    clearBattery();
+    if (m_canQueryBattery) {
+        setConnectionState(ConnectionState::Probing);
+    }
+    QTimer::singleShot(125, this, &MainWindow::requestBattery);
 }
 
 void MainWindow::requestBattery()
@@ -646,18 +759,18 @@ void MainWindow::requestBattery()
     QString error;
     if (!m_monitor->requestBattery(&error)) {
         logDebug(tr("Battery query: %1").arg(error));
-        if (!m_batteryGauge->value().has_value()) {
-            m_batteryValue->setText(tr("No response"));
-            m_batteryState->setText(error);
-        }
+        ++m_batteryRequestGeneration;
+        m_batteryRequestPending = false;
+        m_activeProductId = 0;
+        clearBattery();
+        setConnectionState(
+            m_canQueryBattery ? ConnectionState::Unresponsive
+                              : ConnectionState::AccessDenied);
         return;
     }
 
     m_batteryRequestPending = true;
     const quint64 generation = ++m_batteryRequestGeneration;
-    if (!m_batteryGauge->value().has_value()) {
-        m_batteryValue->setText(tr("Reading battery…"));
-    }
 
     QTimer::singleShot(kBatteryResponseTimeoutMs, this, [this, generation] {
         if (!m_batteryRequestPending
@@ -666,11 +779,9 @@ void MainWindow::requestBattery()
         }
         m_batteryRequestPending = false;
         logDebug(tr("The keyboard did not answer the battery query"));
-        if (!m_batteryGauge->value().has_value()) {
-            m_batteryValue->setText(tr("No response"));
-            m_batteryState->setText(
-                tr("The next attempt will run automatically."));
-        }
+        m_activeProductId = 0;
+        clearBattery();
+        setConnectionState(ConnectionState::Unresponsive);
     });
 }
 
@@ -685,6 +796,14 @@ void MainWindow::recordReport(const HidReport &report)
     }
 
     m_batteryRequestPending = false;
+    m_activeProductId = report.productId;
+    if (m_connectionState != ConnectionState::Connected) {
+        logDebug(
+            report.productId == kStrikeProWiredProductId
+                ? tr("MSI Strike Pro answered over USB")
+                : tr("MSI Strike Pro answered through the 2.4 GHz receiver"));
+    }
+    setConnectionState(ConnectionState::Connected);
     setBattery(*reading);
 }
 

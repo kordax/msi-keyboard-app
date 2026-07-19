@@ -4,7 +4,7 @@
 <context>
     <name>BatteryDecoder</name>
     <message>
-        <location filename="../src/device/BatteryDecoder.cpp" line="38"/>
+        <location filename="../src/device/BatteryDecoder.cpp" line="37"/>
         <source>Protocol profile not found: %1</source>
         <translation>Профиль протокола не найден: %1</translation>
     </message>
@@ -14,17 +14,17 @@
         <translation>Некорректный JSON: %1</translation>
     </message>
     <message>
-        <location filename="../src/device/BatteryDecoder.cpp" line="71"/>
+        <location filename="../src/device/BatteryDecoder.cpp" line="72"/>
         <source>battery.source must be input or feature</source>
         <translation>battery.source должен быть input или feature</translation>
     </message>
     <message>
-        <location filename="../src/device/BatteryDecoder.cpp" line="94"/>
+        <location filename="../src/device/BatteryDecoder.cpp" line="100"/>
         <source>battery.match_prefix_hex must contain pairs of hexadecimal digits</source>
         <translation>battery.match_prefix_hex должен содержать пары шестнадцатеричных цифр</translation>
     </message>
     <message>
-        <location filename="../src/device/BatteryDecoder.cpp" line="104"/>
+        <location filename="../src/device/BatteryDecoder.cpp" line="112"/>
         <source>The profile does not define interface and report_id</source>
         <translation>В профиле не заданы interface и report_id</translation>
     </message>
@@ -32,57 +32,57 @@
 <context>
     <name>CommandLine</name>
     <message>
-        <location filename="../src/main.cpp" line="85"/>
+        <location filename="../src/main.cpp" line="81"/>
         <source>Unsupported language &quot;%1&quot;. Use en or ru.</source>
         <translation>Неподдерживаемый язык «%1». Используйте en или ru.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="94"/>
+        <location filename="../src/main.cpp" line="90"/>
         <source>Linux application for MSI keyboards</source>
         <translation>Приложение для клавиатур MSI в Linux</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="101"/>
+        <location filename="../src/main.cpp" line="97"/>
         <source>Run without the GUI.</source>
         <translation>Запустить без графического интерфейса.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="104"/>
+        <location filename="../src/main.cpp" line="100"/>
         <source>Continuously print HID events and diagnostics in CLI mode.</source>
         <translation>Непрерывно выводить события HID и диагностику в режиме CLI.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="109"/>
+        <location filename="../src/main.cpp" line="105"/>
         <source>Take one read-only HID snapshot in CLI mode, then exit.</source>
         <translation>Снять один снимок HID только для чтения в режиме CLI и завершить работу.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="114"/>
+        <location filename="../src/main.cpp" line="110"/>
         <source>Print newline-delimited JSON in CLI mode.</source>
         <translation>Выводить JSON с разделением строками в режиме CLI.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="119"/>
+        <location filename="../src/main.cpp" line="115"/>
         <source>Query the battery once using the confirmed MSI Center command.</source>
         <translation>Один раз запросить заряд подтверждённой командой MSI Center.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="124"/>
+        <location filename="../src/main.cpp" line="120"/>
         <source>Path to the battery decoder JSON profile.</source>
         <translation>Путь к JSON-профилю декодера батареи.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="127"/>
+        <location filename="../src/main.cpp" line="123"/>
         <source>path</source>
         <translation>путь</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="130"/>
+        <location filename="../src/main.cpp" line="126"/>
         <source>Use a language for this run. The default is English.</source>
         <translation>Использовать язык для этого запуска. По умолчанию используется английский.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="144"/>
+        <location filename="../src/main.cpp" line="140"/>
         <source>Command to run: upgrade.</source>
         <translation>Команда для запуска: upgrade.</translation>
     </message>
@@ -100,169 +100,169 @@
         <translation>У версии пустой суффикс предварительного выпуска.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="80"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="81"/>
         <source>Version has no numeric components.</source>
         <translation>В версии нет числовых компонентов.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="87"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="90"/>
         <source>Version component is not numeric: %1</source>
         <translation>Компонент версии не является числом: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="103"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="106"/>
         <source>Invalid prerelease identifier: %1</source>
         <translation>Некорректный идентификатор предварительного выпуска: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="368"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="381"/>
         <source>Invalid GitHub release JSON: %1</source>
         <translation>Некорректный JSON релиза GitHub: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="376"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="390"/>
         <source>GitHub release has no tag_name.</source>
         <translation>В релизе GitHub отсутствует tag_name.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="395"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="409"/>
         <source>GitHub release has no assets array.</source>
         <translation>В релизе GitHub отсутствует массив assets.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="401"/>
-        <location filename="../src/update/UpdaterCore.cpp" line="411"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="415"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="428"/>
         <source>GitHub release contains an invalid asset.</source>
         <translation>Релиз GitHub содержит некорректный файл.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="446"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="459"/>
         <source>The release is not a stable published release.</source>
         <translation>Релиз не является опубликованным стабильным выпуском.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="454"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="467"/>
         <source>The release version is a prerelease.</source>
         <translation>Версия релиза является предварительной.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="589"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="606"/>
         <source>The platform or product is unsupported.</source>
         <translation>Платформа или продукт не поддерживается.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="631"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="649"/>
         <source>No package matches this platform.</source>
         <translation>Нет пакета для этой платформы.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="635"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="653"/>
         <source>More than one package matches this platform.</source>
         <translation>Для этой платформы найдено несколько пакетов.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="669"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="685"/>
         <source>The release has no SHA-256 checksum asset.</source>
         <translation>В релизе нет файла с контрольными суммами SHA-256.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="715"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="731"/>
         <source>The package metadata response is invalid.</source>
         <translation>Ответ с метаданными пакета некорректен.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="735"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="751"/>
         <source>The package name is %1, expected %2.</source>
         <translation>Имя пакета: %1, ожидалось: %2.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="745"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="761"/>
         <source>The package version is %1, expected %2.</source>
         <translation>Версия пакета: %1, ожидалась: %2.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="770"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="784"/>
         <source>The package architecture is %1, expected %2.</source>
         <translation>Архитектура пакета: %1, ожидалась: %2.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="809"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="822"/>
         <source>Invalid SHA-256 manifest line: %1</source>
         <translation>Некорректная строка списка SHA-256: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="814"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="829"/>
         <source>SHA-256 manifest contains an invalid file name.</source>
         <translation>Список SHA-256 содержит некорректное имя файла.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="821"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="836"/>
         <source>SHA-256 manifest has conflicting entries for %1.</source>
         <translation>Список SHA-256 содержит противоречивые записи для %1.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="829"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="844"/>
         <source>SHA-256 manifest is empty.</source>
         <translation>Список SHA-256 пуст.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="857"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="871"/>
         <source>SHA-256 manifest has ambiguous file names.</source>
         <translation>Список SHA-256 содержит неоднозначные имена файлов.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="868"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="882"/>
         <source>SHA-256 manifest has no entry for %1.</source>
         <translation>В списке SHA-256 нет записи для %1.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="879"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="893"/>
         <source>Expected SHA-256 checksum is invalid.</source>
         <translation>Ожидаемая контрольная сумма SHA-256 некорректна.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="910"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="924"/>
         <source>The package has not passed SHA-256 verification.</source>
         <translation>Пакет не прошёл проверку SHA-256.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="918"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="934"/>
         <source>No supported system package installer is available.</source>
         <translation>Поддерживаемый системный установщик пакетов недоступен.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="923"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="941"/>
         <source>Package path is not an absolute %1 file.</source>
         <translation>Путь к пакету не является абсолютным путём к файлу %1.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpdaterCore.cpp" line="938"/>
+        <location filename="../src/update/UpdaterCore.cpp" line="959"/>
         <source>Unsupported system package installer: %1</source>
         <translation>Неподдерживаемый системный установщик пакетов: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="128"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="127"/>
         <source>The network request timed out.</source>
         <translation>Истекло время ожидания сетевого запроса.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="132"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="131"/>
         <source>The server response is unexpectedly large.</source>
         <translation>Ответ сервера оказался неожиданно большим.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="137"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="136"/>
         <location filename="../src/update/UpgradeRunner.cpp" line="235"/>
         <source>The server returned HTTP %1.</source>
         <translation>Сервер вернул HTTP %1.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="153"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="152"/>
         <source>The package size reported by GitHub is invalid.</source>
         <translation>GitHub сообщил некорректный размер пакета.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="225"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="224"/>
         <source>The package download timed out.</source>
         <translation>Истекло время ожидания загрузки пакета.</translation>
     </message>
@@ -272,209 +272,209 @@
         <translation>Не удалось записать загруженный пакет.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="229"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="228"/>
         <location filename="../src/update/UpgradeRunner.cpp" line="237"/>
         <source>The downloaded package size does not match the release metadata.</source>
         <translation>Размер загруженного пакета не совпадает с метаданными релиза.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="82"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="81"/>
         <source>The network request URL is not trusted.</source>
         <translation>Адрес сетевого запроса не является доверенным.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="130"/>
-        <location filename="../src/update/UpgradeRunner.cpp" line="227"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="129"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="226"/>
         <source>The server redirected to an untrusted URL.</source>
         <translation>Сервер перенаправил запрос на недоверенный адрес.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="159"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="158"/>
         <source>The package download URL is not trusted.</source>
         <translation>Адрес загрузки пакета не является доверенным.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="351"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="350"/>
         <source>A required trusted system utility is not available for the upgrade.</source>
         <translation>Для обновления недоступна необходимая доверенная системная утилита.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="415"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="411"/>
         <source>A system utility returned unexpectedly large output.</source>
         <translation>Системная утилита вернула неожиданно большой объём данных.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="420"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="416"/>
         <source>A system utility process crashed.</source>
         <translation>Процесс системной утилиты аварийно завершился.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="428"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="425"/>
         <source>A system utility exited with status %1.</source>
         <translation>Системная утилита завершилась со статусом %1.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="514"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="509"/>
         <source>The protected package copy failed SHA-256 verification.</source>
         <translation>Защищённая копия пакета не прошла проверку SHA-256.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="565"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="556"/>
         <source>The following command will request administrator privileges:</source>
         <translation>Следующая команда запросит права администратора:</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="566"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="558"/>
         <source>The following package manager command will be run:</source>
         <translation>Будет выполнена следующая команда пакетного менеджера:</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="569"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="561"/>
         <source>Install the update? [y/N] </source>
         <translation>Установить обновление? [д/Н] </translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="583"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="576"/>
         <source>Checking GitHub for a stable update...</source>
         <translation>Проверка стабильного обновления на GitHub...</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="590"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="583"/>
         <source>This Linux distribution or CPU architecture is not supported.</source>
         <translation>Этот дистрибутив Linux или архитектура процессора не поддерживается.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="604"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="598"/>
         <source>No stable GitHub release has been published yet.</source>
         <translation>Стабильный релиз на GitHub ещё не опубликован.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="608"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="604"/>
         <source>Could not check for updates: %1</source>
         <translation>Не удалось проверить обновления: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="617"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="612"/>
         <source>Could not read the latest release: %1</source>
         <translation>Не удалось прочитать последний релиз: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="624"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="620"/>
         <source>Could not compare release versions: %1</source>
         <translation>Не удалось сравнить версии релизов: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="628"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="626"/>
         <source>MSI Keyboard %1 is already up to date.</source>
         <translation>MSI Keyboard %1 уже обновлён до последней версии.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="641"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="638"/>
         <source>No verified package is available for this system: %1</source>
         <translation>Для этой системы нет проверенного пакета: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="647"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="644"/>
         <source>Update %1 is available.</source>
         <translation>Доступно обновление %1.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="648"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="645"/>
         <source>Downloading checksums...</source>
         <translation>Загрузка контрольных сумм...</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="657"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="654"/>
         <source>Could not download SHA-256 checksums: %1</source>
         <translation>Не удалось загрузить контрольные суммы SHA-256: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="665"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="662"/>
         <source>Could not parse SHA-256 checksums: %1</source>
         <translation>Не удалось разобрать контрольные суммы SHA-256: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="672"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="669"/>
         <source>Could not find the package checksum: %1</source>
         <translation>Не удалось найти контрольную сумму пакета: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="681"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="678"/>
         <source>Could not create a temporary download directory.</source>
         <translation>Не удалось создать временный каталог для загрузки.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="687"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="685"/>
         <source>Downloading %1...</source>
         <translation>Загрузка %1...</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="696"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="694"/>
         <source>Could not download the package: %1</source>
         <translation>Не удалось загрузить пакет: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="704"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="703"/>
         <source>The downloaded package SHA-256 checksum does not match.</source>
         <translation>Контрольная сумма SHA-256 загруженного пакета не совпадает.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="706"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="705"/>
         <source>Package verification failed: %1</source>
         <translation>Проверка пакета не пройдена: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="709"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="708"/>
         <source>SHA-256 verification passed.</source>
         <translation>Проверка SHA-256 пройдена.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="717"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="716"/>
         <source>Could not prepare package installation: %1</source>
         <translation>Не удалось подготовить установку пакета: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="726"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="725"/>
         <source>Could not prepare protected installation: %1</source>
         <translation>Не удалось подготовить защищённую установку: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="739"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="738"/>
         <source>Could not prepare protected installation.</source>
         <translation>Не удалось подготовить защищённую установку.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="767"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="765"/>
         <source>Could not create a protected package copy: %1</source>
         <translation>Не удалось создать защищённую копию пакета: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="786"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="784"/>
         <source>Package metadata verification failed: %1</source>
         <translation>Проверка метаданных пакета не пройдена: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="791"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="789"/>
         <source>Protected package verification passed.</source>
         <translation>Защищённая копия пакета успешно проверена.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="748"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="747"/>
         <source>This copy is not managed by the system package manager; the package will be installed system-wide.</source>
         <translation>Эта копия не управляется системным пакетным менеджером; пакет будет установлен для всей системы.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="756"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="754"/>
         <source>Update cancelled.</source>
         <translation>Обновление отменено.</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="804"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="802"/>
         <source>The package manager failed: %1</source>
         <translation>Ошибка пакетного менеджера: %1</translation>
     </message>
     <message>
-        <location filename="../src/update/UpgradeRunner.cpp" line="808"/>
+        <location filename="../src/update/UpgradeRunner.cpp" line="806"/>
         <source>MSI Keyboard was upgraded to %1.</source>
         <translation>MSI Keyboard обновлён до версии %1.</translation>
     </message>
@@ -482,7 +482,7 @@
 <context>
     <name>strikepro::BatteryGauge</name>
     <message>
-        <location filename="../src/gui/BatteryGauge.cpp" line="129"/>
+        <location filename="../src/gui/BatteryGauge.cpp" line="174"/>
         <source>BATTERY</source>
         <translation>БАТАРЕЯ</translation>
     </message>
@@ -490,22 +490,22 @@
 <context>
     <name>strikepro::CliRunner</name>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="63"/>
+        <location filename="../src/cli/CliRunner.cpp" line="66"/>
         <source>Battery profile loaded</source>
         <translation>Профиль батареи загружен</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="70"/>
+        <location filename="../src/cli/CliRunner.cpp" line="72"/>
         <source>The battery decoder is not configured</source>
         <translation>Декодер батареи не настроен</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="82"/>
+        <location filename="../src/cli/CliRunner.cpp" line="83"/>
         <source>MSI Strike Pro 0db0:1620/b231 was not found</source>
         <translation>MSI Strike Pro 0db0:1620/b231 не найдена</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="116"/>
+        <location filename="../src/cli/CliRunner.cpp" line="118"/>
         <source>MSI Strike Pro found, interfaces %1</source>
         <translation>Найдена MSI Strike Pro, интерфейсы %1</translation>
     </message>
@@ -515,42 +515,42 @@
         <translation>Нет доступа к vendor hidraw. Установите правило через scripts/linux/install-udev-rule.sh</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="146"/>
+        <location filename="../src/cli/CliRunner.cpp" line="143"/>
         <source>Confirmed MSI Center battery query sent</source>
         <translation>Отправлен подтверждённый запрос батареи MSI Center</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="152"/>
+        <location filename="../src/cli/CliRunner.cpp" line="148"/>
         <source>The keyboard did not answer the battery query</source>
         <translation>Клавиатура не ответила на запрос батареи</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="182"/>
+        <location filename="../src/cli/CliRunner.cpp" line="180"/>
         <source>request=%1 response=%2</source>
         <translation>запрос=%1 ответ=%2</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="183"/>
+        <location filename="../src/cli/CliRunner.cpp" line="181"/>
         <source>id=%1</source>
         <translation>идентификатор=%1</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="187"/>
+        <location filename="../src/cli/CliRunner.cpp" line="184"/>
         <source>%1 if%2 %3 size=%4 data=%5</source>
         <translation>%1 интерфейс%2 %3 размер=%4 данные=%5</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="213"/>
+        <location filename="../src/cli/CliRunner.cpp" line="212"/>
         <source>Battery: %1%</source>
         <translation>Заряд: %1%</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="216"/>
+        <location filename="../src/cli/CliRunner.cpp" line="215"/>
         <source>, charging</source>
         <translation>, зарядка</translation>
     </message>
     <message>
-        <location filename="../src/cli/CliRunner.cpp" line="217"/>
+        <location filename="../src/cli/CliRunner.cpp" line="215"/>
         <source>, on battery</source>
         <translation>, от батареи</translation>
     </message>
@@ -558,133 +558,133 @@
 <context>
     <name>strikepro::DebugWindow</name>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="223"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="221"/>
         <source>Debug · MSI Keyboard</source>
         <translation>Отладка · MSI Keyboard</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="224"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="222"/>
         <source>Application logs</source>
         <translation>Логи приложения</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="225"/>
-        <location filename="../src/gui/DebugWindow.cpp" line="232"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="223"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="229"/>
         <source>Clear</source>
         <translation>Очистить</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="226"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="224"/>
         <source>Logs</source>
         <translation>Логи</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="227"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="225"/>
         <source>HID telemetry</source>
         <translation>Телеметрия HID</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="229"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="226"/>
         <source>Raw reports and protocol research tools</source>
         <translation>Сырые отчёты и инструменты исследования протокола</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="230"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="227"/>
         <source>Take snapshot</source>
         <translation>Снять снимок</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="231"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="228"/>
         <source>Reload profile</source>
         <translation>Перечитать профиль</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="233"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="230"/>
         <source>Export JSON</source>
         <translation>Экспорт JSON</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="235"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="232"/>
         <source>Time</source>
         <translation>Время</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="235"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="232"/>
         <source>Source</source>
         <translation>Источник</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="235"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="232"/>
         <source>Report</source>
         <translation>Отчёт</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="235"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="232"/>
         <source>HEX data</source>
         <translation>HEX-данные</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="236"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="233"/>
         <source>Telemetry</source>
         <translation>Телеметрия</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="239"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="236"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="36"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="37"/>
         <source>INPUT</source>
         <translation>INPUT</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="40"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="39"/>
         <source>FEATURE</source>
         <translation>FEATURE</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="44"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="41"/>
         <source>OUTPUT</source>
         <translation>OUTPUT</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="48"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="43"/>
         <source>UNKNOWN</source>
         <translation>НЕИЗВЕСТНО</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="358"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="364"/>
         <source>Export diagnostics</source>
         <translation>Экспорт диагностики</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="360"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="366"/>
         <source>JSON (*.json)</source>
         <translation>JSON (*.json)</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="391"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="398"/>
         <source>Could not open the export file</source>
         <translation>Не удалось открыть файл экспорта</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="396"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="403"/>
         <source>Could not finish the export</source>
         <translation>Не удалось завершить экспорт</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="399"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="406"/>
         <source>Diagnostics exported: %1</source>
         <translation>Диагностика экспортирована: %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="287"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="286"/>
         <source>%1:if%2  ·  req 0x%3 / resp 0x%4  ·  %5 B</source>
         <translation>%1:if%2  ·  запрос 0x%3 / ответ 0x%4  ·  %5 Б</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src/gui/DebugWindow.cpp" line="247"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="246"/>
         <source>%n packet(s)</source>
         <translation>
             <numerusform>%n пакет</numerusform>
@@ -693,7 +693,7 @@
         </translation>
     </message>
     <message>
-        <location filename="../src/gui/DebugWindow.cpp" line="293"/>
+        <location filename="../src/gui/DebugWindow.cpp" line="292"/>
         <source>%1:if%2  ·  id 0x%3  ·  %4 B</source>
         <translation>%1:if%2  ·  id 0x%3  ·  %4 Б</translation>
     </message>
@@ -701,52 +701,62 @@
 <context>
     <name>strikepro::HidMonitor</name>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="79"/>
+        <location filename="../src/device/HidMonitor.cpp" line="169"/>
         <source>HID interface 1 was not found</source>
         <translation>HID-интерфейс 1 не найден</translation>
     </message>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="86"/>
+        <location filename="../src/device/HidMonitor.cpp" line="130"/>
         <source>No access to interface 1 of device 0db0:%1. Reinstall the udev rule.</source>
         <translation>Нет доступа к интерфейсу 1 устройства 0db0:%1. Переустановите правило udev.</translation>
     </message>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="98"/>
+        <location filename="../src/device/HidMonitor.cpp" line="141"/>
         <source>No write access to %1: %2</source>
         <translation>Нет доступа на запись к %1: %2</translation>
     </message>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="122"/>
+        <location filename="../src/device/HidMonitor.cpp" line="157"/>
         <source>Could not send the battery query: %1</source>
         <translation>Не удалось отправить запрос батареи: %1</translation>
     </message>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="124"/>
+        <location filename="../src/device/HidMonitor.cpp" line="159"/>
         <source>Battery query was incomplete: %1 of %2 bytes</source>
         <translation>Запрос батареи отправлен не полностью: %1 из %2 байт</translation>
     </message>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="165"/>
+        <location filename="../src/device/HidMonitor.cpp" line="171"/>
+        <source>No accessible HID interface 1 was found</source>
+        <translation>Не найден доступный HID-интерфейс 1</translation>
+    </message>
+    <message>
+        <location filename="../src/device/HidMonitor.cpp" line="262"/>
+        <source>USB event monitor failed: %1</source>
+        <translation>Ошибка отслеживания событий USB: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/device/HidMonitor.cpp" line="292"/>
         <source>Could not open %1: %2</source>
         <translation>Не удалось открыть %1: %2</translation>
     </message>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="217"/>
+        <location filename="../src/device/HidMonitor.cpp" line="348"/>
         <source>Read error on %1: %2</source>
         <translation>Ошибка чтения %1: %2</translation>
     </message>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="248"/>
+        <location filename="../src/device/HidMonitor.cpp" line="380"/>
         <source>HID interface %1 was not found</source>
         <translation>HID-интерфейс %1 не найден</translation>
     </message>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="259"/>
+        <location filename="../src/device/HidMonitor.cpp" line="395"/>
         <source>No access to %1. Install the udev rule from packaging.</source>
         <translation>Нет доступа к %1. Установите правило udev из packaging.</translation>
     </message>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="279"/>
+        <location filename="../src/device/HidMonitor.cpp" line="414"/>
         <source>%1 if%2 0x%3: %4</source>
         <translation>%1 if%2 0x%3: %4</translation>
     </message>
@@ -754,214 +764,243 @@
 <context>
     <name>strikepro::MainWindow</name>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="501"/>
+        <location filename="../src/gui/MainWindow.cpp" line="543"/>
         <source>MSI Keyboard</source>
         <translation>MSI Keyboard</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="502"/>
+        <location filename="../src/gui/MainWindow.cpp" line="544"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="503"/>
+        <location filename="../src/gui/MainWindow.cpp" line="545"/>
         <source>Language</source>
         <translation>Язык</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="504"/>
+        <location filename="../src/gui/MainWindow.cpp" line="546"/>
         <source>English</source>
         <translation>Английский</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="505"/>
+        <location filename="../src/gui/MainWindow.cpp" line="547"/>
         <source>Russian</source>
         <translation>Русский</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="506"/>
+        <location filename="../src/gui/MainWindow.cpp" line="548"/>
         <source>Debug</source>
         <translation>Отладка</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="507"/>
+        <location filename="../src/gui/MainWindow.cpp" line="549"/>
         <source>Logs</source>
         <translation>Логи</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="508"/>
+        <location filename="../src/gui/MainWindow.cpp" line="550"/>
         <source>Telemetry</source>
         <translation>Телеметрия</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="517"/>
+        <location filename="../src/gui/MainWindow.cpp" line="558"/>
         <source>MSI Keyboard manager for Linux</source>
         <translation>Менеджер клавиатур MSI для Linux</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="518"/>
+        <location filename="../src/gui/MainWindow.cpp" line="559"/>
         <source>BATTERY</source>
         <translation>АККУМУЛЯТОР</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="519"/>
-        <source>READ ONLY</source>
-        <translation>ТОЛЬКО ЧТЕНИЕ</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="520"/>
-        <source>mode</source>
-        <translation>режим</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="521"/>
+        <location filename="../src/gui/MainWindow.cpp" line="563"/>
         <source>DEVICE</source>
         <translation>УСТРОЙСТВО</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="522"/>
-        <source>Connection</source>
-        <translation>Подключение</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="565"/>
+        <location filename="../src/gui/MainWindow.cpp" line="605"/>
         <source>Battery profile unavailable</source>
         <translation>Профиль батареи недоступен</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="559"/>
+        <location filename="../src/gui/MainWindow.cpp" line="600"/>
         <source>Protocol profile loaded: %1</source>
         <translation>Профиль протокола загружен: %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="566"/>
+        <location filename="../src/gui/MainWindow.cpp" line="564"/>
+        <source>Status</source>
+        <translation>Состояние</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="606"/>
         <source>Profile error: %1</source>
         <translation>Ошибка профиля: %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="587"/>
+        <location filename="../src/gui/MainWindow.cpp" line="565"/>
         <source>CONNECTED</source>
         <translation>ПОДКЛЮЧЕНА</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="587"/>
-        <source>NOT CONNECTED</source>
-        <translation>НЕ ПОДКЛЮЧЕНА</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="594"/>
+        <location filename="../src/gui/MainWindow.cpp" line="705"/>
         <source>MSI Strike Pro disconnected</source>
         <translation>MSI Strike Pro отключена</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="599"/>
+        <location filename="../src/gui/MainWindow.cpp" line="634"/>
         <source>No device</source>
         <translation>Нет устройства</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="601"/>
-        <source>Waiting for a USB receiver or wired connection.</source>
-        <translation>Ожидается USB-приёмник или проводное подключение.</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="606"/>
-        <source>Keyboard not detected</source>
-        <translation>Клавиатура не обнаружена</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="613"/>
+        <location filename="../src/gui/MainWindow.cpp" line="656"/>
         <source>MSI Strike Pro · USB</source>
         <translation>MSI Strike Pro · USB</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="614"/>
+        <location filename="../src/gui/MainWindow.cpp" line="657"/>
         <source>MSI Strike Pro · 2.4 GHz</source>
         <translation>MSI Strike Pro · 2,4 ГГц</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="620"/>
-        <source>Wired connection</source>
-        <translation>Проводное подключение</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="621"/>
-        <source>Wireless receiver</source>
-        <translation>Беспроводной приёмник</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="626"/>
-        <source>MSI Strike Pro detected over USB</source>
-        <translation>MSI Strike Pro обнаружена через USB</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="627"/>
-        <source>MSI Strike Pro detected through the 2.4 GHz receiver</source>
-        <translation>MSI Strike Pro обнаружена через приёмник 2,4 ГГц</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="631"/>
-        <location filename="../src/gui/MainWindow.cpp" line="666"/>
+        <location filename="../src/gui/MainWindow.cpp" line="664"/>
         <source>Reading battery…</source>
         <translation>Получение заряда…</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="632"/>
-        <source>The first query runs automatically.</source>
-        <translation>Первый запрос выполняется автоматически.</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="639"/>
+        <location filename="../src/gui/MainWindow.cpp" line="671"/>
         <source>HID access required</source>
         <translation>Нужен доступ к HID</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="641"/>
-        <source>The device was found, but the system denied battery access.</source>
-        <translation>Устройство найдено, но система запретила чтение батареи.</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="655"/>
+        <location filename="../src/gui/MainWindow.cpp" line="761"/>
         <source>Battery query: %1</source>
         <translation>Запрос батареи: %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="657"/>
-        <location filename="../src/gui/MainWindow.cpp" line="680"/>
+        <location filename="../src/gui/MainWindow.cpp" line="682"/>
         <source>No response</source>
         <translation>Нет ответа</translation>
     </message>
     <message>
+        <location filename="../src/gui/MainWindow.cpp" line="560"/>
+        <source>READ ONLY MODE</source>
+        <translation>РЕЖИМ ТОЛЬКО ЧТЕНИЯ</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="633"/>
+        <source>No MSI keyboard detected</source>
+        <translation>Клавиатура MSI не обнаружена</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="635"/>
+        <source>Connect a keyboard or its USB receiver.</source>
+        <translation>Подключите клавиатуру или её USB-приёмник.</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="640"/>
+        <source>No supported keyboard detected</source>
+        <translation>Поддерживаемая клавиатура не обнаружена</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="643"/>
+        <location filename="../src/gui/MainWindow.cpp" line="670"/>
+        <source>MSI Strike Pro</source>
+        <translation>MSI Strike Pro</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="644"/>
+        <source>Checking…</source>
+        <translation>Проверка…</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="646"/>
+        <source>Waiting for a response from the keyboard.</source>
+        <translation>Ожидание ответа от клавиатуры.</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="651"/>
+        <source>Checking connection</source>
+        <translation>Проверка подключения</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="662"/>
+        <source>Connected via USB</source>
+        <translation>Подключена по USB</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="662"/>
+        <source>Connected via 2.4 GHz</source>
+        <translation>Подключена по 2,4 ГГц</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="665"/>
+        <source>Waiting for battery data.</source>
+        <translation>Ожидание данных аккумулятора.</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="673"/>
+        <source>The device is present, but Linux denied HID access.</source>
+        <translation>Устройство найдено, но Linux запретил доступ к HID.</translation>
+    </message>
+    <message>
         <location filename="../src/gui/MainWindow.cpp" line="678"/>
+        <source>Permission problem</source>
+        <translation>Проблема с правами доступа</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="681"/>
+        <source>MSI Strike Pro receiver</source>
+        <translation>Приёмник MSI Strike Pro</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="683"/>
+        <source>The USB transport is present, but the keyboard did not answer.</source>
+        <translation>USB-подключение доступно, но клавиатура не ответила.</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="689"/>
+        <source>Keyboard not responding</source>
+        <translation>Клавиатура не отвечает</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="781"/>
         <source>The keyboard did not answer the battery query</source>
         <translation>Клавиатура не ответила на запрос батареи</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="682"/>
-        <source>The next attempt will run automatically.</source>
-        <translation>Следующая попытка будет выполнена автоматически.</translation>
+        <location filename="../src/gui/MainWindow.cpp" line="803"/>
+        <source>MSI Strike Pro answered over USB</source>
+        <translation>MSI Strike Pro ответила по USB</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="710"/>
+        <location filename="../src/gui/MainWindow.cpp" line="804"/>
+        <source>MSI Strike Pro answered through the 2.4 GHz receiver</source>
+        <translation>MSI Strike Pro ответила через приёмник 2,4 ГГц</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/MainWindow.cpp" line="818"/>
         <source>The keyboard is charging.</source>
         <translation>Клавиатура подключена к зарядке.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="711"/>
+        <location filename="../src/gui/MainWindow.cpp" line="819"/>
         <source>The keyboard is running on battery.</source>
         <translation>Клавиатура работает от аккумулятора.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="713"/>
+        <location filename="../src/gui/MainWindow.cpp" line="821"/>
         <source>Battery status received over USB HID.</source>
         <translation>Заряд получен через USB HID.</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="716"/>
+        <location filename="../src/gui/MainWindow.cpp" line="824"/>
         <source>Battery updated: %1%</source>
         <translation>Заряд обновлён: %1%</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="299"/>
+        <location filename="../src/gui/MainWindow.cpp" line="331"/>
         <source>MSI STRIKE PRO</source>
         <translation>MSI STRIKE PRO</translation>
     </message>

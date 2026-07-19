@@ -19,6 +19,7 @@ class BatteryGaugeTest final : public QObject {
     void rendersUnknownState();
     void boundsPercentage();
     void usesBatteryLevelColors();
+    void animatesPercentageChangesSmoothly();
 };
 
 void BatteryGaugeTest::loadsKeyboardArtwork()
@@ -115,6 +116,26 @@ void BatteryGaugeTest::usesBatteryLevelColors()
     QVERIFY(high.green() > high.red());
     QCOMPARE(BatteryGauge::colorForValue(-20.0), low);
     QCOMPARE(BatteryGauge::colorForValue(120.0), high);
+}
+
+void BatteryGaugeTest::animatesPercentageChangesSmoothly()
+{
+    BatteryGauge gauge;
+    gauge.setValue(10);
+    QCOMPARE(gauge.property("displayedValue").toReal(), 10.0);
+
+    gauge.setValue(90);
+    const qreal initial = gauge.property("displayedValue").toReal();
+    QVERIFY(initial >= 10.0);
+    QVERIFY(initial < 90.0);
+
+    QTest::qWait(250);
+    const qreal inProgress = gauge.property("displayedValue").toReal();
+    QVERIFY(inProgress > initial);
+    QVERIFY(inProgress < 90.0);
+    QTRY_VERIFY_WITH_TIMEOUT(
+        qAbs(gauge.property("displayedValue").toReal() - 90.0) < 0.1,
+        3000);
 }
 
 QTEST_MAIN(BatteryGaugeTest)

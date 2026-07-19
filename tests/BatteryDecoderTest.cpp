@@ -11,6 +11,7 @@ class BatteryDecoderTest final : public QObject {
     void decodesCapturedWirelessBatteryResponse();
     void decodesCapturedWiredChargingResponse();
     void rejectsUnavailableWirelessResponse();
+    void rejectsOfflineWirelessSentinel();
     void rejectsDifferentVendorResponse();
     void decodesConfirmedByte();
     void decodesFeatureByRequestedId();
@@ -67,6 +68,21 @@ void BatteryDecoderTest::rejectsUnavailableWirelessResponse()
         .source = ReportSource::Input,
         .requestedReportId = -1,
         .data = QByteArray::fromHex("0db00100000005020001000000000000"),
+    };
+
+    QVERIFY(!BatteryDecoder::decode(report, profile).has_value());
+}
+
+void BatteryDecoderTest::rejectsOfflineWirelessSentinel()
+{
+    const ProtocolProfile profile = BatteryDecoder::confirmedStrikeProProfile();
+    const HidReport report{
+        .devNode = QStringLiteral("/dev/hidraw-test"),
+        .interfaceNumber = 1,
+        .productId = kStrikeProWirelessProductId,
+        .source = ReportSource::Input,
+        .requestedReportId = -1,
+        .data = QByteArray::fromHex("0db00100000005020002000000000000"),
     };
 
     QVERIFY(!BatteryDecoder::decode(report, profile).has_value());

@@ -32,16 +32,23 @@ class HidMonitor final : public QObject {
     void interfacesChanged(const QList<strikepro::HidInterface> &interfaces);
     void reportReceived(const strikepro::HidReport &report);
     void diagnosticMessage(const QString &message);
+    void deviceEvent();
 
   private:
+    void setupUeventMonitor();
+    void closeUeventMonitor();
+    void readUevents();
     void rebuildReaders();
     void closeReaders();
     void readAvailable(const QString &devNode);
 
     QTimer m_refreshTimer;
+    QTimer m_eventRefreshTimer;
     QList<HidInterface> m_interfaces;
     QHash<QString, int> m_fds;
     QHash<QString, QSocketNotifier *> m_notifiers;
+    int m_ueventFd = -1;
+    QSocketNotifier *m_ueventNotifier = nullptr;
     bool m_hasRefreshed = false;
 };
 

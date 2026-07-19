@@ -148,7 +148,11 @@ BatteryDecoder::decode(const HidReport &report, const ProtocolProfile &profile)
         const int transport =
             static_cast<quint8>(report.data.at(profile.transportOffset));
         if (report.productId == kStrikeProWirelessProductId) {
-            if (transport != profile.wirelessTransportValue) {
+            // The receiver returns a zero level with the wireless transport
+            // byte when the keyboard link is unavailable. A working keyboard
+            // shuts down before reporting a usable zero-percent reading.
+            if (transport != profile.wirelessTransportValue
+                || reading.percent == 0) {
                 return std::nullopt;
             }
             reading.charging = false;

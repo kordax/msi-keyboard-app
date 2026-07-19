@@ -31,6 +31,7 @@ class MainWindow final : public QMainWindow {
 
   private slots:
     void updateInterfaces(const QList<strikepro::HidInterface> &interfaces);
+    void handleDeviceEvent();
     void recordReport(const strikepro::HidReport &report);
     void reloadProtocolProfile();
     void requestBattery();
@@ -38,8 +39,19 @@ class MainWindow final : public QMainWindow {
     void showDebugTelemetry();
 
   private:
+    enum class ConnectionState {
+        Absent,
+        Probing,
+        Connected,
+        AccessDenied,
+        Unresponsive,
+    };
+
     void buildUi();
     void retranslateUi();
+    void refreshConnectionUi();
+    void clearBattery();
+    void setConnectionState(ConnectionState state);
     void setBattery(const BatteryReading &reading);
     void setStatus(
         QLabel *dot, QLabel *detail, const QString &tone, const QString &text);
@@ -56,6 +68,7 @@ class MainWindow final : public QMainWindow {
     quint16 m_activeProductId = 0;
     bool m_canQueryBattery = false;
     bool m_batteryRequestPending = false;
+    ConnectionState m_connectionState = ConnectionState::Absent;
     std::optional<BatteryReading> m_lastBatteryReading;
 
     QMenu *m_settingsMenu = nullptr;
