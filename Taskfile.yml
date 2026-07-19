@@ -22,14 +22,20 @@ tasks:
   build-release:
     internal: true
     cmds:
-      - cmake --fresh -S . -B "{{.RELEASE_DIR}}" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON {{.CMAKE_CONFIGURE_ARGS}}
+      - cmake -S . -B "{{.RELEASE_DIR}}" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON {{.CMAKE_CONFIGURE_ARGS}}
       - cmake --build "{{.RELEASE_DIR}}" --parallel
 
   build-debug:
     internal: true
     cmds:
-      - cmake --fresh -S . -B "{{.DEBUG_DIR}}" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON {{.CMAKE_CONFIGURE_ARGS}}
+      - cmake -S . -B "{{.DEBUG_DIR}}" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON {{.CMAKE_CONFIGURE_ARGS}}
       - cmake --build "{{.DEBUG_DIR}}" --parallel
+
+  rebuild:
+    desc: Reconfigure and rebuild Release from scratch
+    cmds:
+      - cmake --fresh -S . -B "{{.RELEASE_DIR}}" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON {{.CMAKE_CONFIGURE_ARGS}}
+      - cmake --build "{{.RELEASE_DIR}}" --parallel
 
   test:
     desc: Release build and tests
@@ -96,7 +102,7 @@ tasks:
   build-sanitizers:
     internal: true
     cmds:
-      - cmake --fresh -S . -B "{{.SANITIZER_DIR}}" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON -DMSI_KEYBOARD_ENABLE_SANITIZERS=ON {{.CMAKE_CONFIGURE_ARGS}}
+      - cmake -S . -B "{{.SANITIZER_DIR}}" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DMSI_KEYBOARD_WARNINGS_AS_ERRORS=ON -DMSI_KEYBOARD_ENABLE_SANITIZERS=ON {{.CMAKE_CONFIGURE_ARGS}}
       - cmake --build "{{.SANITIZER_DIR}}" --parallel
 
   sanitize:
