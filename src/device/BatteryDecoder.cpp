@@ -147,7 +147,13 @@ BatteryDecoder::decode(const HidReport &report, const ProtocolProfile &profile)
         }
         const int transport =
             static_cast<quint8>(report.data.at(profile.transportOffset));
-        if (report.productId == kStrikeProWirelessProductId) {
+        const DeviceDefinition *definition =
+            findDeviceDefinition(report.vendorId, report.productId);
+        if (definition == nullptr) {
+            return std::nullopt;
+        }
+        if (definition->transportForProduct(report.productId)
+            == DeviceTransport::Dongle) {
             // The receiver returns a zero level with the wireless transport
             // byte when the keyboard link is unavailable. A working keyboard
             // shuts down before reporting a usable zero-percent reading.
@@ -156,7 +162,7 @@ BatteryDecoder::decode(const HidReport &report, const ProtocolProfile &profile)
                 return std::nullopt;
             }
             reading.charging = false;
-        } else if (report.productId == kStrikeProWiredProductId) {
+        } else {
             if (transport != profile.wiredTransportValue) {
                 return std::nullopt;
             }
@@ -164,8 +170,6 @@ BatteryDecoder::decode(const HidReport &report, const ProtocolProfile &profile)
                 ++reading.percent;
             }
             reading.charging = true;
-        } else {
-            return std::nullopt;
         }
     }
 

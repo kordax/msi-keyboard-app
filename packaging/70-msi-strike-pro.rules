@@ -1,4 +1,2 @@
-# MSI STRIKE PRO WIRELESS Gaming Keyboard (USB receiver or wired mode)
-# Grant the active desktop session access to the vendor HID interfaces.
-SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0db0", ATTRS{idProduct}=="1620", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0db0", ATTRS{idProduct}=="b231", MODE="0660", TAG+="uaccess"
+# Compatibility placeholder. The installable 70-msi-keyboard.rules file is
+# generated from config/devices.json during CMake configuration.

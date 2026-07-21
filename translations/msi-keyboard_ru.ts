@@ -501,13 +501,13 @@
     </message>
     <message>
         <location filename="../src/cli/CliRunner.cpp" line="83"/>
-        <source>MSI Strike Pro 0db0:1620/b231 was not found</source>
-        <translation>MSI Strike Pro 0db0:1620/b231 не найдена</translation>
+        <source>No supported keyboard was found</source>
+        <translation>Поддерживаемая клавиатура не найдена</translation>
     </message>
     <message>
         <location filename="../src/cli/CliRunner.cpp" line="118"/>
-        <source>MSI Strike Pro found, interfaces %1</source>
-        <translation>Найдена MSI Strike Pro, интерфейсы %1</translation>
+        <source>%1 found, interfaces %2</source>
+        <translation>Найдена %1, интерфейсы %2</translation>
     </message>
     <message>
         <location filename="../src/cli/CliRunner.cpp" line="125"/>
@@ -701,14 +701,9 @@
 <context>
     <name>strikepro::HidMonitor</name>
     <message>
-        <location filename="../src/device/HidMonitor.cpp" line="169"/>
-        <source>HID interface 1 was not found</source>
-        <translation>HID-интерфейс 1 не найден</translation>
-    </message>
-    <message>
         <location filename="../src/device/HidMonitor.cpp" line="130"/>
-        <source>No access to interface 1 of device 0db0:%1. Reinstall the udev rule.</source>
-        <translation>Нет доступа к интерфейсу 1 устройства 0db0:%1. Переустановите правило udev.</translation>
+        <source>No access to interface %1 of device %2:%3. Reinstall the udev rule.</source>
+        <translation>Нет доступа к интерфейсу %1 устройства %2:%3. Переустановите правило udev.</translation>
     </message>
     <message>
         <location filename="../src/device/HidMonitor.cpp" line="141"/>
@@ -727,8 +722,13 @@
     </message>
     <message>
         <location filename="../src/device/HidMonitor.cpp" line="171"/>
-        <source>No accessible HID interface 1 was found</source>
-        <translation>Не найден доступный HID-интерфейс 1</translation>
+        <source>No accessible battery HID interface was found</source>
+        <translation>Не найден доступный HID-интерфейс батареи</translation>
+    </message>
+    <message>
+        <location filename="../src/device/HidMonitor.cpp" line="215"/>
+        <source>No supported battery protocol is configured</source>
+        <translation>Поддерживаемый протокол батареи не настроен</translation>
     </message>
     <message>
         <location filename="../src/device/HidMonitor.cpp" line="262"/>
@@ -746,6 +746,7 @@
         <translation>Ошибка чтения %1: %2</translation>
     </message>
     <message>
+        <location filename="../src/device/HidMonitor.cpp" line="216"/>
         <location filename="../src/device/HidMonitor.cpp" line="380"/>
         <source>HID interface %1 was not found</source>
         <translation>HID-интерфейс %1 не найден</translation>
@@ -961,13 +962,8 @@
     </message>
     <message>
         <location filename="../src/gui/MainWindow.cpp" line="806"/>
-        <source>MSI Strike Pro answered over USB</source>
-        <translation>MSI Strike Pro ответила по USB</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/MainWindow.cpp" line="807"/>
-        <source>MSI Strike Pro answered through the 2.4 GHz receiver</source>
-        <translation>MSI Strike Pro ответила через приёмник 2,4 ГГц</translation>
+        <source>%1 answered over %2</source>
+        <translation>%1 ответила через %2</translation>
     </message>
     <message>
         <location filename="../src/gui/MainWindow.cpp" line="821"/>

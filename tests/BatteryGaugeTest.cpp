@@ -49,6 +49,7 @@ void BatteryGaugeTest::keepsTelemetryOptional()
     const HidReport report{
         .devNode = QStringLiteral("/dev/hidraw-test"),
         .interfaceNumber = 1,
+        .vendorId = kMsiVendorId,
         .productId = kStrikeProWirelessProductId,
         .source = ReportSource::Input,
         .requestedReportId = -1,

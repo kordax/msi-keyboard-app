@@ -11,6 +11,7 @@ namespace {
 struct PhysicalEndpoint {
     QString id;
     QString name;
+    quint16 vendorId = 0;
     quint16 productId = 0;
     QList<HidInterface> interfaces;
 };
@@ -34,7 +35,8 @@ QString physicalEndpointId(const HidInterface &interface)
     if (!interface.devNode.isEmpty()) {
         return interface.devNode;
     }
-    return QStringLiteral("%1:%2")
+    return QStringLiteral("%1:%2:%3")
+        .arg(interface.vendorId, 4, 16, QLatin1Char('0'))
         .arg(interface.productId, 4, 16, QLatin1Char('0'))
         .arg(interface.name);
 }
@@ -59,28 +61,47 @@ void appendEndpoint(SupportedDevice &device, const PhysicalEndpoint &endpoint)
     device.interfaces.append(endpoint.interfaces);
 }
 
+const DeviceDefinition *findDefinition(
+    const std::span<const DeviceDefinition> definitions,
+    const HidInterface &interface)
+{
+    const auto found = std::ranges::find_if(
+        definitions,
+        [&interface](const DeviceDefinition &definition) {
+            return definition.matches(interface.vendorId, interface.productId);
+        });
+    return found == definitions.end() ? nullptr : &*found;
+}
+
 } // namespace
 
 bool SupportedDevice::supportsBattery() const
 {
-    return std::ranges::any_of(interfaces, [](const HidInterface &interface) {
-        return isStrikeProProduct(interface.productId);
-    });
+    return definition.supportsBattery();
 }
 
 const HidInterface *SupportedDevice::batteryInterface() const
 {
+    if (!supportsBattery()) {
+        return nullptr;
+    }
+
+    QList<quint16> preferredProducts{definition.usbProductId};
+    if (definition.dongleProductId != 0) {
+        preferredProducts.push_back(definition.dongleProductId);
+    }
     for (const bool requireAccess : {true, false}) {
-        for (const quint16 preferredProduct :
-             {kStrikeProWiredProductId, kStrikeProWirelessProductId}) {
+        for (const quint16 preferredProduct : preferredProducts) {
             const auto found = std::ranges::find_if(
                 interfaces,
-                [preferredProduct,
-                 requireAccess](const HidInterface &interface) {
+                [this, preferredProduct, requireAccess](
+                    const HidInterface &interface) {
                     const bool accessible =
                         interface.readable && interface.writable;
-                    return interface.productId == preferredProduct
-                           && interface.interfaceNumber == 1
+                    return interface.vendorId == definition.vendorId
+                           && interface.productId == preferredProduct
+                           && interface.interfaceNumber
+                                  == definition.batteryInterfaceNumber
                            && (!requireAccess || accessible);
                 });
             if (found != interfaces.end()) {
@@ -101,15 +122,23 @@ bool SupportedDevice::canQueryBattery() const
 QList<SupportedDevice>
 groupSupportedDevices(const QList<HidInterface> &interfaces)
 {
+    return groupSupportedDevices(interfaces, supportedDeviceDefinitions());
+}
+
+QList<SupportedDevice> groupSupportedDevices(
+    const QList<HidInterface> &interfaces,
+    const std::span<const DeviceDefinition> definitions)
+{
     QMap<QString, PhysicalEndpoint> endpoints;
     for (const HidInterface &interface : interfaces) {
-        if (!interface.isTarget()) {
+        if (findDefinition(definitions, interface) == nullptr) {
             continue;
         }
 
         const QString endpointId = physicalEndpointId(interface);
         PhysicalEndpoint &endpoint = endpoints[endpointId];
         endpoint.id = endpointId;
+        endpoint.vendorId = interface.vendorId;
         endpoint.productId = interface.productId;
         if (endpoint.name.isEmpty() && !interface.name.isEmpty()) {
             endpoint.name = interface.name;
@@ -117,42 +146,53 @@ groupSupportedDevices(const QList<HidInterface> &interfaces)
         endpoint.interfaces.push_back(interface);
     }
 
-    QList<PhysicalEndpoint> wired;
-    QList<PhysicalEndpoint> wireless;
-    for (PhysicalEndpoint endpoint : endpoints) {
-        sortInterfaces(endpoint.interfaces);
-        if (endpoint.productId == kStrikeProWiredProductId) {
-            wired.push_back(std::move(endpoint));
-        } else if (endpoint.productId == kStrikeProWirelessProductId) {
-            wireless.push_back(std::move(endpoint));
-        }
-    }
+    QList<SupportedDevice> devices;
     const auto byId = [](const PhysicalEndpoint &left,
                          const PhysicalEndpoint &right) {
         return left.id < right.id;
     };
-    std::ranges::sort(wired, byId);
-    std::ranges::sort(wireless, byId);
-
-    const qsizetype deviceCount = std::max(wired.size(), wireless.size());
-    QList<SupportedDevice> devices;
-    devices.reserve(deviceCount);
-    for (qsizetype index = 0; index < deviceCount; ++index) {
-        SupportedDevice device;
-        device.id = QStringLiteral("strike-pro:%1")
-                        .arg(index + 1, 4, 10, QLatin1Char('0'));
-        if (index < wired.size()) {
-            appendEndpoint(device, wired.at(index));
-            device.productId = kStrikeProWiredProductId;
-        }
-        if (index < wireless.size()) {
-            appendEndpoint(device, wireless.at(index));
-            if (device.productId == 0) {
-                device.productId = kStrikeProWirelessProductId;
+    for (const DeviceDefinition &definition : definitions) {
+        QList<PhysicalEndpoint> usbEndpoints;
+        QList<PhysicalEndpoint> dongleEndpoints;
+        for (PhysicalEndpoint endpoint : endpoints) {
+            if (endpoint.vendorId != definition.vendorId) {
+                continue;
+            }
+            sortInterfaces(endpoint.interfaces);
+            if (endpoint.productId == definition.usbProductId) {
+                usbEndpoints.push_back(std::move(endpoint));
+            } else if (
+                definition.dongleProductId != 0
+                && endpoint.productId == definition.dongleProductId) {
+                dongleEndpoints.push_back(std::move(endpoint));
             }
         }
-        sortInterfaces(device.interfaces);
-        devices.push_back(std::move(device));
+        std::ranges::sort(usbEndpoints, byId);
+        std::ranges::sort(dongleEndpoints, byId);
+
+        const qsizetype deviceCount =
+            std::max(usbEndpoints.size(), dongleEndpoints.size());
+        devices.reserve(devices.size() + deviceCount);
+        for (qsizetype index = 0; index < deviceCount; ++index) {
+            SupportedDevice device;
+            device.definition = definition;
+            device.id = QStringLiteral("%1:%2")
+                            .arg(definition.idString())
+                            .arg(index + 1, 4, 10, QLatin1Char('0'));
+            device.name = definition.displayNameString();
+            if (index < usbEndpoints.size()) {
+                appendEndpoint(device, usbEndpoints.at(index));
+                device.productId = definition.usbProductId;
+            }
+            if (index < dongleEndpoints.size()) {
+                appendEndpoint(device, dongleEndpoints.at(index));
+                if (device.productId == 0) {
+                    device.productId = definition.dongleProductId;
+                }
+            }
+            sortInterfaces(device.interfaces);
+            devices.push_back(std::move(device));
+        }
     }
     return devices;
 }

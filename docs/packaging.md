@@ -34,11 +34,11 @@ usr/bin/msi-keyboard
 usr/share/applications/io.github.kordax.MsiKeyboard.desktop
 usr/share/doc/msi-keyboard/copyright
 usr/share/licenses/msi-keyboard/LICENSE
-usr/lib/udev/rules.d/70-msi-strike-pro.rules
+usr/lib/udev/rules.d/70-msi-keyboard.rules
 ```
 
-The udev rule always uses `usr/lib/udev/rules.d`, independently of the
-multiarch library directory.
+The udev rule is generated from `config/devices.json` and always uses
+`usr/lib/udev/rules.d`, independently of the multiarch library directory.
 
 The rule must sort before `73-seat-late.rules`. That file runs the `uaccess`
 builtin, so this project uses priority `70`. A rule named `99-…` adds the tag

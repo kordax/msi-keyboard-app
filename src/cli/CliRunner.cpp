@@ -1,5 +1,7 @@
 #include "CliRunner.h"
 
+#include "device/DeviceCatalog.h"
+
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QJsonArray>
@@ -80,7 +82,7 @@ void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
     if (interfaces.isEmpty()) {
         log(QStringLiteral("error"),
             QStringLiteral("device_not_found"),
-            tr("MSI Strike Pro 0db0:1620/b231 was not found"));
+            tr("No supported keyboard was found"));
         if (!m_options.logs) {
             finishOnce(2);
         }
@@ -93,6 +95,10 @@ void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
     for (const HidInterface &interface : interfaces) {
         QJsonObject item;
         item.insert(QStringLiteral("number"), interface.interfaceNumber);
+        item.insert(
+            QStringLiteral("vendor_id"),
+            QStringLiteral("%1")
+                .arg(interface.vendorId, 4, 16, QLatin1Char('0')));
         item.insert(
             QStringLiteral("product_id"),
             QStringLiteral("%1")
@@ -113,10 +119,15 @@ void CliRunner::handleInterfaces(const QList<HidInterface> &interfaces)
         }
     }
 
+    QStringList deviceNames;
+    for (const SupportedDevice &device : groupSupportedDevices(interfaces)) {
+        deviceNames.push_back(device.definition.displayNameString());
+    }
     log(QStringLiteral("info"),
         QStringLiteral("device_connected"),
-        tr("MSI Strike Pro found, interfaces %1").arg(numbers.join(',')),
-        {{QStringLiteral("vendor_id"), QStringLiteral("0db0")},
+        tr("%1 found, interfaces %2")
+            .arg(deviceNames.join(QStringLiteral(", ")), numbers.join(',')),
+        {{QStringLiteral("devices"), QJsonArray::fromStringList(deviceNames)},
          {QStringLiteral("interfaces"), interfaceList}});
 
     if (!diagnosticAccess) {

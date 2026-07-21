@@ -2,6 +2,8 @@
 
 #include <QtTest>
 
+#include <array>
+
 using strikepro::groupSupportedDevices;
 using strikepro::HidInterface;
 using strikepro::retainedDeviceSelection;
@@ -14,14 +16,15 @@ HidInterface makeInterface(
     const quint16 productId,
     const int interfaceNumber,
     const bool readable = true,
-    const bool writable = true)
+    const bool writable = true,
+    const quint16 vendorId = strikepro::kMsiVendorId)
 {
     return HidInterface{
         .devNode =
             QStringLiteral("/dev/%1-if%2").arg(deviceId).arg(interfaceNumber),
         .sysfsPath = deviceId,
-        .name = QStringLiteral("MSI Strike Pro"),
-        .vendorId = strikepro::kMsiVendorId,
+        .name = QStringLiteral("Test keyboard"),
+        .vendorId = vendorId,
         .productId = productId,
         .interfaceNumber = interfaceNumber,
         .readable = readable,
@@ -87,6 +90,7 @@ class DeviceCatalogTest final : public QObject {
     void fallsBackToAccessibleDongleTransport()
     {
         SupportedDevice device;
+        device.definition = strikepro::kStrikeProDeviceDefinition;
         device.productId = strikepro::kStrikeProWiredProductId;
         device.interfaces = {
             makeInterface(
@@ -115,6 +119,7 @@ class DeviceCatalogTest final : public QObject {
     void exposesBatteryCapabilityAndAccess()
     {
         SupportedDevice device;
+        device.definition = strikepro::kStrikeProDeviceDefinition;
         device.productId = strikepro::kStrikeProWirelessProductId;
         device.interfaces.push_back(makeInterface(
             QStringLiteral("receiver"),
@@ -129,6 +134,57 @@ class DeviceCatalogTest final : public QObject {
 
         device.interfaces.first().writable = true;
         QVERIFY(device.canQueryBattery());
+    }
+
+    void groupsDifferentConfiguredModelsIndependently()
+    {
+        constexpr strikepro::DeviceDefinition compactKeyboard{
+            .id = std::string_view{"compact-test"},
+            .displayName = std::string_view{"Compact Test"},
+            .vendorId = quint16{0x1234},
+            .usbProductId = quint16{0x1001},
+            .dongleProductId = quint16{0x1002},
+            .artworkResource = {},
+            .batteryProtocol = {},
+            .batteryInterfaceNumber = -1,
+        };
+        constexpr std::array definitions{
+            strikepro::kStrikeProDeviceDefinition,
+            compactKeyboard,
+        };
+
+        const QList<SupportedDevice> devices = groupSupportedDevices(
+            {
+                makeInterface(
+                    QStringLiteral("strike-usb"),
+                    strikepro::kStrikeProWiredProductId,
+                    1),
+                makeInterface(
+                    QStringLiteral("compact-usb"),
+                    compactKeyboard.usbProductId,
+                    1,
+                    true,
+                    true,
+                    compactKeyboard.vendorId),
+                makeInterface(
+                    QStringLiteral("compact-dongle"),
+                    compactKeyboard.dongleProductId,
+                    1,
+                    true,
+                    true,
+                    compactKeyboard.vendorId),
+            },
+            std::span<const strikepro::DeviceDefinition>{definitions});
+
+        QCOMPARE(devices.size(), 2);
+        QCOMPARE(
+            devices.at(0).definition.idString(),
+            QStringLiteral("strike-pro"));
+        QCOMPARE(
+            devices.at(1).definition.idString(),
+            QStringLiteral("compact-test"));
+        QCOMPARE(devices.at(1).interfaces.size(), 2);
+        QVERIFY(!devices.at(1).supportsBattery());
     }
 
     void keepsSelectionAcrossTransportHotplug()

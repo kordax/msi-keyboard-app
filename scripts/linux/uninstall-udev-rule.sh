@@ -7,6 +7,7 @@ if (( EUID != 0 )); then
 fi
 
 rm -f \
+    /etc/udev/rules.d/70-msi-keyboard.rules \
     /etc/udev/rules.d/70-msi-strike-pro.rules \
     /etc/udev/rules.d/99-msi-strike-pro.rules
 
@@ -14,4 +15,4 @@ udevadm control --reload-rules
 udevadm trigger --action=add --subsystem-match=hidraw
 udevadm settle
 
-echo "Removed MSI Strike Pro udev rules"
+echo "Removed MSI Keyboard udev rules"

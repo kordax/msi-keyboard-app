@@ -8,6 +8,18 @@ project(
 )
 
 include(GNUInstallDirs)
+include(cmake/DeviceDefinitions.cmake)
+
+set(MSI_KEYBOARD_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(MSI_KEYBOARD_DEVICE_DEFINITIONS_HEADER
+    "${MSI_KEYBOARD_GENERATED_DIR}/DeviceDefinitionsData.h")
+set(MSI_KEYBOARD_UDEV_RULE
+    "${MSI_KEYBOARD_GENERATED_DIR}/70-msi-keyboard.rules")
+msi_keyboard_generate_device_files(
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/devices.json"
+    "${MSI_KEYBOARD_DEVICE_DEFINITIONS_HEADER}"
+    "${MSI_KEYBOARD_UDEV_RULE}"
+)
 
 option(MSI_KEYBOARD_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 option(MSI_KEYBOARD_ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
@@ -90,13 +102,20 @@ add_library(strikepro_device STATIC
     src/device/BatteryDecoder.h
     src/device/DeviceCatalog.cpp
     src/device/DeviceCatalog.h
+    src/device/DeviceDefinitions.cpp
+    src/device/DeviceDefinitions.h
     src/device/HidDeviceScanner.cpp
     src/device/HidDeviceScanner.h
     src/device/HidMonitor.cpp
     src/device/HidMonitor.h
     src/device/HidTypes.h
 )
-target_include_directories(strikepro_device PUBLIC src)
+target_include_directories(
+    strikepro_device
+    PUBLIC
+        src
+        "${MSI_KEYBOARD_GENERATED_DIR}"
+)
 target_link_libraries(
     strikepro_device
     PUBLIC Qt6::Core
@@ -148,8 +167,7 @@ qt_add_resources(
     strikepro_assets
     PREFIX "/"
     FILES
-        assets/keyboard/strike_pro.webp
-        assets/keyboard/strike_pro.png
+        ${MSI_KEYBOARD_DEVICE_ARTWORK_FILES}
 )
 target_link_libraries(
     msi-keyboard
@@ -178,7 +196,7 @@ install(FILES LICENSE
         DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/msi-keyboard
         RENAME copyright)
 install(
-    FILES packaging/70-msi-strike-pro.rules
+    FILES "${MSI_KEYBOARD_UDEV_RULE}"
     DESTINATION lib/udev/rules.d
     COMPONENT udev
 )
@@ -217,6 +235,16 @@ if(BUILD_TESTING)
 
     add_test(NAME device-catalog-tests COMMAND device-catalog-tests)
 
+    qt_add_executable(device-definitions-tests
+        tests/DeviceDefinitionsTest.cpp
+    )
+    target_link_libraries(
+        device-definitions-tests
+        PRIVATE strikepro_device Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME device-definitions-tests COMMAND device-definitions-tests)
+
     qt_add_executable(battery-gauge-tests
         tests/BatteryGaugeTest.cpp
     )
@@ -225,8 +253,7 @@ if(BUILD_TESTING)
         strikepro_test_assets
         PREFIX "/"
         FILES
-            assets/keyboard/strike_pro.webp
-            assets/keyboard/strike_pro.png
+            ${MSI_KEYBOARD_DEVICE_ARTWORK_FILES}
     )
     target_link_libraries(
         battery-gauge-tests
@@ -253,8 +280,7 @@ if(BUILD_TESTING)
         strikepro_desktop_test_assets
         PREFIX "/"
         FILES
-            assets/keyboard/strike_pro.webp
-            assets/keyboard/strike_pro.png
+            ${MSI_KEYBOARD_DEVICE_ARTWORK_FILES}
     )
     target_link_libraries(
         desktop-environment-tests
@@ -391,6 +417,7 @@ if(BUILD_TESTING)
         battery-decoder-tests
         hid-monitor-tests
         device-catalog-tests
+        device-definitions-tests
         battery-gauge-tests
         tray-indicator-tests
         localization-tests

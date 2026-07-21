@@ -27,6 +27,7 @@ void BatteryDecoderTest::decodesCapturedWirelessBatteryResponse()
     const HidReport report{
         .devNode = QStringLiteral("/dev/hidraw-test"),
         .interfaceNumber = 1,
+        .vendorId = kMsiVendorId,
         .productId = kStrikeProWirelessProductId,
         .source = ReportSource::Input,
         .requestedReportId = -1,
@@ -46,6 +47,7 @@ void BatteryDecoderTest::decodesCapturedWiredChargingResponse()
     const HidReport report{
         .devNode = QStringLiteral("/dev/hidraw-test"),
         .interfaceNumber = 1,
+        .vendorId = kMsiVendorId,
         .productId = kStrikeProWiredProductId,
         .source = ReportSource::Input,
         .requestedReportId = -1,
@@ -65,6 +67,7 @@ void BatteryDecoderTest::capsAdjustedWiredBatteryAtOneHundred()
     const HidReport report{
         .devNode = QStringLiteral("/dev/hidraw-test"),
         .interfaceNumber = 1,
+        .vendorId = kMsiVendorId,
         .productId = kStrikeProWiredProductId,
         .source = ReportSource::Input,
         .requestedReportId = -1,
@@ -82,6 +85,7 @@ void BatteryDecoderTest::rejectsUnavailableWirelessResponse()
     const HidReport report{
         .devNode = QStringLiteral("/dev/hidraw-test"),
         .interfaceNumber = 1,
+        .vendorId = kMsiVendorId,
         .productId = kStrikeProWirelessProductId,
         .source = ReportSource::Input,
         .requestedReportId = -1,
@@ -97,6 +101,7 @@ void BatteryDecoderTest::rejectsOfflineWirelessSentinel()
     const HidReport report{
         .devNode = QStringLiteral("/dev/hidraw-test"),
         .interfaceNumber = 1,
+        .vendorId = kMsiVendorId,
         .productId = kStrikeProWirelessProductId,
         .source = ReportSource::Input,
         .requestedReportId = -1,
@@ -112,6 +117,7 @@ void BatteryDecoderTest::rejectsDifferentVendorResponse()
     const HidReport report{
         .devNode = QStringLiteral("/dev/hidraw-test"),
         .interfaceNumber = 1,
+        .vendorId = kMsiVendorId,
         .productId = kStrikeProWirelessProductId,
         .source = ReportSource::Input,
         .requestedReportId = -1,

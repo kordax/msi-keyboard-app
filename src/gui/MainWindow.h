@@ -77,6 +77,8 @@ class MainWindow final : public QMainWindow {
     [[nodiscard]] QString profilePath() const;
     [[nodiscard]] QString deviceName(const SupportedDevice &device) const;
     [[nodiscard]] QString transportName(const SupportedDevice &device) const;
+    [[nodiscard]] QString
+    transportName(const SupportedDevice &device, quint16 productId) const;
     [[nodiscard]] QString transportName(quint16 productId) const;
     [[nodiscard]] QString deviceListStatus(const DeviceRuntime &runtime) const;
     [[nodiscard]] DeviceRuntime *selectedDevice();

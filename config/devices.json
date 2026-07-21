@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "devices": [
+    {
+      "id": "strike-pro",
+      "name": "MSI Strike Pro",
+      "vendor_id": "0db0",
+      "usb_product_id": "b231",
+      "dongle_product_id": "1620",
+      "artwork": ":/assets/keyboard/strike_pro.png",
+      "battery_protocol": "strike-pro-v1",
+      "battery_interface": 1
+    }
+  ]
+}

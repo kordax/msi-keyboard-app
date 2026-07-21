@@ -1,13 +1,11 @@
 #pragma once
 
+#include "DeviceDefinitions.h"
+
 #include <QByteArray>
 #include <QString>
 
 namespace strikepro {
-
-constexpr quint16 kMsiVendorId = 0x0db0;
-constexpr quint16 kStrikeProWirelessProductId = 0x1620;
-constexpr quint16 kStrikeProWiredProductId = 0xb231;
 
 [[nodiscard]] constexpr bool isStrikeProProduct(quint16 productId)
 {
@@ -28,7 +26,7 @@ struct HidInterface {
 
     [[nodiscard]] bool isTarget() const
     {
-        return vendorId == kMsiVendorId && isStrikeProProduct(productId);
+        return findDeviceDefinition(vendorId, productId) != nullptr;
     }
 };
 
@@ -41,6 +39,7 @@ enum class ReportSource {
 struct HidReport {
     QString devNode;
     int interfaceNumber = -1;
+    quint16 vendorId = 0;
     quint16 productId = 0;
     ReportSource source = ReportSource::Input;
     int requestedReportId = -1;

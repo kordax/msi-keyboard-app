@@ -310,19 +310,7 @@ void MainWindow::buildUi()
     m_deviceImage->setAlignment(Qt::AlignCenter);
     m_deviceImage->setMinimumHeight(135);
     m_deviceImage->setVisible(false);
-    QPixmap artwork(QStringLiteral(":/assets/keyboard/strike_pro.webp"));
-    if (artwork.isNull()) {
-        artwork.load(QStringLiteral(":/assets/keyboard/strike_pro.png"));
-    }
-    if (!artwork.isNull()) {
-        m_deviceImage->setPixmap(artwork.scaled(
-            320,
-            175,
-            Qt::KeepAspectRatio,
-            Qt::SmoothTransformation));
-    } else {
-        m_deviceImage->setText(tr("MSI STRIKE PRO"));
-    }
+    m_deviceImage->clear();
     deviceLayout->addWidget(m_deviceImage);
 
     deviceLayout->addStretch();
@@ -616,8 +604,9 @@ const MainWindow::DeviceRuntime *MainWindow::selectedDevice() const
 
 QString MainWindow::deviceName(const SupportedDevice &device) const
 {
-    if (isStrikeProProduct(device.productId)) {
-        return tr("MSI Strike Pro");
+    const QString configuredName = device.definition.displayNameString();
+    if (!configuredName.isEmpty()) {
+        return configuredName;
     }
     return device.name.isEmpty() ? tr("Supported MSI keyboard") : device.name;
 }
@@ -626,29 +615,45 @@ QString MainWindow::transportName(const SupportedDevice &device) const
 {
     const bool wired = std::ranges::any_of(
         device.interfaces,
-        [](const HidInterface &interface) {
-            return interface.productId == kStrikeProWiredProductId;
+        [&device](const HidInterface &interface) {
+            return interface.vendorId == device.definition.vendorId
+                   && interface.productId == device.definition.usbProductId;
         });
     const bool wireless = std::ranges::any_of(
         device.interfaces,
-        [](const HidInterface &interface) {
-            return interface.productId == kStrikeProWirelessProductId;
+        [&device](const HidInterface &interface) {
+            return device.definition.dongleProductId != 0
+                   && interface.vendorId == device.definition.vendorId
+                   && interface.productId == device.definition.dongleProductId;
         });
     if (wired && wireless) {
         return tr("USB + 2.4 GHz");
     }
-    return transportName(device.productId);
+    return transportName(device, device.productId);
+}
+
+QString MainWindow::transportName(
+    const SupportedDevice &device, const quint16 productId) const
+{
+    if (!device.definition.matchesProduct(productId)) {
+        return tr("HID");
+    }
+    return device.definition.transportForProduct(productId)
+                   == DeviceTransport::Dongle
+               ? tr("2.4 GHz")
+               : tr("USB");
 }
 
 QString MainWindow::transportName(const quint16 productId) const
 {
-    if (productId == kStrikeProWiredProductId) {
-        return tr("USB");
+    const DeviceDefinition *definition =
+        findDeviceDefinitionByProductId(productId);
+    if (definition == nullptr) {
+        return tr("HID");
     }
-    if (productId == kStrikeProWirelessProductId) {
-        return tr("2.4 GHz");
-    }
-    return tr("HID");
+    return definition->transportForProduct(productId) == DeviceTransport::Dongle
+               ? tr("2.4 GHz")
+               : tr("USB");
 }
 
 QString MainWindow::deviceListStatus(const DeviceRuntime &runtime) const
@@ -740,13 +745,18 @@ void MainWindow::showDeviceArtwork(QListWidgetItem *item)
     }
 
     const DeviceRuntime &runtime = found.value();
+    const QString artwork =
+        runtime.device.definition.artworkResourceString().toHtmlEscaped();
+    const QString image =
+        artwork.isEmpty()
+            ? QString()
+            : QStringLiteral("<br/><img src='%1' width='360'/>").arg(artwork);
     const QString popover =
-        QStringLiteral(
-            "<div style='white-space:nowrap'><b>%1 · %2</b><br/>"
-            "<img src=':/assets/keyboard/strike_pro.png' width='360'/></div>")
+        QStringLiteral("<div style='white-space:nowrap'><b>%1 · %2</b>%3</div>")
             .arg(
                 deviceName(runtime.device).toHtmlEscaped(),
-                transportName(runtime.device).toHtmlEscaped());
+                transportName(runtime.device).toHtmlEscaped(),
+                image);
     QToolTip::showText(QCursor::pos(), popover, m_deviceList);
 }
 
@@ -822,9 +832,23 @@ void MainWindow::refreshConnectionUi()
     const QString name = deviceName(runtime->device);
     const QString transport = transportName(runtime->device);
     const QString connectionTransport =
-        runtime->activeProductId == 0 ? transport
-                                      : transportName(runtime->activeProductId);
+        runtime->activeProductId == 0
+            ? transport
+            : transportName(runtime->device, runtime->activeProductId);
     m_deviceLabel->setText(QStringLiteral("%1 · %2").arg(name, transport));
+
+    QPixmap artwork(runtime->device.definition.artworkResourceString());
+    m_deviceImage->setPixmap(QPixmap());
+    m_deviceImage->setText(QString());
+    if (!artwork.isNull()) {
+        m_deviceImage->setPixmap(artwork.scaled(
+            320,
+            175,
+            Qt::KeepAspectRatio,
+            Qt::SmoothTransformation));
+    } else {
+        m_deviceImage->setText(name);
+    }
     m_deviceImage->setVisible(true);
 
     const bool supportsBattery = runtime->device.supportsBattery();
@@ -1087,10 +1111,10 @@ void MainWindow::recordReport(const HidReport &report)
         m_pendingBatteryDeviceId.clear();
     }
     if (runtime->connectionState != ConnectionState::Connected) {
-        logDebug(
-            report.productId == kStrikeProWiredProductId
-                ? tr("MSI Strike Pro answered over USB")
-                : tr("MSI Strike Pro answered through the 2.4 GHz receiver"));
+        logDebug(tr("%1 answered over %2")
+                     .arg(
+                         deviceName(runtime->device),
+                         transportName(runtime->device, report.productId)));
     }
     runtime->connectionState = ConnectionState::Connected;
     runtime->activeProductId = report.productId;

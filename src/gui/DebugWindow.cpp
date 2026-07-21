@@ -372,7 +372,10 @@ void DebugWindow::exportDiagnostics()
     for (const HidInterface &interface : m_interfaces) {
         QJsonObject json;
         json.insert(QStringLiteral("interface"), interface.interfaceNumber);
-        json.insert(QStringLiteral("vendor_id"), QStringLiteral("0db0"));
+        json.insert(
+            QStringLiteral("vendor_id"),
+            QStringLiteral("%1")
+                .arg(interface.vendorId, 4, 16, QLatin1Char('0')));
         json.insert(
             QStringLiteral("product_id"),
             QStringLiteral("%1")
