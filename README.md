@@ -20,13 +20,13 @@ Download the package for your distribution from
 Debian, Ubuntu, and Linux Mint:
 
 ```bash
-sudo apt install ./msi-keyboard_0.0.1-1_amd64.deb
+sudo apt install ./msi-keyboard_0.0.2-1_amd64.deb
 ```
 
 Fedora and other RPM-based distributions:
 
 ```bash
-sudo dnf install ./msi-keyboard-0.0.1-1.x86_64.rpm
+sudo dnf install ./msi-keyboard-0.0.2-1.x86_64.rpm
 ```
 
 ## Usage
