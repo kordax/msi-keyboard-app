@@ -50,6 +50,18 @@ tasks:
       - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --version'
       - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --language ru --version'
 
+  verify-desktop:
+    desc: Verify light themes, HiDPI, and Wayland rendering
+    cmds:
+      - task: build-release
+      - ctest --test-dir "{{.RELEASE_DIR}}" --output-on-failure -L desktop
+
+  verify-metadata:
+    desc: Validate AppStream and desktop metadata
+    cmds:
+      - task: build-release
+      - ctest --test-dir "{{.RELEASE_DIR}}" --output-on-failure -L metadata
+
   debug:
     desc: Debug build and tests
     cmds:

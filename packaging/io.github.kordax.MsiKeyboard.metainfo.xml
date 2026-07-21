@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Dmitry Morozov -->
+<component type="desktop-application">
+  <id>io.github.kordax.MsiKeyboard</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>MSI Keyboard</name>
+  <name xml:lang="ru">MSI Keyboard</name>
+  <summary>Monitor supported MSI keyboards on Linux</summary>
+  <summary xml:lang="ru">Состояние поддерживаемых клавиатур MSI в Linux</summary>
+
+  <developer id="io.github.kordax">
+    <name>Dmitry Morozov</name>
+  </developer>
+
+  <description>
+    <p>MSI Keyboard shows supported devices, their connection transport, and battery state in a focused desktop interface.</p>
+    <p>USB and wireless receiver sightings are combined into one logical device, and the view refreshes automatically when hardware is connected or removed.</p>
+  </description>
+
+  <launchable type="desktop-id">io.github.kordax.MsiKeyboard.desktop</launchable>
+  <provides>
+    <binary>msi-keyboard</binary>
+  </provides>
+  <categories>
+    <category>Settings</category>
+    <category>HardwareSettings</category>
+  </categories>
+  <keywords>
+    <keyword>MSI</keyword>
+    <keyword>keyboard</keyword>
+    <keyword>battery</keyword>
+    <keyword>HID</keyword>
+  </keywords>
+
+  <url type="homepage">https://github.com/kordax/msi-keyboard-app</url>
+  <url type="bugtracker">https://github.com/kordax/msi-keyboard-app/issues</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <image type="source" width="2304" height="1440">https://raw.githubusercontent.com/kordax/msi-keyboard-app/main/assets/screenshots/msi-keyboard.png</image>
+      <caption>Device list and selected keyboard status</caption>
+    </screenshot>
+  </screenshots>
+
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.0.1" date="2026-07-21">
+      <description>
+        <p>Adds a unified device view, verified battery status, and desktop integration.</p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -58,6 +58,24 @@ class LocalizationTest final : public QObject {
             QCoreApplication::translate("strikepro::MainWindow", "Settings"),
             QString::fromUtf8("Настройки"));
         QCOMPARE(
+            QCoreApplication::translate("strikepro::MainWindow", "DEVICES"),
+            QString::fromUtf8("УСТРОЙСТВА"));
+        QCOMPARE(
+            QCoreApplication::translate(
+                "strikepro::TrayIndicator",
+                "Battery: %1% · Charging"),
+            QString::fromUtf8("Заряд: %1% · Идёт зарядка"));
+        QCOMPARE(
+            QCoreApplication::translate(
+                "strikepro::CliRunner",
+                "No supported keyboard was found"),
+            QString::fromUtf8("Поддерживаемая клавиатура не найдена"));
+        QCOMPARE(
+            QCoreApplication::translate(
+                "strikepro::MainWindow",
+                "%1 answered over %2"),
+            QString::fromUtf8("%1 ответила через %2"));
+        QCOMPARE(
             QCoreApplication::translate("CommandLine", "Run without the GUI."),
             QString::fromUtf8("Запустить без графического интерфейса."));
         QCOMPARE(

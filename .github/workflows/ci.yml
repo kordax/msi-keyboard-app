@@ -76,14 +76,18 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
+            appstream \
             cmake \
+            desktop-file-utils \
             g++ \
             libgl1-mesa-dev \
             qt6-base-dev \
             qt6-image-formats-plugins \
             qt6-l10n-tools \
             qt6-tools-dev \
-            qt6-tools-dev-tools
+            qt6-tools-dev-tools \
+            qt6-wayland \
+            weston
 
       - name: Set up Go
         uses: actions/setup-go@v7

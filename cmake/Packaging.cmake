@@ -4,10 +4,13 @@ set(CPACK_GENERATOR "DEB;RPM")
 set(CPACK_PACKAGE_NAME "msi-keyboard")
 set(CPACK_PACKAGE_VENDOR "Dmitry Morozov")
 set(CPACK_PACKAGE_CONTACT "Dmitry Morozov <kordaxmint@gmail.com>")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Manage MSI keyboards on Linux")
+set(
+    CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "Monitor supported MSI keyboards on Linux"
+)
 set(
     CPACK_PACKAGE_DESCRIPTION
-    "MSI Keyboard is a Linux application for supported MSI keyboards."
+    "MSI Keyboard shows connection and battery state for supported MSI keyboards."
 )
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/kordax/msi-keyboard-app")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
@@ -58,6 +61,11 @@ list(
     "/usr/lib/udev"
     "/usr/lib/udev/rules.d"
     "/usr/share/applications"
+    "/usr/share/icons"
+    "/usr/share/icons/hicolor"
+    "/usr/share/icons/hicolor/scalable"
+    "/usr/share/icons/hicolor/scalable/apps"
+    "/usr/share/metainfo"
     "/usr/share/licenses"
     "/usr/share/licenses/msi-keyboard"
 )

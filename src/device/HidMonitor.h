@@ -23,6 +23,8 @@ class HidMonitor final : public QObject {
         return m_interfaces;
     }
     [[nodiscard]] bool requestBattery(QString *error = nullptr);
+    [[nodiscard]] bool
+    requestBattery(const QString &devNode, QString *error = nullptr);
 
   public slots:
     void refresh();

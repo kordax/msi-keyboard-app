@@ -70,8 +70,8 @@ QList<HidInterface> HidDeviceScanner::scan()
         bool productOk = false;
         const quint16 vendorId = hidId.at(1).toUInt(&vendorOk, 16);
         const quint16 productId = hidId.at(2).toUInt(&productOk, 16);
-        if (!vendorOk || !productOk || vendorId != kMsiVendorId
-            || !isStrikeProProduct(productId)) {
+        if (!vendorOk || !productOk
+            || findDeviceDefinition(vendorId, productId) == nullptr) {
             continue;
         }
 
@@ -99,6 +99,9 @@ QList<HidInterface> HidDeviceScanner::scan()
     std::ranges::sort(
         result,
         [](const HidInterface &left, const HidInterface &right) {
+            if (left.vendorId != right.vendorId) {
+                return left.vendorId < right.vendorId;
+            }
             if (left.productId != right.productId) {
                 return left.productId < right.productId;
             }
