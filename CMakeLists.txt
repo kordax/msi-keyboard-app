@@ -73,10 +73,12 @@ qt_add_translations(
         src/main.cpp
         src/cli/CliRunner.cpp
         src/device/BatteryDecoder.cpp
+        src/device/DeviceCatalog.cpp
         src/device/HidMonitor.cpp
         src/gui/BatteryGauge.cpp
         src/gui/DebugWindow.cpp
         src/gui/MainWindow.cpp
+        src/gui/TrayIndicator.cpp
         src/update/UpdaterCore.cpp
         src/update/UpgradeRunner.cpp
 )
@@ -86,6 +88,8 @@ add_library(strikepro_device STATIC
     src/device/AppPaths.h
     src/device/BatteryDecoder.cpp
     src/device/BatteryDecoder.h
+    src/device/DeviceCatalog.cpp
+    src/device/DeviceCatalog.h
     src/device/HidDeviceScanner.cpp
     src/device/HidDeviceScanner.h
     src/device/HidMonitor.cpp
@@ -129,6 +133,8 @@ add_library(strikepro_gui STATIC
     src/gui/DebugWindow.h
     src/gui/MainWindow.cpp
     src/gui/MainWindow.h
+    src/gui/TrayIndicator.cpp
+    src/gui/TrayIndicator.h
 )
 target_link_libraries(
     strikepro_gui
@@ -162,6 +168,10 @@ target_compile_definitions(
 install(TARGETS msi-keyboard RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES packaging/io.github.kordax.MsiKeyboard.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(FILES packaging/io.github.kordax.MsiKeyboard.metainfo.xml
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
+install(FILES assets/icons/io.github.kordax.MsiKeyboard.svg
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
 install(FILES LICENSE
         DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/msi-keyboard)
 install(FILES LICENSE
@@ -197,6 +207,16 @@ if(BUILD_TESTING)
 
     add_test(NAME hid-monitor-tests COMMAND hid-monitor-tests)
 
+    qt_add_executable(device-catalog-tests
+        tests/DeviceCatalogTest.cpp
+    )
+    target_link_libraries(
+        device-catalog-tests
+        PRIVATE strikepro_device Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME device-catalog-tests COMMAND device-catalog-tests)
+
     qt_add_executable(battery-gauge-tests
         tests/BatteryGaugeTest.cpp
     )
@@ -214,6 +234,69 @@ if(BUILD_TESTING)
     )
 
     add_test(NAME battery-gauge-tests COMMAND battery-gauge-tests)
+
+    qt_add_executable(tray-indicator-tests
+        tests/TrayIndicatorTest.cpp
+    )
+    target_link_libraries(
+        tray-indicator-tests
+        PRIVATE strikepro_gui Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME tray-indicator-tests COMMAND tray-indicator-tests)
+
+    qt_add_executable(desktop-environment-tests
+        tests/DesktopEnvironmentTest.cpp
+    )
+    qt_add_resources(
+        desktop-environment-tests
+        strikepro_desktop_test_assets
+        PREFIX "/"
+        FILES
+            assets/keyboard/strike_pro.webp
+            assets/keyboard/strike_pro.png
+    )
+    target_link_libraries(
+        desktop-environment-tests
+        PRIVATE strikepro_gui Qt6::Test strikepro_project_options
+    )
+
+    add_test(
+        NAME desktop-light-theme-tests
+        COMMAND desktop-environment-tests rendersWithLightTheme
+    )
+    add_test(
+        NAME desktop-hidpi-tests
+        COMMAND desktop-environment-tests rendersAtHighDpi
+    )
+    add_test(
+        NAME desktop-wayland-tests
+        COMMAND
+            bash
+            ${CMAKE_CURRENT_SOURCE_DIR}/scripts/linux/verify-wayland.sh
+            $<TARGET_FILE:desktop-environment-tests>
+    )
+    set_tests_properties(
+        desktop-light-theme-tests
+        PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_STYLE_OVERRIDE=Fusion"
+            LABELS "desktop"
+            TIMEOUT 10
+    )
+    set_tests_properties(
+        desktop-hidpi-tests
+        PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=2"
+            LABELS "desktop"
+            TIMEOUT 10
+    )
+    set_tests_properties(
+        desktop-wayland-tests
+        PROPERTIES
+            LABELS "desktop"
+            SKIP_RETURN_CODE 77
+            TIMEOUT 30
+    )
 
     qt_add_executable(localization-tests
         tests/LocalizationTest.cpp
@@ -273,10 +356,43 @@ if(BUILD_TESTING)
             TIMEOUT 10
     )
 
+    find_program(APPSTREAMCLI_EXECUTABLE NAMES appstreamcli)
+    if(APPSTREAMCLI_EXECUTABLE)
+        add_test(
+            NAME appstream-metadata-tests
+            COMMAND
+                ${APPSTREAMCLI_EXECUTABLE}
+                validate
+                --no-net
+                --strict
+                ${CMAKE_CURRENT_SOURCE_DIR}/packaging/io.github.kordax.MsiKeyboard.metainfo.xml
+        )
+        set_tests_properties(
+            appstream-metadata-tests
+            PROPERTIES LABELS "metadata" TIMEOUT 10
+        )
+    endif()
+
+    find_program(DESKTOP_FILE_VALIDATE_EXECUTABLE NAMES desktop-file-validate)
+    if(DESKTOP_FILE_VALIDATE_EXECUTABLE)
+        add_test(
+            NAME desktop-file-tests
+            COMMAND
+                ${DESKTOP_FILE_VALIDATE_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/packaging/io.github.kordax.MsiKeyboard.desktop
+        )
+        set_tests_properties(
+            desktop-file-tests
+            PROPERTIES LABELS "metadata" TIMEOUT 10
+        )
+    endif()
+
     set_tests_properties(
         battery-decoder-tests
         hid-monitor-tests
+        device-catalog-tests
         battery-gauge-tests
+        tray-indicator-tests
         localization-tests
         updater-core-tests
         PROPERTIES
@@ -285,6 +401,7 @@ if(BUILD_TESTING)
     )
     set_tests_properties(
         battery-gauge-tests
+        tray-indicator-tests
         PROPERTIES
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     )

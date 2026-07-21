@@ -2,23 +2,29 @@
 
 #include "BatteryGauge.h"
 #include "DebugWindow.h"
+#include "TrayIndicator.h"
 #include "device/AppPaths.h"
 #include "i18n/LanguageManager.h"
 
 #include <QAction>
 #include <QActionGroup>
+#include <QCursor>
 #include <QEvent>
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPixmap>
+#include <QSignalBlocker>
 #include <QStyle>
+#include <QToolTip>
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <utility>
 
 namespace strikepro {
 namespace {
@@ -39,35 +45,6 @@ QFrame *makeCard(QWidget *parent)
     card->setObjectName(QStringLiteral("card"));
     card->setAttribute(Qt::WA_StyledBackground);
     return card;
-}
-
-QWidget *makeMetaTile(
-    const QString &value,
-    const QString &caption,
-    QLabel **valueOutput,
-    QLabel **captionOutput,
-    QWidget *parent)
-{
-    auto *tile = new QWidget(parent);
-    tile->setProperty("role", QStringLiteral("metaTile"));
-    tile->setAttribute(Qt::WA_StyledBackground);
-    auto *layout = new QVBoxLayout(tile);
-    layout->setContentsMargins(13, 10, 13, 10);
-    layout->setSpacing(2);
-
-    auto *valueLabel = new QLabel(value, tile);
-    valueLabel->setProperty("role", QStringLiteral("metaValue"));
-    auto *captionLabel = new QLabel(caption, tile);
-    captionLabel->setProperty("role", QStringLiteral("muted"));
-    if (valueOutput != nullptr) {
-        *valueOutput = valueLabel;
-    }
-    if (captionOutput != nullptr) {
-        *captionOutput = captionLabel;
-    }
-    layout->addWidget(valueLabel);
-    layout->addWidget(captionLabel);
-    return tile;
 }
 
 QWidget *makeStatusRow(
@@ -119,41 +96,6 @@ QWidget *makeStatusRow(
     return row;
 }
 
-const HidInterface *
-preferredBatteryInterface(const QList<HidInterface> &interfaces)
-{
-    for (const quint16 productId :
-         {kStrikeProWiredProductId, kStrikeProWirelessProductId}) {
-        const auto found = std::ranges::find_if(
-            interfaces,
-            [productId](const HidInterface &interface) {
-                return interface.productId == productId
-                       && interface.interfaceNumber == 1;
-            });
-        if (found != interfaces.end()) {
-            return &*found;
-        }
-    }
-    return nullptr;
-}
-
-bool hasAccessibleBatteryInterface(const QList<HidInterface> &interfaces)
-{
-    return std::ranges::any_of(interfaces, [](const HidInterface &interface) {
-        return interface.interfaceNumber == 1 && interface.readable
-               && interface.writable;
-    });
-}
-
-bool hasProduct(const QList<HidInterface> &interfaces, const quint16 productId)
-{
-    return std::ranges::any_of(
-        interfaces,
-        [productId](const HidInterface &interface) {
-            return interface.productId == productId;
-        });
-}
-
 } // namespace
 
 MainWindow::MainWindow(LanguageManager *languageManager, QWidget *parent)
@@ -162,6 +104,9 @@ MainWindow::MainWindow(LanguageManager *languageManager, QWidget *parent)
     , m_monitor(new HidMonitor(this))
 {
     buildUi();
+
+    m_trayIndicator = new TrayIndicator(this, this);
+    refreshConnectionUi();
 
     m_debugWindow = new DebugWindow(m_monitor, this);
     m_debugWindow->setStyleSheet(styleSheet());
@@ -202,8 +147,8 @@ MainWindow::MainWindow(LanguageManager *languageManager, QWidget *parent)
 
 void MainWindow::buildUi()
 {
-    setMinimumSize(920, 600);
-    resize(1080, 680);
+    setMinimumSize(980, 620);
+    resize(1180, 720);
 
     menuBar()->setNativeMenuBar(false);
     m_settingsMenu = menuBar()->addMenu(QString());
@@ -264,8 +209,50 @@ void MainWindow::buildUi()
     auto *dashboard = new QHBoxLayout;
     dashboard->setSpacing(1);
 
-    auto *batteryCard = makeCard(central);
-    batteryCard->setMinimumHeight(390);
+    auto *deviceListCard = makeCard(central);
+    deviceListCard->setMinimumWidth(235);
+    deviceListCard->setMaximumWidth(285);
+    auto *deviceListLayout = new QVBoxLayout(deviceListCard);
+    deviceListLayout->setContentsMargins(15, 20, 15, 20);
+    deviceListLayout->setSpacing(12);
+    m_deviceListCaption = new QLabel(deviceListCard);
+    m_deviceListCaption->setProperty("role", QStringLiteral("eyebrow"));
+    deviceListLayout->addWidget(m_deviceListCaption);
+
+    m_deviceList = new QListWidget(deviceListCard);
+    m_deviceList->setObjectName(QStringLiteral("deviceList"));
+    m_deviceList->setMouseTracking(true);
+    m_deviceList->setSpacing(3);
+    m_deviceList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    deviceListLayout->addWidget(m_deviceList, 1);
+    connect(
+        m_deviceList,
+        &QListWidget::currentItemChanged,
+        this,
+        &MainWindow::selectDevice);
+    connect(
+        m_deviceList,
+        &QListWidget::itemEntered,
+        this,
+        &MainWindow::showDeviceArtwork);
+
+    m_emptyDevices = new QLabel(deviceListCard);
+    m_emptyDevices->setObjectName(QStringLiteral("emptyDevices"));
+    m_emptyDevices->setProperty("role", QStringLiteral("muted"));
+    m_emptyDevices->setAlignment(Qt::AlignCenter);
+    m_emptyDevices->setWordWrap(true);
+    deviceListLayout->addWidget(m_emptyDevices, 1);
+    dashboard->addWidget(deviceListCard);
+
+    auto *detailCard = makeCard(central);
+    auto *detailLayout = new QVBoxLayout(detailCard);
+    detailLayout->setContentsMargins(0, 0, 0, 0);
+    detailLayout->setSpacing(0);
+
+    auto *batteryCard = new QWidget(detailCard);
+    batteryCard->setObjectName(QStringLiteral("batterySection"));
+    m_batterySection = batteryCard;
+    batteryCard->setMinimumHeight(300);
     auto *batteryLayout = new QHBoxLayout(batteryCard);
     batteryLayout->setContentsMargins(25, 24, 25, 24);
     batteryLayout->setSpacing(24);
@@ -287,21 +274,10 @@ void MainWindow::buildUi()
     batteryDetails->addWidget(m_batteryValue);
     batteryDetails->addWidget(m_batteryState);
     batteryDetails->addStretch();
-
-    auto *meta = new QHBoxLayout;
-    meta->setSpacing(8);
-    meta->addWidget(makeMetaTile(
-        QString(),
-        QString(),
-        &m_modeValue,
-        &m_modeCaption,
-        batteryCard));
-    batteryDetails->addLayout(meta);
     batteryLayout->addLayout(batteryDetails, 1);
-    dashboard->addWidget(batteryCard, 3);
+    detailLayout->addWidget(batteryCard, 1);
 
-    auto *deviceCard = makeCard(central);
-    deviceCard->setMinimumWidth(390);
+    auto *deviceCard = new QWidget(detailCard);
     auto *deviceLayout = new QVBoxLayout(deviceCard);
     deviceLayout->setContentsMargins(23, 21, 23, 21);
     deviceLayout->setSpacing(9);
@@ -332,7 +308,7 @@ void MainWindow::buildUi()
     m_deviceImage = new QLabel(deviceCard);
     m_deviceImage->setObjectName(QStringLiteral("deviceArtwork"));
     m_deviceImage->setAlignment(Qt::AlignCenter);
-    m_deviceImage->setMinimumHeight(175);
+    m_deviceImage->setMinimumHeight(135);
     m_deviceImage->setVisible(false);
     QPixmap artwork(QStringLiteral(":/assets/keyboard/strike_pro.webp"));
     if (artwork.isNull()) {
@@ -340,8 +316,8 @@ void MainWindow::buildUi()
     }
     if (!artwork.isNull()) {
         m_deviceImage->setPixmap(artwork.scaled(
-            360,
-            230,
+            320,
+            175,
             Qt::KeepAspectRatio,
             Qt::SmoothTransformation));
     } else {
@@ -351,7 +327,8 @@ void MainWindow::buildUi()
 
     deviceLayout->addStretch();
 
-    dashboard->addWidget(deviceCard, 2);
+    detailLayout->insertWidget(0, deviceCard);
+    dashboard->addWidget(detailCard, 1);
     root->addLayout(dashboard, 1);
     setCentralWidget(central);
 
@@ -382,6 +359,30 @@ void MainWindow::buildUi()
         }
         QMenu::item { padding: 7px 26px 7px 10px; }
         QMenu::item:selected { background: #303030; color: #ffffff; }
+        QListWidget#deviceList {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #c9c9c9;
+        }
+        QListWidget#deviceList::item {
+            border: 1px solid transparent;
+            border-left: 3px solid transparent;
+            padding: 11px 10px;
+            margin: 1px 0;
+        }
+        QListWidget#deviceList::item:hover {
+            background: #222222;
+            color: #ffffff;
+        }
+        QListWidget#deviceList::item:selected {
+            background: #292929;
+            border-color: #363636;
+            border-left-color: #d44a62;
+            color: #ffffff;
+        }
+        QLabel#emptyDevices { padding: 16px; }
+        QWidget#batterySection { border-top: 1px solid #303030; }
         QLabel#title {
             color: #ffffff;
             font-size: 25px;
@@ -416,17 +417,6 @@ void MainWindow::buildUi()
         QLabel#sectionTitle {
             color: #ffffff;
             font-size: 16px;
-            font-weight: 700;
-        }
-        QWidget[role="metaTile"] {
-            background: transparent;
-            border: none;
-            border-left: 2px solid #484848;
-            border-radius: 0;
-        }
-        QLabel[role="metaValue"] {
-            color: #eeeeee;
-            font-size: 12px;
             font-weight: 700;
         }
         QLabel[role="statusTitle"] {
@@ -557,18 +547,17 @@ void MainWindow::retranslateUi()
     m_russianAction->setChecked(language == QStringLiteral("ru"));
 
     m_title->setText(tr("MSI Keyboard manager for Linux"));
+    m_deviceListCaption->setText(tr("DEVICES"));
+    m_emptyDevices->setText(tr("Connect a supported MSI keyboard."));
     m_batteryCaption->setText(tr("BATTERY"));
-    m_modeValue->setText(tr("READ ONLY MODE"));
-    m_modeCaption->clear();
-    m_modeCaption->setVisible(false);
-    m_deviceCaption->setText(tr("DEVICE"));
+    m_deviceCaption->setText(tr("SELECTED DEVICE"));
     m_deviceStatusTitle->setText(tr("Status"));
-
-    refreshConnectionUi();
-    if (m_connectionState == ConnectionState::Connected
-        && m_lastBatteryReading.has_value()) {
-        setBattery(*m_lastBatteryReading);
+    if (m_trayIndicator != nullptr) {
+        m_trayIndicator->retranslateUi();
     }
+
+    rebuildDeviceList();
+    refreshConnectionUi();
     m_batteryGauge->update();
 }
 
@@ -613,67 +602,294 @@ void MainWindow::reloadProtocolProfile()
     }
 }
 
-void MainWindow::clearBattery()
+MainWindow::DeviceRuntime *MainWindow::selectedDevice()
 {
-    m_lastBatteryReading.reset();
-    m_batteryGauge->setValue(std::nullopt);
+    const auto found = m_devices.find(m_selectedDeviceId);
+    return found == m_devices.end() ? nullptr : &found.value();
 }
 
-void MainWindow::setConnectionState(const ConnectionState state)
+const MainWindow::DeviceRuntime *MainWindow::selectedDevice() const
 {
-    m_connectionState = state;
+    const auto found = m_devices.constFind(m_selectedDeviceId);
+    return found == m_devices.cend() ? nullptr : &found.value();
+}
+
+QString MainWindow::deviceName(const SupportedDevice &device) const
+{
+    if (isStrikeProProduct(device.productId)) {
+        return tr("MSI Strike Pro");
+    }
+    return device.name.isEmpty() ? tr("Supported MSI keyboard") : device.name;
+}
+
+QString MainWindow::transportName(const SupportedDevice &device) const
+{
+    const bool wired = std::ranges::any_of(
+        device.interfaces,
+        [](const HidInterface &interface) {
+            return interface.productId == kStrikeProWiredProductId;
+        });
+    const bool wireless = std::ranges::any_of(
+        device.interfaces,
+        [](const HidInterface &interface) {
+            return interface.productId == kStrikeProWirelessProductId;
+        });
+    if (wired && wireless) {
+        return tr("USB + 2.4 GHz");
+    }
+    return transportName(device.productId);
+}
+
+QString MainWindow::transportName(const quint16 productId) const
+{
+    if (productId == kStrikeProWiredProductId) {
+        return tr("USB");
+    }
+    if (productId == kStrikeProWirelessProductId) {
+        return tr("2.4 GHz");
+    }
+    return tr("HID");
+}
+
+QString MainWindow::deviceListStatus(const DeviceRuntime &runtime) const
+{
+    switch (runtime.connectionState) {
+    case ConnectionState::Absent:
+        return tr("Disconnected");
+    case ConnectionState::Probing:
+        return tr("Checking connection");
+    case ConnectionState::Connected:
+        return transportName(runtime.device);
+    case ConnectionState::AccessDenied:
+        return tr("HID access required");
+    case ConnectionState::Unresponsive:
+        return tr("Not responding");
+    }
+    return QString();
+}
+
+void MainWindow::rebuildDeviceList()
+{
+    if (m_deviceList == nullptr) {
+        return;
+    }
+
+    const QSignalBlocker blocker(m_deviceList);
+    m_deviceList->clear();
+    for (const QString &deviceId : std::as_const(m_deviceOrder)) {
+        const auto found = m_devices.constFind(deviceId);
+        if (found == m_devices.cend()) {
+            continue;
+        }
+        const DeviceRuntime &runtime = found.value();
+        auto *item = new QListWidgetItem(
+            QStringLiteral("%1 · %2").arg(
+                deviceName(runtime.device),
+                deviceListStatus(runtime)),
+            m_deviceList);
+        item->setData(Qt::UserRole, deviceId);
+        item->setSizeHint(QSize(0, 58));
+        if (deviceId == m_selectedDeviceId) {
+            m_deviceList->setCurrentItem(item);
+        }
+    }
+
+    const bool empty = m_deviceOrder.isEmpty();
+    m_deviceList->setVisible(!empty);
+    m_emptyDevices->setVisible(empty);
+}
+
+void MainWindow::selectDevice(
+    QListWidgetItem *current, QListWidgetItem *previous)
+{
+    Q_UNUSED(previous)
+    const QString deviceId =
+        current == nullptr ? QString() : current->data(Qt::UserRole).toString();
+    if (deviceId == m_selectedDeviceId) {
+        return;
+    }
+
+    ++m_batteryRequestGeneration;
+    m_batteryRequestPending = false;
+    m_pendingBatteryDeviceId.clear();
+    m_selectedDeviceId = deviceId;
+
+    if (DeviceRuntime *runtime = selectedDevice()) {
+        if (!runtime->device.supportsBattery()) {
+            runtime->connectionState = ConnectionState::Connected;
+        } else if (!runtime->device.canQueryBattery()) {
+            runtime->connectionState = ConnectionState::AccessDenied;
+        } else if (!runtime->battery.has_value()) {
+            runtime->connectionState = ConnectionState::Probing;
+        }
+    }
+
+    rebuildDeviceList();
     refreshConnectionUi();
+    QTimer::singleShot(0, this, &MainWindow::requestBattery);
+}
+
+void MainWindow::showDeviceArtwork(QListWidgetItem *item)
+{
+    if (item == nullptr) {
+        return;
+    }
+    const auto found = m_devices.constFind(item->data(Qt::UserRole).toString());
+    if (found == m_devices.cend()) {
+        return;
+    }
+
+    const DeviceRuntime &runtime = found.value();
+    const QString popover =
+        QStringLiteral(
+            "<div style='white-space:nowrap'><b>%1 · %2</b><br/>"
+            "<img src=':/assets/keyboard/strike_pro.png' width='360'/></div>")
+            .arg(
+                deviceName(runtime.device).toHtmlEscaped(),
+                transportName(runtime.device).toHtmlEscaped());
+    QToolTip::showText(QCursor::pos(), popover, m_deviceList);
+}
+
+void MainWindow::clearBattery(DeviceRuntime &runtime)
+{
+    runtime.battery.reset();
+    if (runtime.device.id == m_selectedDeviceId) {
+        m_batteryGauge->setValue(std::nullopt);
+    }
+}
+
+void MainWindow::setConnectionState(
+    DeviceRuntime &runtime, const ConnectionState state)
+{
+    runtime.connectionState = state;
+    rebuildDeviceList();
+    if (runtime.device.id == m_selectedDeviceId) {
+        refreshConnectionUi();
+    }
+}
+
+void MainWindow::refreshTrayIndicator()
+{
+    if (m_trayIndicator == nullptr) {
+        return;
+    }
+
+    TrayIndicator::State state;
+    const DeviceRuntime *runtime = selectedDevice();
+    if (runtime != nullptr) {
+        state.deviceName = deviceName(runtime->device);
+        if (runtime->battery.has_value()) {
+            state.batteryPercent = runtime->battery->percent;
+            state.charging = runtime->battery->charging;
+        }
+        switch (runtime->connectionState) {
+        case ConnectionState::Absent:
+            state.connectionState = TrayIndicator::ConnectionState::Unavailable;
+            break;
+        case ConnectionState::Probing:
+            state.connectionState = TrayIndicator::ConnectionState::Probing;
+            break;
+        case ConnectionState::Connected:
+            state.connectionState = TrayIndicator::ConnectionState::Connected;
+            break;
+        case ConnectionState::AccessDenied:
+        case ConnectionState::Unresponsive:
+            state.connectionState = TrayIndicator::ConnectionState::Problem;
+            break;
+        }
+    }
+    m_trayIndicator->setState(state);
 }
 
 void MainWindow::refreshConnectionUi()
 {
-    const bool connected = m_connectionState == ConnectionState::Connected;
-    m_batteryGauge->setDeviceConnected(connected);
-    m_deviceImage->setVisible(connected);
-
-    switch (m_connectionState) {
-    case ConnectionState::Absent:
+    refreshTrayIndicator();
+    const DeviceRuntime *runtime = selectedDevice();
+    if (runtime == nullptr) {
         m_deviceLabel->setText(tr("No MSI keyboard detected"));
-        m_batteryValue->setText(tr("No device"));
-        m_batteryState->setText(tr("Connect a keyboard or its USB receiver."));
+        m_deviceImage->setVisible(false);
+        m_batterySection->setVisible(false);
+        m_batteryGauge->setDeviceConnected(false);
+        m_batteryGauge->setValue(std::nullopt);
         setStatus(
             m_deviceDot,
             m_deviceStatus,
             QStringLiteral("off"),
             tr("No supported keyboard detected"));
+        return;
+    }
+
+    const QString name = deviceName(runtime->device);
+    const QString transport = transportName(runtime->device);
+    const QString connectionTransport =
+        runtime->activeProductId == 0 ? transport
+                                      : transportName(runtime->activeProductId);
+    m_deviceLabel->setText(QStringLiteral("%1 · %2").arg(name, transport));
+    m_deviceImage->setVisible(true);
+
+    const bool supportsBattery = runtime->device.supportsBattery();
+    const bool connected =
+        runtime->connectionState == ConnectionState::Connected;
+    m_batterySection->setVisible(supportsBattery);
+    m_batteryGauge->setDeviceConnected(connected);
+    if (supportsBattery) {
+        if (runtime->battery.has_value()) {
+            const BatteryReading &reading = *runtime->battery;
+            m_batteryGauge->setValue(reading.percent);
+            m_batteryValue->setText(QStringLiteral("%1%").arg(reading.percent));
+            if (reading.charging.has_value()) {
+                m_batteryState->setText(
+                    *reading.charging
+                        ? tr("The keyboard is charging.")
+                        : tr("The keyboard is running on battery."));
+            } else {
+                m_batteryState->setText(
+                    tr("Battery status received over USB HID."));
+            }
+        } else {
+            m_batteryGauge->setValue(std::nullopt);
+            switch (runtime->connectionState) {
+            case ConnectionState::AccessDenied:
+                m_batteryValue->setText(tr("HID access required"));
+                m_batteryState->setText(
+                    tr("The device is present, but Linux denied HID access."));
+                break;
+            case ConnectionState::Unresponsive:
+                m_batteryValue->setText(tr("No response"));
+                m_batteryState->setText(tr("The USB transport is present, but "
+                                           "the keyboard did not answer."));
+                break;
+            default:
+                m_batteryValue->setText(tr("Reading battery…"));
+                m_batteryState->setText(tr("Waiting for battery data."));
+                break;
+            }
+        }
+    }
+
+    switch (runtime->connectionState) {
+    case ConnectionState::Absent:
+        setStatus(
+            m_deviceDot,
+            m_deviceStatus,
+            QStringLiteral("off"),
+            tr("Disconnected"));
         break;
     case ConnectionState::Probing:
-        m_deviceLabel->setText(tr("MSI Strike Pro"));
-        m_batteryValue->setText(tr("Checking…"));
-        m_batteryState->setText(
-            tr("Waiting for a response from the keyboard."));
         setStatus(
             m_deviceDot,
             m_deviceStatus,
             QStringLiteral("off"),
             tr("Checking connection"));
         break;
-    case ConnectionState::Connected: {
-        const bool wired = m_activeProductId == kStrikeProWiredProductId;
-        m_deviceLabel->setText(
-            wired ? tr("MSI Strike Pro · USB")
-                  : tr("MSI Strike Pro · 2.4 GHz"));
+    case ConnectionState::Connected:
         setStatus(
             m_deviceDot,
             m_deviceStatus,
             QStringLiteral("ok"),
-            wired ? tr("Connected via USB") : tr("Connected via 2.4 GHz"));
-        if (!m_lastBatteryReading.has_value()) {
-            m_batteryValue->setText(tr("Reading battery…"));
-            m_batteryState->setText(tr("Waiting for battery data."));
-        }
+            tr("Connected via %1").arg(connectionTransport));
         break;
-    }
     case ConnectionState::AccessDenied:
-        m_deviceLabel->setText(tr("MSI Strike Pro"));
-        m_batteryValue->setText(tr("HID access required"));
-        m_batteryState->setText(
-            tr("The device is present, but Linux denied HID access."));
         setStatus(
             m_deviceDot,
             m_deviceStatus,
@@ -681,10 +897,6 @@ void MainWindow::refreshConnectionUi()
             tr("Permission problem"));
         break;
     case ConnectionState::Unresponsive:
-        m_deviceLabel->setText(tr("MSI Strike Pro receiver"));
-        m_batteryValue->setText(tr("No response"));
-        m_batteryState->setText(tr(
-            "The USB transport is present, but the keyboard did not answer."));
         setStatus(
             m_deviceDot,
             m_deviceStatus,
@@ -696,96 +908,143 @@ void MainWindow::refreshConnectionUi()
 
 void MainWindow::updateInterfaces(const QList<HidInterface> &interfaces)
 {
-    const ConnectionState previousState = m_connectionState;
-    m_interfaces = interfaces;
-    const HidInterface *batteryInterface =
-        preferredBatteryInterface(interfaces);
-    const bool transportPresent = batteryInterface != nullptr;
-    m_canQueryBattery = hasAccessibleBatteryInterface(interfaces);
+    const QList<SupportedDevice> detected = groupSupportedDevices(interfaces);
+    QHash<QString, DeviceRuntime> updated;
+    QStringList order;
+    order.reserve(detected.size());
 
-    if (!transportPresent) {
-        if (previousState != ConnectionState::Absent) {
-            logDebug(tr("MSI Strike Pro disconnected"));
+    for (const SupportedDevice &device : detected) {
+        DeviceRuntime runtime;
+        const auto previous = m_devices.constFind(device.id);
+        if (previous != m_devices.cend()) {
+            runtime = previous.value();
         }
+        runtime.device = device;
+        const bool activeTransportPresent =
+            runtime.activeProductId == 0
+            || std::ranges::any_of(
+                device.interfaces,
+                [&runtime](const HidInterface &interface) {
+                    return interface.productId == runtime.activeProductId;
+                });
+        if (!device.supportsBattery()) {
+            runtime.connectionState = ConnectionState::Connected;
+            runtime.activeProductId = device.productId;
+        } else if (!device.canQueryBattery()) {
+            runtime.connectionState = ConnectionState::AccessDenied;
+            runtime.activeProductId = 0;
+            runtime.battery.reset();
+        } else if (
+            previous == m_devices.cend()
+            || previous->connectionState == ConnectionState::AccessDenied
+            || !activeTransportPresent) {
+            runtime.connectionState = ConnectionState::Probing;
+            if (!activeTransportPresent) {
+                runtime.activeProductId = 0;
+                runtime.battery.reset();
+            }
+        }
+        updated.insert(device.id, runtime);
+        order.push_back(device.id);
+
+        if (previous == m_devices.cend()) {
+            logDebug(tr("%1 detected via %2")
+                         .arg(deviceName(device), transportName(device)));
+        }
+    }
+
+    for (auto previous = m_devices.cbegin(); previous != m_devices.cend();
+         ++previous) {
+        if (!updated.contains(previous.key())) {
+            logDebug(tr("%1 disconnected").arg(deviceName(previous->device)));
+        }
+    }
+
+    if (!m_pendingBatteryDeviceId.isEmpty()
+        && !updated.contains(m_pendingBatteryDeviceId)) {
         ++m_batteryRequestGeneration;
         m_batteryRequestPending = false;
-        m_activeProductId = 0;
-        clearBattery();
-        setConnectionState(ConnectionState::Absent);
-        return;
+        m_pendingBatteryDeviceId.clear();
     }
 
-    if (!m_canQueryBattery) {
+    const QString previousSelection = m_selectedDeviceId;
+    m_devices = std::move(updated);
+    m_deviceOrder = std::move(order);
+    m_selectedDeviceId = retainedDeviceSelection(detected, previousSelection);
+    if (m_selectedDeviceId != previousSelection) {
         ++m_batteryRequestGeneration;
         m_batteryRequestPending = false;
-        m_activeProductId = 0;
-        clearBattery();
-        setConnectionState(ConnectionState::AccessDenied);
-        return;
+        m_pendingBatteryDeviceId.clear();
     }
 
-    const bool activeTransportStillPresent =
-        m_activeProductId != 0 && hasProduct(interfaces, m_activeProductId);
-    if (m_connectionState == ConnectionState::Connected
-        && activeTransportStillPresent) {
-        refreshConnectionUi();
-        return;
+    rebuildDeviceList();
+    refreshConnectionUi();
+    if (const DeviceRuntime *runtime = selectedDevice();
+        runtime != nullptr
+        && runtime->connectionState == ConnectionState::Probing) {
+        QTimer::singleShot(0, this, &MainWindow::requestBattery);
     }
-
-    ++m_batteryRequestGeneration;
-    m_batteryRequestPending = false;
-    m_activeProductId = 0;
-    clearBattery();
-    setConnectionState(ConnectionState::Probing);
-    QTimer::singleShot(0, this, &MainWindow::requestBattery);
 }
 
 void MainWindow::handleDeviceEvent()
 {
     ++m_batteryRequestGeneration;
     m_batteryRequestPending = false;
-    m_activeProductId = 0;
-    clearBattery();
-    if (m_canQueryBattery) {
-        setConnectionState(ConnectionState::Probing);
-    }
+    m_pendingBatteryDeviceId.clear();
     QTimer::singleShot(125, this, &MainWindow::requestBattery);
 }
 
 void MainWindow::requestBattery()
 {
-    if (!m_canQueryBattery || m_batteryRequestPending || !m_profile.has_value()
-        || !m_profile->canDecodePercentage()) {
+    DeviceRuntime *runtime = selectedDevice();
+    const HidInterface *batteryInterface =
+        runtime == nullptr ? nullptr : runtime->device.batteryInterface();
+    if (runtime == nullptr || batteryInterface == nullptr
+        || !runtime->device.canQueryBattery() || m_batteryRequestPending
+        || !m_profile.has_value() || !m_profile->canDecodePercentage()) {
         return;
     }
 
     QString error;
-    if (!m_monitor->requestBattery(&error)) {
+    if (!m_monitor->requestBattery(batteryInterface->devNode, &error)) {
         logDebug(tr("Battery query: %1").arg(error));
         ++m_batteryRequestGeneration;
         m_batteryRequestPending = false;
-        m_activeProductId = 0;
-        clearBattery();
+        m_pendingBatteryDeviceId.clear();
+        runtime->activeProductId = 0;
+        clearBattery(*runtime);
         setConnectionState(
-            m_canQueryBattery ? ConnectionState::Unresponsive
-                              : ConnectionState::AccessDenied);
+            *runtime,
+            runtime->device.canQueryBattery() ? ConnectionState::Unresponsive
+                                              : ConnectionState::AccessDenied);
         return;
     }
 
     m_batteryRequestPending = true;
+    m_pendingBatteryDeviceId = runtime->device.id;
+    const QString deviceId = runtime->device.id;
     const quint64 generation = ++m_batteryRequestGeneration;
 
-    QTimer::singleShot(kBatteryResponseTimeoutMs, this, [this, generation] {
-        if (!m_batteryRequestPending
-            || generation != m_batteryRequestGeneration) {
-            return;
-        }
-        m_batteryRequestPending = false;
-        logDebug(tr("The keyboard did not answer the battery query"));
-        m_activeProductId = 0;
-        clearBattery();
-        setConnectionState(ConnectionState::Unresponsive);
-    });
+    QTimer::singleShot(
+        kBatteryResponseTimeoutMs,
+        this,
+        [this, generation, deviceId] {
+            if (!m_batteryRequestPending
+                || generation != m_batteryRequestGeneration
+                || m_pendingBatteryDeviceId != deviceId) {
+                return;
+            }
+            m_batteryRequestPending = false;
+            m_pendingBatteryDeviceId.clear();
+            logDebug(tr("The keyboard did not answer the battery query"));
+            auto found = m_devices.find(deviceId);
+            if (found == m_devices.end()) {
+                return;
+            }
+            found->activeProductId = 0;
+            clearBattery(found.value());
+            setConnectionState(found.value(), ConnectionState::Unresponsive);
+        });
 }
 
 void MainWindow::recordReport(const HidReport &report)
@@ -798,33 +1057,63 @@ void MainWindow::recordReport(const HidReport &report)
         return;
     }
 
-    m_batteryRequestPending = false;
-    m_activeProductId = report.productId;
-    if (m_connectionState != ConnectionState::Connected) {
+    auto runtime = std::ranges::find_if(
+        m_devices,
+        [&report](const DeviceRuntime &candidate) {
+            return std::ranges::any_of(
+                candidate.device.interfaces,
+                [&report](const HidInterface &interface) {
+                    return interface.devNode == report.devNode;
+                });
+        });
+    if (runtime == m_devices.end() && report.devNode.isEmpty()) {
+        runtime = std::ranges::find_if(
+            m_devices,
+            [&report](const DeviceRuntime &candidate) {
+                return std::ranges::any_of(
+                    candidate.device.interfaces,
+                    [&report](const HidInterface &interface) {
+                        return interface.productId == report.productId;
+                    });
+            });
+    }
+    if (runtime == m_devices.end()) {
+        return;
+    }
+
+    if (m_pendingBatteryDeviceId == runtime->device.id) {
+        ++m_batteryRequestGeneration;
+        m_batteryRequestPending = false;
+        m_pendingBatteryDeviceId.clear();
+    }
+    if (runtime->connectionState != ConnectionState::Connected) {
         logDebug(
             report.productId == kStrikeProWiredProductId
                 ? tr("MSI Strike Pro answered over USB")
                 : tr("MSI Strike Pro answered through the 2.4 GHz receiver"));
     }
-    setConnectionState(ConnectionState::Connected);
-    setBattery(*reading);
+    runtime->connectionState = ConnectionState::Connected;
+    runtime->activeProductId = report.productId;
+    setBattery(runtime.value(), *reading);
+    rebuildDeviceList();
+    if (runtime->device.id == m_selectedDeviceId) {
+        refreshConnectionUi();
+    }
 }
 
-void MainWindow::setBattery(const BatteryReading &reading)
+void MainWindow::setBattery(
+    DeviceRuntime &runtime, const BatteryReading &reading)
 {
-    m_lastBatteryReading = reading;
-    const std::optional<int> previousValue = m_batteryGauge->value();
-    m_batteryGauge->setValue(reading.percent);
-    m_batteryValue->setText(QStringLiteral("%1%").arg(reading.percent));
-    if (reading.charging.has_value()) {
-        m_batteryState->setText(
-            *reading.charging ? tr("The keyboard is charging.")
-                              : tr("The keyboard is running on battery."));
-    } else {
-        m_batteryState->setText(tr("Battery status received over USB HID."));
-    }
+    const std::optional<int> previousValue =
+        runtime.battery.has_value()
+            ? std::optional<int>(runtime.battery->percent)
+            : std::nullopt;
+    runtime.battery = reading;
     if (!previousValue.has_value() || *previousValue != reading.percent) {
         logDebug(tr("Battery updated: %1%").arg(reading.percent));
+    }
+    if (runtime.device.id == m_selectedDeviceId) {
+        refreshConnectionUi();
     }
 }
 

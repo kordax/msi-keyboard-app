@@ -879,11 +879,6 @@
         <translation>Нет ответа</translation>
     </message>
     <message>
-        <location filename="../src/gui/MainWindow.cpp" line="561"/>
-        <source>READ ONLY MODE</source>
-        <translation>РЕЖИМ ТОЛЬКО ЧТЕНИЯ</translation>
-    </message>
-    <message>
         <location filename="../src/gui/MainWindow.cpp" line="636"/>
         <source>No MSI keyboard detected</source>
         <translation>Клавиатура MSI не обнаружена</translation>
@@ -998,6 +993,101 @@
         <location filename="../src/gui/MainWindow.cpp" line="348"/>
         <source>MSI STRIKE PRO</source>
         <translation>MSI STRIKE PRO</translation>
+    </message>
+    <message>
+        <source>DEVICES</source>
+        <translation>УСТРОЙСТВА</translation>
+    </message>
+    <message>
+        <source>Connect a supported MSI keyboard.</source>
+        <translation>Подключите поддерживаемую клавиатуру MSI.</translation>
+    </message>
+    <message>
+        <source>SELECTED DEVICE</source>
+        <translation>ВЫБРАННОЕ УСТРОЙСТВО</translation>
+    </message>
+    <message>
+        <source>Supported MSI keyboard</source>
+        <translation>Поддерживаемая клавиатура MSI</translation>
+    </message>
+    <message>
+        <source>USB</source>
+        <translation>USB</translation>
+    </message>
+    <message>
+        <source>2.4 GHz</source>
+        <translation>2,4 ГГц</translation>
+    </message>
+    <message>
+        <source>USB + 2.4 GHz</source>
+        <translation>USB + 2,4 ГГц</translation>
+    </message>
+    <message>
+        <source>HID</source>
+        <translation>HID</translation>
+    </message>
+    <message>
+        <source>Disconnected</source>
+        <translation>Отключена</translation>
+    </message>
+    <message>
+        <source>Not responding</source>
+        <translation>Не отвечает</translation>
+    </message>
+    <message>
+        <source>Connected via %1</source>
+        <translation>Подключена через %1</translation>
+    </message>
+    <message>
+        <source>%1 detected via %2</source>
+        <translation>%1 обнаружена через %2</translation>
+    </message>
+    <message>
+        <source>%1 disconnected</source>
+        <translation>%1 отключена</translation>
+    </message>
+</context>
+<context>
+    <name>strikepro::TrayIndicator</name>
+    <message>
+        <source>Open MSI Keyboard</source>
+        <translation>Открыть MSI Keyboard</translation>
+    </message>
+    <message>
+        <source>Quit</source>
+        <translation>Выйти</translation>
+    </message>
+    <message>
+        <source>MSI Keyboard</source>
+        <translation>MSI Keyboard</translation>
+    </message>
+    <message>
+        <source>No supported keyboard detected</source>
+        <translation>Поддерживаемая клавиатура не обнаружена</translation>
+    </message>
+    <message>
+        <source>Checking connection</source>
+        <translation>Проверка подключения</translation>
+    </message>
+    <message>
+        <source>Connection problem</source>
+        <translation>Проблема подключения</translation>
+    </message>
+    <message>
+        <source>Connected</source>
+        <translation>Подключена</translation>
+    </message>
+    <message>
+        <source>Battery: %1% · Charging</source>
+        <translation>Заряд: %1% · Идёт зарядка</translation>
+    </message>
+    <message>
+        <source>Battery: %1% · On battery</source>
+        <translation>Заряд: %1% · От аккумулятора</translation>
+    </message>
+    <message>
+        <source>Battery: %1%</source>
+        <translation>Заряд: %1%</translation>
     </message>
 </context>
 </TS>

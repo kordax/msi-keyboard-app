@@ -58,6 +58,14 @@ class LocalizationTest final : public QObject {
             QCoreApplication::translate("strikepro::MainWindow", "Settings"),
             QString::fromUtf8("Настройки"));
         QCOMPARE(
+            QCoreApplication::translate("strikepro::MainWindow", "DEVICES"),
+            QString::fromUtf8("УСТРОЙСТВА"));
+        QCOMPARE(
+            QCoreApplication::translate(
+                "strikepro::TrayIndicator",
+                "Battery: %1% · Charging"),
+            QString::fromUtf8("Заряд: %1% · Идёт зарядка"));
+        QCOMPARE(
             QCoreApplication::translate("CommandLine", "Run without the GUI."),
             QString::fromUtf8("Запустить без графического интерфейса."));
         QCOMPARE(

@@ -1,8 +1,14 @@
 [Desktop Entry]
 Type=Application
 Name=MSI Keyboard
-Comment=Manage MSI keyboards on Linux
+Name[ru]=MSI Keyboard
+Comment=Monitor supported MSI keyboards on Linux
+Comment[ru]=Состояние поддерживаемых клавиатур MSI в Linux
 Exec=msi-keyboard
-Icon=input-keyboard
+Icon=io.github.kordax.MsiKeyboard
 Terminal=false
 Categories=Settings;HardwareSettings;
+Keywords=MSI;Keyboard;Battery;HID;
+Keywords[ru]=MSI;Клавиатура;Аккумулятор;HID;
+StartupNotify=true
+StartupWMClass=msi-keyboard

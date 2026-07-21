@@ -1,23 +1,30 @@
 #pragma once
 
 #include "device/BatteryDecoder.h"
+#include "device/DeviceCatalog.h"
 #include "device/HidMonitor.h"
 
+#include <QHash>
 #include <QMainWindow>
+#include <QStringList>
 #include <QTimer>
 #include <optional>
 
-class QLabel;
 class QAction;
 class QActionGroup;
 class QEvent;
+class QLabel;
+class QListWidget;
+class QListWidgetItem;
 class QMenu;
+class QWidget;
 
 namespace strikepro {
 
 class BatteryGauge;
 class DebugWindow;
 class LanguageManager;
+class TrayIndicator;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
@@ -35,6 +42,8 @@ class MainWindow final : public QMainWindow {
     void recordReport(const strikepro::HidReport &report);
     void reloadProtocolProfile();
     void requestBattery();
+    void selectDevice(QListWidgetItem *current, QListWidgetItem *previous);
+    void showDeviceArtwork(QListWidgetItem *item);
     void showDebugLogs();
     void showDebugTelemetry();
 
@@ -47,29 +56,44 @@ class MainWindow final : public QMainWindow {
         Unresponsive,
     };
 
+    struct DeviceRuntime {
+        SupportedDevice device;
+        ConnectionState connectionState = ConnectionState::Probing;
+        quint16 activeProductId = 0;
+        std::optional<BatteryReading> battery;
+    };
+
     void buildUi();
     void retranslateUi();
+    void rebuildDeviceList();
     void refreshConnectionUi();
-    void clearBattery();
-    void setConnectionState(ConnectionState state);
-    void setBattery(const BatteryReading &reading);
+    void refreshTrayIndicator();
+    void clearBattery(DeviceRuntime &runtime);
+    void setConnectionState(DeviceRuntime &runtime, ConnectionState state);
+    void setBattery(DeviceRuntime &runtime, const BatteryReading &reading);
     void setStatus(
         QLabel *dot, QLabel *detail, const QString &tone, const QString &text);
     void logDebug(const QString &message);
     [[nodiscard]] QString profilePath() const;
+    [[nodiscard]] QString deviceName(const SupportedDevice &device) const;
+    [[nodiscard]] QString transportName(const SupportedDevice &device) const;
+    [[nodiscard]] QString transportName(quint16 productId) const;
+    [[nodiscard]] QString deviceListStatus(const DeviceRuntime &runtime) const;
+    [[nodiscard]] DeviceRuntime *selectedDevice();
+    [[nodiscard]] const DeviceRuntime *selectedDevice() const;
 
     LanguageManager *m_languageManager = nullptr;
     HidMonitor *m_monitor = nullptr;
     DebugWindow *m_debugWindow = nullptr;
+    TrayIndicator *m_trayIndicator = nullptr;
     std::optional<ProtocolProfile> m_profile;
-    QList<HidInterface> m_interfaces;
+    QHash<QString, DeviceRuntime> m_devices;
+    QStringList m_deviceOrder;
+    QString m_selectedDeviceId;
+    QString m_pendingBatteryDeviceId;
     QTimer m_batteryPollTimer;
     quint64 m_batteryRequestGeneration = 0;
-    quint16 m_activeProductId = 0;
-    bool m_canQueryBattery = false;
     bool m_batteryRequestPending = false;
-    ConnectionState m_connectionState = ConnectionState::Absent;
-    std::optional<BatteryReading> m_lastBatteryReading;
 
     QMenu *m_settingsMenu = nullptr;
     QMenu *m_languageMenu = nullptr;
@@ -80,9 +104,11 @@ class MainWindow final : public QMainWindow {
     QAction *m_logsAction = nullptr;
     QAction *m_telemetryAction = nullptr;
     QLabel *m_title = nullptr;
+    QLabel *m_deviceListCaption = nullptr;
+    QLabel *m_emptyDevices = nullptr;
+    QListWidget *m_deviceList = nullptr;
+    QWidget *m_batterySection = nullptr;
     QLabel *m_batteryCaption = nullptr;
-    QLabel *m_modeValue = nullptr;
-    QLabel *m_modeCaption = nullptr;
     QLabel *m_deviceCaption = nullptr;
     QLabel *m_deviceLabel = nullptr;
     QLabel *m_deviceImage = nullptr;

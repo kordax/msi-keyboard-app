@@ -100,6 +100,11 @@ HidMonitor::~HidMonitor()
 
 bool HidMonitor::requestBattery(QString *error)
 {
+    return requestBattery(QString(), error);
+}
+
+bool HidMonitor::requestBattery(const QString &devNode, QString *error)
+{
     // Interface 1 has an unnumbered 64-byte output report. hidraw requires
     // a leading zero report ID, followed by the exact query captured from
     // MSI Center ten times across wireless and wired traces.
@@ -117,8 +122,9 @@ bool HidMonitor::requestBattery(QString *error)
          {kStrikeProWiredProductId, kStrikeProWirelessProductId}) {
         const auto found = std::ranges::find_if(
             m_interfaces,
-            [productId](const HidInterface &interface) {
-                return interface.productId == productId
+            [devNode, productId](const HidInterface &interface) {
+                return (devNode.isEmpty() || interface.devNode == devNode)
+                       && interface.productId == productId
                        && interface.interfaceNumber == 1;
             });
         if (found == m_interfaces.end()) {

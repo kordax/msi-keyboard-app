@@ -68,6 +68,10 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName(QStringLiteral("msi-keyboard"));
     QCoreApplication::setApplicationVersion(
         QStringLiteral(MSI_KEYBOARD_VERSION));
+    if (!cliRequested && !upgradeRequested && !terminalOnlyRequested) {
+        QApplication::setDesktopFileName(
+            QStringLiteral("io.github.kordax.MsiKeyboard"));
+    }
 
     strikepro::LanguageManager languageManager;
     const std::optional<QString> languageOverride =
