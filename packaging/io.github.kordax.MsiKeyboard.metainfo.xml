@@ -46,6 +46,11 @@
 
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.1.1" date="2026-07-26">
+      <description>
+        <p>Improves tray controls with close-to-tray behavior and a dedicated Quit command, and adds one-command DEB installation for contributors.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-07-26">
       <description>
         <p>Adds reliable multi-device handling, model-specific battery protocols, live tray status, and improved desktop integration.</p>

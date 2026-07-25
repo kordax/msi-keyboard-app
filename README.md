@@ -20,13 +20,13 @@ Download the package for your distribution from
 Debian, Ubuntu, and Linux Mint:
 
 ```bash
-sudo apt install ./msi-keyboard_0.1.0-1_amd64.deb
+sudo apt install ./msi-keyboard_0.1.1-1_amd64.deb
 ```
 
 Fedora and other RPM-based distributions:
 
 ```bash
-sudo dnf install ./msi-keyboard-0.1.0-1.x86_64.rpm
+sudo dnf install ./msi-keyboard-0.1.1-1.x86_64.rpm
 ```
 
 ## Usage
@@ -56,5 +56,6 @@ task test        # Build and run tests
 task run         # Build and run the GUI
 task check       # Linters, tests, security, and sanitizers
 task package     # Build DEB and RPM packages
+task install     # Build and install the DEB package
 task rebuild     # Full release rebuild
 ```
