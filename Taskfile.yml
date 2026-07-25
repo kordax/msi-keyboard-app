@@ -141,6 +141,37 @@ tasks:
       - task: smoke
       - cmake --build "{{.RELEASE_DIR}}" --target package
 
+  install:
+    desc: Build, test, create, and install the DEB package
+    platforms: [linux]
+    preconditions:
+      - sh: command -v dpkg >/dev/null 2>&1
+        msg: task install requires a Debian-based system.
+      - sh: command -v apt-get >/dev/null 2>&1
+        msg: task install requires apt-get.
+      - sh: command -v sudo >/dev/null 2>&1
+        msg: task install requires sudo.
+    cmds:
+      - task: smoke
+      - cpack --config "{{.RELEASE_DIR}}/CPackConfig.cmake" -G DEB -B "{{.RELEASE_DIR}}"
+      - |
+        set -eu
+        cpack_config="$(realpath "{{.RELEASE_DIR}}/CPackConfig.cmake")"
+        package_name="$(sed -n 's/^set(CPACK_PACKAGE_NAME "\(.*\)")$/\1/p' "$cpack_config")"
+        package_version="$(sed -n 's/^set(CPACK_PACKAGE_VERSION "\(.*\)")$/\1/p' "$cpack_config")"
+        package_release="$(sed -n 's/^set(CPACK_DEBIAN_PACKAGE_RELEASE "\(.*\)")$/\1/p' "$cpack_config")"
+        package_architecture="$(dpkg --print-architecture)"
+        if [ -z "$package_name" ] || [ -z "$package_version" ] || [ -z "$package_release" ] || [ -z "$package_architecture" ]; then
+          echo "Could not resolve the DEB package name from CPackConfig.cmake." >&2
+          exit 1
+        fi
+        package_path="${cpack_config%/*}/${package_name}_${package_version}-${package_release}_${package_architecture}.deb"
+        if [ ! -f "$package_path" ]; then
+          echo "DEB package not found: $package_path" >&2
+          exit 1
+        fi
+        sudo apt-get install --yes --reinstall "$package_path"
+
   run:
     desc: Build and run GUI
     cmds:
