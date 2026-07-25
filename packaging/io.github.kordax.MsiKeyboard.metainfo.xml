@@ -46,6 +46,11 @@
 
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.1.0" date="2026-07-26">
+      <description>
+        <p>Adds reliable multi-device handling, model-specific battery protocols, live tray status, and improved desktop integration.</p>
+      </description>
+    </release>
     <release version="0.0.1" date="2026-07-21">
       <description>
         <p>Adds a unified device view, verified battery status, and desktop integration.</p>

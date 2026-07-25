@@ -2,6 +2,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QFont>
 #include <QIcon>
 #include <QMenu>
 #include <QPainter>
@@ -12,6 +13,7 @@
 #include <QWidget>
 
 #include <algorithm>
+#include <utility>
 
 namespace strikepro {
 namespace {
@@ -20,15 +22,24 @@ QColor statusColor(const TrayIndicator::State &state)
 {
     switch (state.connectionState) {
     case TrayIndicator::ConnectionState::Unavailable:
-        return QColor(QStringLiteral("#707070"));
+        return QColor(QStringLiteral("#737780"));
     case TrayIndicator::ConnectionState::Probing:
         return QColor(QStringLiteral("#e6b85c"));
     case TrayIndicator::ConnectionState::Connected:
-        return QColor(QStringLiteral("#55e89b"));
+        if (state.charging == true) {
+            return QColor(QStringLiteral("#55e89b"));
+        }
+        if (state.batteryPercent.has_value() && *state.batteryPercent <= 15) {
+            return QColor(QStringLiteral("#ef5f67"));
+        }
+        if (state.batteryPercent.has_value() && *state.batteryPercent <= 30) {
+            return QColor(QStringLiteral("#e6b85c"));
+        }
+        return QColor(QStringLiteral("#55cfe8"));
     case TrayIndicator::ConnectionState::Problem:
         return QColor(QStringLiteral("#ef7777"));
     }
-    return QColor(QStringLiteral("#707070"));
+    return QColor(QStringLiteral("#737780"));
 }
 
 QPixmap renderTrayPixmap(const TrayIndicator::State &state, const int edge)
@@ -40,51 +51,64 @@ QPixmap renderTrayPixmap(const TrayIndicator::State &state, const int edge)
     painter.setRenderHint(QPainter::Antialiasing);
     painter.scale(edge / 64.0, edge / 64.0);
 
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(QStringLiteral("#171717")));
-    painter.drawEllipse(QRectF(2.0, 2.0, 60.0, 60.0));
-
+    const QRectF body(4.5, 13.5, 51.0, 37.0);
+    const QRectF interior(8.5, 17.5, 43.0, 29.0);
     const QColor status = statusColor(state);
-    const QColor outline =
-        state.connectionState == TrayIndicator::ConnectionState::Problem
-            ? status
-            : QColor(QStringLiteral("#ededed"));
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(QStringLiteral("#15171b")));
+    painter.drawRoundedRect(body, 7.0, 7.0);
+    painter.drawRoundedRect(QRectF(55.0, 24.0, 6.0, 16.0), 2.0, 2.0);
+
+    if (state.connectionState == TrayIndicator::ConnectionState::Connected
+        && state.batteryPercent.has_value()) {
+        const int percent = std::clamp(*state.batteryPercent, 0, 100);
+        QPainterPath fillClip;
+        fillClip.addRoundedRect(interior, 4.0, 4.0);
+        painter.setClipPath(fillClip);
+        painter.setBrush(status);
+        painter.drawRect(QRectF(
+            interior.left(),
+            interior.top(),
+            interior.width() * percent / 100.0,
+            interior.height()));
+        painter.setClipping(false);
+    }
+
     painter.setBrush(Qt::NoBrush);
     painter.setPen(
-        QPen(outline, 3.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-    painter.drawRoundedRect(QRectF(11.5, 18.5, 37.0, 27.0), 5.0, 5.0);
-    painter.drawLine(QPointF(49.0, 27.0), QPointF(53.0, 27.0));
-    painter.drawLine(QPointF(53.0, 27.0), QPointF(53.0, 37.0));
-    painter.drawLine(QPointF(53.0, 37.0), QPointF(49.0, 37.0));
+        QPen(status, 3.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter.drawRoundedRect(body, 7.0, 7.0);
+    painter.drawLine(QPointF(56.0, 25.0), QPointF(59.0, 25.0));
+    painter.drawLine(QPointF(59.5, 25.0), QPointF(59.5, 39.0));
+    painter.drawLine(QPointF(59.0, 39.0), QPointF(56.0, 39.0));
 
-    painter.setPen(Qt::NoPen);
-    if (state.batteryPercent.has_value()) {
-        const int percent = std::clamp(*state.batteryPercent, 0, 100);
-        const QColor fill =
-            percent <= 20 ? QColor(QStringLiteral("#e6b85c")) : status;
-        QPainterPath fillClip;
-        fillClip.addRoundedRect(QRectF(15.5, 22.5, 29.0, 19.0), 3.0, 3.0);
-        painter.setClipPath(fillClip);
-        painter.setBrush(fill);
-        painter.drawRect(QRectF(15.5, 22.5, 29.0 * percent / 100.0, 19.0));
-        painter.setClipping(false);
-
-        if (state.charging == true) {
-            painter.setBrush(QColor(QStringLiteral("#ffffff")));
-            painter.drawPolygon(QPolygonF{
-                QPointF(31.0, 21.0),
-                QPointF(24.5, 33.0),
-                QPointF(29.5, 33.0),
-                QPointF(27.0, 43.0),
-                QPointF(39.5, 29.5),
-                QPointF(34.0, 29.5),
-                QPointF(37.0, 21.0),
-            });
-        }
-    } else {
-        painter.setBrush(status);
-        painter.drawEllipse(QRectF(25.0, 25.0, 14.0, 14.0));
+    QRectF textRect(7.0, 14.0, 46.0, 35.0);
+    if (state.connectionState == TrayIndicator::ConnectionState::Connected
+        && state.charging == true && state.batteryPercent.has_value()) {
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor(QStringLiteral("#ffffff")));
+        painter.drawPolygon(QPolygonF{
+            QPointF(12.5, 22.0),
+            QPointF(8.0, 31.0),
+            QPointF(11.5, 31.0),
+            QPointF(9.5, 39.5),
+            QPointF(18.0, 28.5),
+            QPointF(14.5, 28.5),
+            QPointF(17.0, 22.0),
+        });
+        textRect = QRectF(16.0, 14.0, 37.0, 35.0);
     }
+
+    QFont font = painter.font();
+    font.setBold(true);
+    const QString text = TrayIndicator::iconTextForState(state);
+    font.setPixelSize(text.size() >= 4 ? 20 : 24);
+    painter.setFont(font);
+    painter.setPen(QColor(0, 0, 0, 180));
+    painter.drawText(textRect.translated(1.0, 1.0), Qt::AlignCenter, text);
+    painter.setPen(QColor(QStringLiteral("#ffffff")));
+    painter.drawText(textRect, Qt::AlignCenter, text);
 
     return pixmap;
 }
@@ -98,6 +122,8 @@ TrayIndicator::TrayIndicator(QWidget *window, QObject *parent)
     , m_menu(new QMenu(window))
 {
     m_showAction = m_menu->addAction(QString());
+    m_devicesMenu = m_menu->addMenu(QString());
+    m_devicesMenu->setObjectName(QStringLiteral("trayDevicesMenu"));
     m_menu->addSeparator();
     m_quitAction = m_menu->addAction(QString());
 
@@ -117,9 +143,26 @@ TrayIndicator::TrayIndicator(QWidget *window, QObject *parent)
     m_trayIcon->setContextMenu(m_menu);
     m_trayIcon->setIcon(iconForState(m_state));
     retranslateUi();
-    if (QSystemTrayIcon::isSystemTrayAvailable()) {
+}
+
+void TrayIndicator::setEnabled(const bool enabled)
+{
+    m_enabled = enabled;
+    if (enabled) {
         m_trayIcon->show();
+    } else {
+        m_trayIcon->hide();
     }
+}
+
+bool TrayIndicator::isEnabled() const
+{
+    return m_enabled;
+}
+
+bool TrayIndicator::isAvailable() const
+{
+    return QSystemTrayIcon::isSystemTrayAvailable();
 }
 
 void TrayIndicator::setState(const State &state)
@@ -132,11 +175,22 @@ void TrayIndicator::setState(const State &state)
     m_trayIcon->setToolTip(toolTipForState(m_state));
 }
 
+void TrayIndicator::setDevices(const QList<DeviceEntry> &devices)
+{
+    if (m_devices == devices) {
+        return;
+    }
+    m_devices = devices;
+    rebuildDeviceMenu();
+}
+
 void TrayIndicator::retranslateUi()
 {
     m_showAction->setText(tr("Open MSI Keyboard"));
+    m_devicesMenu->setTitle(tr("Devices"));
     m_quitAction->setText(tr("Quit"));
     m_trayIcon->setToolTip(toolTipForState(m_state));
+    rebuildDeviceMenu();
 }
 
 QIcon TrayIndicator::iconForState(const State &state)
@@ -146,6 +200,24 @@ QIcon TrayIndicator::iconForState(const State &state)
         icon.addPixmap(renderTrayPixmap(state, edge));
     }
     return icon;
+}
+
+QString TrayIndicator::iconTextForState(const State &state)
+{
+    switch (state.connectionState) {
+    case ConnectionState::Probing:
+        return QStringLiteral("…");
+    case ConnectionState::Problem:
+        return QStringLiteral("!");
+    case ConnectionState::Unavailable:
+        return QStringLiteral("—");
+    case ConnectionState::Connected:
+        return state.batteryPercent.has_value()
+                   ? QStringLiteral("%1%").arg(
+                         std::clamp(*state.batteryPercent, 0, 100))
+                   : QStringLiteral("—");
+    }
+    return QStringLiteral("—");
 }
 
 QString TrayIndicator::toolTipForState(const State &state)
@@ -176,6 +248,32 @@ QString TrayIndicator::toolTipForState(const State &state)
         break;
     }
     return QStringLiteral("%1\n%2").arg(name, detail);
+}
+
+void TrayIndicator::rebuildDeviceMenu()
+{
+    m_devicesMenu->clear();
+    if (m_devices.isEmpty()) {
+        QAction *empty =
+            m_devicesMenu->addAction(tr("No supported keyboard detected"));
+        empty->setEnabled(false);
+        return;
+    }
+
+    for (const DeviceEntry &device : std::as_const(m_devices)) {
+        const QString text =
+            device.detail.isEmpty()
+                ? device.name
+                : QStringLiteral("%1 · %2").arg(device.name, device.detail);
+        QAction *action = m_devicesMenu->addAction(text);
+        action->setObjectName(QStringLiteral("trayDeviceAction"));
+        action->setData(device.id);
+        action->setCheckable(true);
+        action->setChecked(device.selected);
+        connect(action, &QAction::triggered, this, [this, id = device.id] {
+            emit deviceSelected(id);
+        });
+    }
 }
 
 void TrayIndicator::showWindow()

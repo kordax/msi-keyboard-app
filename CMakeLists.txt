@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 
 project(
     msi-keyboard
-    VERSION 0.0.2
+    VERSION 0.1.0
     DESCRIPTION "Linux application for MSI keyboards"
     LANGUAGES CXX
 )
@@ -100,6 +100,8 @@ add_library(strikepro_device STATIC
     src/device/AppPaths.h
     src/device/BatteryDecoder.cpp
     src/device/BatteryDecoder.h
+    src/device/BatteryProtocol.cpp
+    src/device/BatteryProtocol.h
     src/device/DeviceCatalog.cpp
     src/device/DeviceCatalog.h
     src/device/DeviceDefinitions.cpp
@@ -109,6 +111,8 @@ add_library(strikepro_device STATIC
     src/device/HidMonitor.cpp
     src/device/HidMonitor.h
     src/device/HidTypes.h
+    src/device/HidUevent.cpp
+    src/device/HidUevent.h
 )
 target_include_directories(
     strikepro_device
@@ -146,6 +150,8 @@ target_link_libraries(
 )
 
 add_library(strikepro_gui STATIC
+    src/gui/ApplicationIcon.cpp
+    src/gui/ApplicationIcon.h
     src/gui/BatteryGauge.cpp
     src/gui/BatteryGauge.h
     src/gui/DebugWindow.cpp
@@ -168,6 +174,8 @@ qt_add_resources(
     PREFIX "/"
     FILES
         ${MSI_KEYBOARD_DEVICE_ARTWORK_FILES}
+        assets/icons/io.github.kordax.MsiKeyboard.svg
+        assets/icons/io.github.kordax.MsiKeyboard-cinnamon.svg
 )
 target_link_libraries(
     msi-keyboard
@@ -184,12 +192,20 @@ target_compile_definitions(
 )
 
 install(TARGETS msi-keyboard RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES packaging/io.github.kordax.MsiKeyboard.desktop
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(
+    FILES
+        packaging/io.github.kordax.MsiKeyboard.desktop
+        packaging/io.github.kordax.MsiKeyboard.Cinnamon.desktop
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
+)
 install(FILES packaging/io.github.kordax.MsiKeyboard.metainfo.xml
         DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
-install(FILES assets/icons/io.github.kordax.MsiKeyboard.svg
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
+install(
+    FILES
+        assets/icons/io.github.kordax.MsiKeyboard.svg
+        assets/icons/io.github.kordax.MsiKeyboard-cinnamon.svg
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
+)
 install(FILES LICENSE
         DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/msi-keyboard)
 install(FILES LICENSE
@@ -215,6 +231,16 @@ if(BUILD_TESTING)
 
     add_test(NAME battery-decoder-tests COMMAND battery-decoder-tests)
 
+    qt_add_executable(battery-protocol-tests
+        tests/BatteryProtocolTest.cpp
+    )
+    target_link_libraries(
+        battery-protocol-tests
+        PRIVATE strikepro_device Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME battery-protocol-tests COMMAND battery-protocol-tests)
+
     qt_add_executable(hid-monitor-tests
         tests/HidMonitorTest.cpp
     )
@@ -224,6 +250,16 @@ if(BUILD_TESTING)
     )
 
     add_test(NAME hid-monitor-tests COMMAND hid-monitor-tests)
+
+    qt_add_executable(hid-uevent-tests
+        tests/HidUeventTest.cpp
+    )
+    target_link_libraries(
+        hid-uevent-tests
+        PRIVATE strikepro_device Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME hid-uevent-tests COMMAND hid-uevent-tests)
 
     qt_add_executable(device-catalog-tests
         tests/DeviceCatalogTest.cpp
@@ -272,6 +308,24 @@ if(BUILD_TESTING)
 
     add_test(NAME tray-indicator-tests COMMAND tray-indicator-tests)
 
+    qt_add_executable(application-icon-tests
+        tests/ApplicationIconTest.cpp
+    )
+    qt_add_resources(
+        application-icon-tests
+        strikepro_application_icon_test_assets
+        PREFIX "/"
+        FILES
+            assets/icons/io.github.kordax.MsiKeyboard.svg
+            assets/icons/io.github.kordax.MsiKeyboard-cinnamon.svg
+    )
+    target_link_libraries(
+        application-icon-tests
+        PRIVATE strikepro_gui Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME application-icon-tests COMMAND application-icon-tests)
+
     qt_add_executable(desktop-environment-tests
         tests/DesktopEnvironmentTest.cpp
     )
@@ -296,6 +350,14 @@ if(BUILD_TESTING)
         COMMAND desktop-environment-tests rendersAtHighDpi
     )
     add_test(
+        NAME desktop-design-variants-tests
+        COMMAND desktop-environment-tests rendersDesignVariants
+    )
+    add_test(
+        NAME desktop-tray-preference-tests
+        COMMAND desktop-environment-tests persistsTrayPreference
+    )
+    add_test(
         NAME desktop-wayland-tests
         COMMAND
             bash
@@ -313,6 +375,20 @@ if(BUILD_TESTING)
         desktop-hidpi-tests
         PROPERTIES
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=2"
+            LABELS "desktop"
+            TIMEOUT 10
+    )
+    set_tests_properties(
+        desktop-design-variants-tests
+        PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+            LABELS "desktop"
+            TIMEOUT 10
+    )
+    set_tests_properties(
+        desktop-tray-preference-tests
+        PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
             LABELS "desktop"
             TIMEOUT 10
     )
@@ -406,6 +482,7 @@ if(BUILD_TESTING)
             COMMAND
                 ${DESKTOP_FILE_VALIDATE_EXECUTABLE}
                 ${CMAKE_CURRENT_SOURCE_DIR}/packaging/io.github.kordax.MsiKeyboard.desktop
+                ${CMAKE_CURRENT_SOURCE_DIR}/packaging/io.github.kordax.MsiKeyboard.Cinnamon.desktop
         )
         set_tests_properties(
             desktop-file-tests
@@ -420,6 +497,7 @@ if(BUILD_TESTING)
         device-definitions-tests
         battery-gauge-tests
         tray-indicator-tests
+        application-icon-tests
         localization-tests
         updater-core-tests
         PROPERTIES
@@ -429,6 +507,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         battery-gauge-tests
         tray-indicator-tests
+        application-icon-tests
         PROPERTIES
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     )

@@ -1,5 +1,6 @@
 #include "cli/CliRunner.h"
 #include "device/AppPaths.h"
+#include "gui/ApplicationIcon.h"
 #include "gui/MainWindow.h"
 #include "i18n/LanguageManager.h"
 #include "update/UpgradeRunner.h"
@@ -8,6 +9,7 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QCoreApplication>
+#include <QIcon>
 #include <QTextStream>
 
 #include <memory>
@@ -69,8 +71,12 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationVersion(
         QStringLiteral(MSI_KEYBOARD_VERSION));
     if (!cliRequested && !upgradeRequested && !terminalOnlyRequested) {
+        const QString currentDesktop =
+            qEnvironmentVariable("XDG_CURRENT_DESKTOP");
         QApplication::setDesktopFileName(
-            QStringLiteral("io.github.kordax.MsiKeyboard"));
+            strikepro::applicationDesktopFileName(currentDesktop));
+        QApplication::setWindowIcon(
+            QIcon(strikepro::applicationIconResource(currentDesktop)));
     }
 
     strikepro::LanguageManager languageManager;

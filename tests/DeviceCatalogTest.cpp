@@ -2,6 +2,8 @@
 
 #include <QtTest>
 
+#include <QSet>
+#include <algorithm>
 #include <array>
 
 using strikepro::groupSupportedDevices;
@@ -17,13 +19,15 @@ HidInterface makeInterface(
     const int interfaceNumber,
     const bool readable = true,
     const bool writable = true,
-    const quint16 vendorId = strikepro::kMsiVendorId)
+    const quint16 vendorId = strikepro::kMsiVendorId,
+    const QString &uniqueId = {})
 {
     return HidInterface{
         .devNode =
             QStringLiteral("/dev/%1-if%2").arg(deviceId).arg(interfaceNumber),
         .sysfsPath = deviceId,
         .name = QStringLiteral("Test keyboard"),
+        .uniqueId = uniqueId,
         .vendorId = vendorId,
         .productId = productId,
         .interfaceNumber = interfaceNumber,
@@ -185,6 +189,95 @@ class DeviceCatalogTest final : public QObject {
             QStringLiteral("compact-test"));
         QCOMPARE(devices.at(1).interfaces.size(), 2);
         QVERIFY(!devices.at(1).supportsBattery());
+    }
+
+    void doesNotGuessAmbiguousTransportPairs()
+    {
+        const QList<SupportedDevice> devices = groupSupportedDevices({
+            makeInterface(
+                QStringLiteral("usb-a"),
+                strikepro::kStrikeProWiredProductId,
+                1),
+            makeInterface(
+                QStringLiteral("usb-b"),
+                strikepro::kStrikeProWiredProductId,
+                1),
+            makeInterface(
+                QStringLiteral("dongle-a"),
+                strikepro::kStrikeProWirelessProductId,
+                1),
+            makeInterface(
+                QStringLiteral("dongle-b"),
+                strikepro::kStrikeProWirelessProductId,
+                1),
+        });
+
+        QCOMPARE(devices.size(), 4);
+        QSet<QString> ids;
+        for (const SupportedDevice &device : devices) {
+            QCOMPARE(device.interfaces.size(), 1);
+            ids.insert(device.id);
+        }
+        QCOMPARE(ids.size(), 4);
+    }
+
+    void pairsTransportsUsingSharedUniqueId()
+    {
+        const auto interfaceFor = [](const QString &endpoint,
+                                     const quint16 productId,
+                                     const QString &uniqueId) {
+            return makeInterface(
+                endpoint,
+                productId,
+                1,
+                true,
+                true,
+                strikepro::kMsiVendorId,
+                uniqueId);
+        };
+        const QList<HidInterface> interfaces{
+            interfaceFor(
+                QStringLiteral("usb-b"),
+                strikepro::kStrikeProWiredProductId,
+                QStringLiteral("keyboard-b")),
+            interfaceFor(
+                QStringLiteral("dongle-a"),
+                strikepro::kStrikeProWirelessProductId,
+                QStringLiteral("keyboard-a")),
+            interfaceFor(
+                QStringLiteral("usb-a"),
+                strikepro::kStrikeProWiredProductId,
+                QStringLiteral("keyboard-a")),
+            interfaceFor(
+                QStringLiteral("dongle-b"),
+                strikepro::kStrikeProWirelessProductId,
+                QStringLiteral("keyboard-b")),
+        };
+
+        const QList<SupportedDevice> devices =
+            groupSupportedDevices(interfaces);
+        QCOMPARE(devices.size(), 2);
+        QSet<QString> ids;
+        for (const SupportedDevice &device : devices) {
+            QCOMPARE(device.interfaces.size(), 2);
+            ids.insert(device.id);
+            const QString uniqueId = device.interfaces.first().uniqueId;
+            QVERIFY(!uniqueId.isEmpty());
+            for (const HidInterface &interface : device.interfaces) {
+                QCOMPARE(interface.uniqueId, uniqueId);
+            }
+        }
+        QCOMPARE(ids.size(), 2);
+
+        QList<HidInterface> reversed = interfaces;
+        std::ranges::reverse(reversed);
+        const QList<SupportedDevice> regrouped =
+            groupSupportedDevices(reversed);
+        QSet<QString> regroupedIds;
+        for (const SupportedDevice &device : regrouped) {
+            regroupedIds.insert(device.id);
+        }
+        QCOMPARE(regroupedIds, ids);
     }
 
     void keepsSelectionAcrossTransportHotplug()

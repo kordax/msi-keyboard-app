@@ -1,11 +1,11 @@
 #pragma once
 
-#include "device/BatteryDecoder.h"
+#include "device/BatteryProtocol.h"
 #include "device/HidMonitor.h"
 
+#include <QHash>
 #include <QJsonObject>
 #include <QObject>
-#include <optional>
 
 namespace strikepro {
 
@@ -36,7 +36,7 @@ class CliRunner final : public QObject {
 
     CliOptions m_options;
     HidMonitor m_monitor;
-    std::optional<ProtocolProfile> m_profile;
+    QHash<QString, ProtocolProfile> m_profiles;
     bool m_batteryQueryStarted = false;
     bool m_finishScheduled = false;
 };

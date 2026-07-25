@@ -1042,12 +1042,40 @@
         <source>%1 disconnected</source>
         <translation>%1 отключена</translation>
     </message>
+    <message>
+        <source>Layout</source>
+        <translation>Компоновка</translation>
+    </message>
+    <message>
+        <source>Keep running in tray</source>
+        <translation>Оставлять приложение в трее</translation>
+    </message>
+    <message>
+        <source>Balanced</source>
+        <translation>Сбалансированный</translation>
+    </message>
+    <message>
+        <source>Compact</source>
+        <translation>Компактный</translation>
+    </message>
+    <message>
+        <source>Showcase</source>
+        <translation>Акцентный</translation>
+    </message>
+    <message>
+        <source>Connection, transport, and battery at a glance</source>
+        <translation>Подключение, транспорт и батарея — всё на одном экране</translation>
+    </message>
 </context>
 <context>
     <name>strikepro::TrayIndicator</name>
     <message>
         <source>Open MSI Keyboard</source>
         <translation>Открыть MSI Keyboard</translation>
+    </message>
+    <message>
+        <source>Devices</source>
+        <translation>Устройства</translation>
     </message>
     <message>
         <source>Quit</source>

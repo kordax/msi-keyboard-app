@@ -35,6 +35,7 @@ jobs:
             curl \
             g++ \
             libgl1-mesa-dev \
+            libqt6svg6 \
             qt6-base-dev \
             qt6-image-formats-plugins \
             qt6-l10n-tools \
@@ -81,6 +82,7 @@ jobs:
             desktop-file-utils \
             g++ \
             libgl1-mesa-dev \
+            libqt6svg6 \
             qt6-base-dev \
             qt6-image-formats-plugins \
             qt6-l10n-tools \
@@ -123,6 +125,7 @@ jobs:
             cmake \
             g++ \
             libgl1-mesa-dev \
+            libqt6svg6 \
             qt6-base-dev \
             qt6-image-formats-plugins \
             qt6-l10n-tools \

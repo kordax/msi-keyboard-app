@@ -1,4 +1,5 @@
 #include "device/DeviceDefinitions.h"
+#include "device/BatteryProtocol.h"
 
 #include <QSet>
 #include <QtTest>
@@ -56,6 +57,12 @@ class DeviceDefinitionsTest final : public QObject {
                 definition.supportsBattery(),
                 !definition.batteryProtocol.empty()
                     && definition.batteryInterfaceNumber >= 0);
+            if (definition.supportsBattery()) {
+                QVERIFY(strikepro::hasKnownBatteryProtocol(definition));
+                QVERIFY(!strikepro::batteryQueryFor(definition).isEmpty());
+                QVERIFY(strikepro::builtInBatteryProfileFor(definition)
+                            .has_value());
+            }
         }
     }
 

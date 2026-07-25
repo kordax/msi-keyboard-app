@@ -8,6 +8,8 @@
 
 #include <QAction>
 #include <QActionGroup>
+#include <QApplication>
+#include <QCloseEvent>
 #include <QCursor>
 #include <QEvent>
 #include <QFrame>
@@ -18,7 +20,9 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QPixmap>
+#include <QSettings>
 #include <QSignalBlocker>
+#include <QSizePolicy>
 #include <QStyle>
 #include <QToolTip>
 #include <QVBoxLayout>
@@ -106,6 +110,13 @@ MainWindow::MainWindow(LanguageManager *languageManager, QWidget *parent)
     buildUi();
 
     m_trayIndicator = new TrayIndicator(this, this);
+    connect(
+        m_trayIndicator,
+        &TrayIndicator::deviceSelected,
+        this,
+        &MainWindow::selectDeviceFromTray,
+        Qt::QueuedConnection);
+    setKeepInTray(m_keepInTray, false);
     refreshConnectionUi();
 
     m_debugWindow = new DebugWindow(m_monitor, this);
@@ -147,8 +158,8 @@ MainWindow::MainWindow(LanguageManager *languageManager, QWidget *parent)
 
 void MainWindow::buildUi()
 {
-    setMinimumSize(980, 620);
-    resize(1180, 720);
+    setMinimumSize(820, 580);
+    resize(1180, 760);
 
     menuBar()->setNativeMenuBar(false);
     m_settingsMenu = menuBar()->addMenu(QString());
@@ -173,6 +184,52 @@ void MainWindow::buildUi()
     });
     m_languageMenu->setEnabled(m_languageManager != nullptr);
 
+    m_designMenu = m_settingsMenu->addMenu(QString());
+    m_designMenu->setObjectName(QStringLiteral("designMenu"));
+    m_designMenu->menuAction()->setVisible(false);
+    m_designActions = new QActionGroup(this);
+    m_designActions->setExclusive(true);
+    m_balancedDesignAction = m_designMenu->addAction(QString());
+    m_compactDesignAction = m_designMenu->addAction(QString());
+    m_showcaseDesignAction = m_designMenu->addAction(QString());
+    for (QAction *action :
+         {m_balancedDesignAction,
+          m_compactDesignAction,
+          m_showcaseDesignAction}) {
+        action->setCheckable(true);
+        m_designActions->addAction(action);
+    }
+    connect(m_balancedDesignAction, &QAction::triggered, this, [this] {
+        setDesign(UiDesign::Balanced, true);
+    });
+    connect(m_compactDesignAction, &QAction::triggered, this, [this] {
+        setDesign(UiDesign::Compact, true);
+    });
+    connect(m_showcaseDesignAction, &QAction::triggered, this, [this] {
+        setDesign(UiDesign::Showcase, true);
+    });
+
+    const QString savedDesign =
+        QSettings()
+            .value(QStringLiteral("ui/design"), QStringLiteral("balanced"))
+            .toString();
+    m_design = savedDesign == QStringLiteral("compact")    ? UiDesign::Compact
+               : savedDesign == QStringLiteral("showcase") ? UiDesign::Showcase
+                                                           : UiDesign::Balanced;
+
+    m_settingsMenu->addSeparator();
+    m_keepInTrayAction = m_settingsMenu->addAction(QString());
+    m_keepInTrayAction->setObjectName(QStringLiteral("keepInTrayAction"));
+    m_keepInTrayAction->setCheckable(true);
+    m_keepInTray =
+        QSettings().value(QStringLiteral("ui/keepInTray"), false).toBool();
+    m_keepInTrayAction->setChecked(m_keepInTray);
+    connect(
+        m_keepInTrayAction,
+        &QAction::toggled,
+        this,
+        [this](const bool enabled) { setKeepInTray(enabled, true); });
+
     m_debugMenu = menuBar()->addMenu(QString());
     m_logsAction = m_debugMenu->addAction(QString());
     m_telemetryAction = m_debugMenu->addAction(QString());
@@ -190,7 +247,16 @@ void MainWindow::buildUi()
     auto *central = new QWidget(this);
     central->setObjectName(QStringLiteral("surface"));
     central->setAttribute(Qt::WA_StyledBackground);
-    auto *root = new QVBoxLayout(central);
+    auto *outer = new QHBoxLayout(central);
+    outer->setContentsMargins(0, 0, 0, 0);
+    outer->setSpacing(0);
+    outer->addStretch(1);
+
+    m_content = new QWidget(central);
+    m_content->setObjectName(QStringLiteral("content"));
+    m_content->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    m_contentLayout = new QVBoxLayout(m_content);
+    auto *root = m_contentLayout;
     root->setContentsMargins(28, 20, 28, 26);
     root->setSpacing(14);
 
@@ -199,17 +265,23 @@ void MainWindow::buildUi()
 
     auto *titleColumn = new QVBoxLayout;
     titleColumn->setSpacing(1);
-    m_title = new QLabel(central);
+    m_title = new QLabel(m_content);
     m_title->setObjectName(QStringLiteral("title"));
+    m_subtitle = new QLabel(m_content);
+    m_subtitle->setObjectName(QStringLiteral("subtitle"));
+    m_subtitle->setProperty("role", QStringLiteral("muted"));
     titleColumn->addWidget(m_title);
+    titleColumn->addWidget(m_subtitle);
     header->addLayout(titleColumn);
     header->addStretch();
     root->addLayout(header);
 
-    auto *dashboard = new QHBoxLayout;
-    dashboard->setSpacing(1);
+    m_dashboardLayout = new QHBoxLayout;
+    auto *dashboard = m_dashboardLayout;
+    dashboard->setSpacing(16);
 
-    auto *deviceListCard = makeCard(central);
+    m_deviceListCard = makeCard(m_content);
+    auto *deviceListCard = m_deviceListCard;
     deviceListCard->setMinimumWidth(235);
     deviceListCard->setMaximumWidth(285);
     auto *deviceListLayout = new QVBoxLayout(deviceListCard);
@@ -244,7 +316,8 @@ void MainWindow::buildUi()
     deviceListLayout->addWidget(m_emptyDevices, 1);
     dashboard->addWidget(deviceListCard);
 
-    auto *detailCard = makeCard(central);
+    m_detailCard = makeCard(m_content);
+    auto *detailCard = m_detailCard;
     auto *detailLayout = new QVBoxLayout(detailCard);
     detailLayout->setContentsMargins(0, 0, 0, 0);
     detailLayout->setSpacing(0);
@@ -318,16 +391,19 @@ void MainWindow::buildUi()
     detailLayout->insertWidget(0, deviceCard);
     dashboard->addWidget(detailCard, 1);
     root->addLayout(dashboard, 1);
+    outer->addWidget(m_content, 20);
+    outer->addStretch(1);
     setCentralWidget(central);
 
     setStyleSheet(QStringLiteral(R"(
-        QMainWindow, QDialog#debugWindow { background: #0d0d0d; }
+        QMainWindow, QDialog#debugWindow { background: #0b0c0f; }
         QWidget {
-            color: #f1f1f1;
+            color: #f3f4f6;
             font-family: "Inter", "Noto Sans", sans-serif;
             font-size: 13px;
         }
-        QWidget#surface { background: #111111; }
+        QWidget#surface { background: #0d0f13; }
+        QWidget#content { background: transparent; }
         QMenuBar {
             background: #111111;
             color: #b6b6b6;
@@ -356,33 +432,37 @@ void MainWindow::buildUi()
         QListWidget#deviceList::item {
             border: 1px solid transparent;
             border-left: 3px solid transparent;
-            padding: 11px 10px;
-            margin: 1px 0;
+            border-radius: 8px;
+            padding: 12px 11px;
+            margin: 2px 0;
         }
         QListWidget#deviceList::item:hover {
-            background: #222222;
+            background: #20242b;
             color: #ffffff;
         }
         QListWidget#deviceList::item:selected {
-            background: #292929;
-            border-color: #363636;
-            border-left-color: #d44a62;
+            background: #272b33;
+            border-color: #373c46;
+            border-left-color: #e34f6a;
             color: #ffffff;
         }
         QLabel#emptyDevices { padding: 16px; }
         QWidget#batterySection { border-top: 1px solid #303030; }
         QLabel#title {
             color: #ffffff;
-            font-size: 25px;
-            font-weight: 750;
-            letter-spacing: 1.6px;
+            font-size: 24px;
+            font-weight: 760;
+            letter-spacing: 0.8px;
+        }
+        QLabel#subtitle {
+            color: #7f8793;
+            font-size: 12px;
+            padding-top: 2px;
         }
         QFrame#card {
-            background: #181818;
-            border: none;
-            border-top: 1px solid #353535;
-            border-bottom: 1px solid #2c2c2c;
-            border-radius: 0;
+            background: #16191e;
+            border: 1px solid #292e36;
+            border-radius: 16px;
         }
         QLabel[role="eyebrow"] {
             color: #8c8c8c;
@@ -506,6 +586,7 @@ void MainWindow::buildUi()
             padding: 5px;
         }
     )"));
+    applyDesign();
     retranslateUi();
 }
 
@@ -517,13 +598,32 @@ void MainWindow::changeEvent(QEvent *event)
     }
 }
 
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (m_keepInTray && m_trayIndicator != nullptr
+        && m_trayIndicator->isEnabled() && m_trayIndicator->isAvailable()) {
+        event->ignore();
+        hide();
+        return;
+    }
+    if (m_keepInTray) {
+        QApplication::setQuitOnLastWindowClosed(true);
+    }
+    QMainWindow::closeEvent(event);
+}
+
 void MainWindow::retranslateUi()
 {
     setWindowTitle(tr("MSI Keyboard"));
     m_settingsMenu->setTitle(tr("Settings"));
     m_languageMenu->setTitle(tr("Language"));
+    m_designMenu->setTitle(tr("Layout"));
     m_englishAction->setText(tr("English"));
     m_russianAction->setText(tr("Russian"));
+    m_balancedDesignAction->setText(tr("Balanced"));
+    m_compactDesignAction->setText(tr("Compact"));
+    m_showcaseDesignAction->setText(tr("Showcase"));
+    m_keepInTrayAction->setText(tr("Keep running in tray"));
     m_debugMenu->setTitle(tr("Debug"));
     m_logsAction->setText(tr("Logs"));
     m_telemetryAction->setText(tr("Telemetry"));
@@ -535,6 +635,7 @@ void MainWindow::retranslateUi()
     m_russianAction->setChecked(language == QStringLiteral("ru"));
 
     m_title->setText(tr("MSI Keyboard manager for Linux"));
+    m_subtitle->setText(tr("Connection, transport, and battery at a glance"));
     m_deviceListCaption->setText(tr("DEVICES"));
     m_emptyDevices->setText(tr("Connect a supported MSI keyboard."));
     m_batteryCaption->setText(tr("BATTERY"));
@@ -552,6 +653,97 @@ void MainWindow::retranslateUi()
 QString MainWindow::profilePath() const
 {
     return defaultProtocolProfilePath();
+}
+
+const ProtocolProfile *
+MainWindow::profileForDevice(const SupportedDevice &device) const
+{
+    const auto found =
+        m_profiles.constFind(device.definition.batteryProtocolString());
+    return found == m_profiles.cend() ? nullptr : &found.value();
+}
+
+void MainWindow::setDesign(const UiDesign design, const bool persist)
+{
+    m_design = design;
+    if (persist) {
+        const QString value =
+            design == UiDesign::Compact    ? QStringLiteral("compact")
+            : design == UiDesign::Showcase ? QStringLiteral("showcase")
+                                           : QStringLiteral("balanced");
+        QSettings().setValue(QStringLiteral("ui/design"), value);
+    }
+    applyDesign();
+}
+
+void MainWindow::setKeepInTray(const bool enabled, const bool persist)
+{
+    m_keepInTray = enabled;
+    if (persist) {
+        QSettings().setValue(QStringLiteral("ui/keepInTray"), enabled);
+    }
+    if (m_keepInTrayAction != nullptr
+        && m_keepInTrayAction->isChecked() != enabled) {
+        const QSignalBlocker blocker(m_keepInTrayAction);
+        m_keepInTrayAction->setChecked(enabled);
+    }
+    if (m_trayIndicator != nullptr) {
+        m_trayIndicator->setEnabled(enabled);
+    }
+    QApplication::setQuitOnLastWindowClosed(!enabled);
+}
+
+void MainWindow::applyDesign()
+{
+    if (m_content == nullptr || m_contentLayout == nullptr
+        || m_dashboardLayout == nullptr || m_deviceListCard == nullptr
+        || m_batterySection == nullptr || m_deviceImage == nullptr
+        || m_batteryGauge == nullptr) {
+        return;
+    }
+
+    int maximumWidth = 1280;
+    int sidebarWidth = 270;
+    int outerMargin = 24;
+    int dashboardGap = 16;
+    int artworkHeight = 170;
+    int gaugeSize = 240;
+    int batteryHeight = 290;
+    if (m_design == UiDesign::Compact) {
+        maximumWidth = 1060;
+        sidebarWidth = 235;
+        outerMargin = 18;
+        dashboardGap = 12;
+        artworkHeight = 130;
+        gaugeSize = 210;
+        batteryHeight = 250;
+    } else if (m_design == UiDesign::Showcase) {
+        maximumWidth = 1440;
+        sidebarWidth = 300;
+        outerMargin = 32;
+        dashboardGap = 22;
+        artworkHeight = 220;
+        gaugeSize = 280;
+        batteryHeight = 330;
+    }
+
+    m_content->setMaximumWidth(maximumWidth);
+    m_contentLayout->setContentsMargins(
+        outerMargin,
+        outerMargin - 4,
+        outerMargin,
+        outerMargin);
+    m_contentLayout->setSpacing(dashboardGap);
+    m_dashboardLayout->setSpacing(dashboardGap);
+    m_deviceListCard->setMinimumWidth(sidebarWidth);
+    m_deviceListCard->setMaximumWidth(sidebarWidth);
+    m_deviceImage->setMinimumHeight(artworkHeight);
+    m_batterySection->setMinimumHeight(batteryHeight);
+    m_batteryGauge->setFixedSize(gaugeSize, gaugeSize);
+
+    m_balancedDesignAction->setChecked(m_design == UiDesign::Balanced);
+    m_compactDesignAction->setChecked(m_design == UiDesign::Compact);
+    m_showcaseDesignAction->setChecked(m_design == UiDesign::Showcase);
 }
 
 void MainWindow::setStatus(
@@ -577,16 +769,30 @@ void MainWindow::logDebug(const QString &message)
 
 void MainWindow::reloadProtocolProfile()
 {
-    QString error;
-    m_profile = BatteryDecoder::loadProfile(profilePath(), &error);
-    if (m_profile.has_value() && m_profile->canDecodePercentage()) {
-        logDebug(tr("Protocol profile loaded: %1").arg(m_profile->path));
+    m_profiles.clear();
+    for (const DeviceDefinition &definition : supportedDeviceDefinitions()) {
+        if (!definition.supportsBattery()) {
+            continue;
+        }
+        const QString protocolId = definition.batteryProtocolString();
+        if (m_profiles.contains(protocolId)) {
+            continue;
+        }
+
+        QString error;
+        std::optional<ProtocolProfile> profile =
+            batteryProfileFor(definition, profilePath(), &error);
+        if (profile.has_value() && profile->canDecodePercentage()) {
+            logDebug(tr("Protocol profile loaded: %1").arg(profile->path));
+            m_profiles.insert(protocolId, std::move(*profile));
+        } else {
+            logDebug(
+                error.isEmpty() ? tr("Battery profile unavailable")
+                                : tr("Profile error: %1").arg(error));
+        }
+    }
+    if (!m_profiles.isEmpty()) {
         QTimer::singleShot(0, this, &MainWindow::requestBattery);
-    } else {
-        m_profile.reset();
-        logDebug(
-            error.isEmpty() ? tr("Battery profile unavailable")
-                            : tr("Profile error: %1").arg(error));
     }
 }
 
@@ -708,9 +914,20 @@ void MainWindow::selectDevice(
     QListWidgetItem *current, QListWidgetItem *previous)
 {
     Q_UNUSED(previous)
-    const QString deviceId =
-        current == nullptr ? QString() : current->data(Qt::UserRole).toString();
-    if (deviceId == m_selectedDeviceId) {
+    activateDevice(
+        current == nullptr ? QString()
+                           : current->data(Qt::UserRole).toString());
+}
+
+void MainWindow::selectDeviceFromTray(const QString &deviceId)
+{
+    activateDevice(deviceId);
+}
+
+void MainWindow::activateDevice(const QString &deviceId)
+{
+    if (deviceId == m_selectedDeviceId
+        || (!deviceId.isEmpty() && !m_devices.contains(deviceId))) {
         return;
     }
 
@@ -783,6 +1000,44 @@ void MainWindow::refreshTrayIndicator()
     if (m_trayIndicator == nullptr) {
         return;
     }
+
+    QHash<QString, int> nameTotals;
+    for (const QString &deviceId : std::as_const(m_deviceOrder)) {
+        const auto found = m_devices.constFind(deviceId);
+        if (found != m_devices.cend()) {
+            ++nameTotals[deviceName(found->device)];
+        }
+    }
+
+    QHash<QString, int> nameOccurrences;
+    QList<TrayIndicator::DeviceEntry> devices;
+    devices.reserve(m_deviceOrder.size());
+    for (const QString &deviceId : std::as_const(m_deviceOrder)) {
+        const auto found = m_devices.constFind(deviceId);
+        if (found == m_devices.cend()) {
+            continue;
+        }
+        const DeviceRuntime &deviceRuntime = found.value();
+        const QString baseName = deviceName(deviceRuntime.device);
+        QString displayName = baseName;
+        if (nameTotals.value(baseName) > 1) {
+            displayName = QStringLiteral("%1 #%2").arg(baseName).arg(
+                ++nameOccurrences[baseName]);
+        }
+        QString detail = deviceListStatus(deviceRuntime);
+        if (deviceRuntime.battery.has_value()) {
+            detail = QStringLiteral("%1% · %2")
+                         .arg(deviceRuntime.battery->percent)
+                         .arg(detail);
+        }
+        devices.push_back(TrayIndicator::DeviceEntry{
+            .id = deviceId,
+            .name = displayName,
+            .detail = detail,
+            .selected = deviceId == m_selectedDeviceId,
+        });
+    }
+    m_trayIndicator->setDevices(devices);
 
     TrayIndicator::State state;
     const DeviceRuntime *runtime = selectedDevice();
@@ -1023,9 +1278,11 @@ void MainWindow::requestBattery()
     DeviceRuntime *runtime = selectedDevice();
     const HidInterface *batteryInterface =
         runtime == nullptr ? nullptr : runtime->device.batteryInterface();
-    if (runtime == nullptr || batteryInterface == nullptr
+    const ProtocolProfile *profile =
+        runtime == nullptr ? nullptr : profileForDevice(runtime->device);
+    if (runtime == nullptr || batteryInterface == nullptr || profile == nullptr
         || !runtime->device.canQueryBattery() || m_batteryRequestPending
-        || !m_profile.has_value() || !m_profile->canDecodePercentage()) {
+        || !profile->canDecodePercentage()) {
         return;
     }
 
@@ -1073,14 +1330,6 @@ void MainWindow::requestBattery()
 
 void MainWindow::recordReport(const HidReport &report)
 {
-    if (!m_profile.has_value()) {
-        return;
-    }
-    const auto reading = BatteryDecoder::decode(report, *m_profile);
-    if (!reading.has_value()) {
-        return;
-    }
-
     auto runtime = std::ranges::find_if(
         m_devices,
         [&report](const DeviceRuntime &candidate) {
@@ -1097,11 +1346,21 @@ void MainWindow::recordReport(const HidReport &report)
                 return std::ranges::any_of(
                     candidate.device.interfaces,
                     [&report](const HidInterface &interface) {
-                        return interface.productId == report.productId;
+                        return interface.vendorId == report.vendorId
+                               && interface.productId == report.productId;
                     });
             });
     }
     if (runtime == m_devices.end()) {
+        return;
+    }
+
+    const ProtocolProfile *profile = profileForDevice(runtime->device);
+    if (profile == nullptr) {
+        return;
+    }
+    const auto reading = BatteryDecoder::decode(report, *profile);
+    if (!reading.has_value()) {
         return;
     }
 

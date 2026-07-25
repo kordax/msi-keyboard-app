@@ -34,7 +34,10 @@ set(CPACK_DEBIAN_PACKAGE_RELEASE "1")
 set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "qt6-image-formats-plugins")
+set(
+    CPACK_DEBIAN_PACKAGE_DEPENDS
+    "libqt6svg6, qt6-image-formats-plugins"
+)
 set(
     CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
     "${PROJECT_SOURCE_DIR}/packaging/debian/postinst"
@@ -46,7 +49,7 @@ set(CPACK_RPM_PACKAGE_RELEASE "1")
 set(CPACK_RPM_PACKAGE_LICENSE "MIT")
 set(CPACK_RPM_PACKAGE_GROUP "Applications/System")
 set(CPACK_RPM_PACKAGE_AUTOREQPROV ON)
-set(CPACK_RPM_PACKAGE_REQUIRES "qt6-qtimageformats")
+set(CPACK_RPM_PACKAGE_REQUIRES "qt6-qtimageformats, qt6-qtsvg")
 set(
     CPACK_RPM_POST_INSTALL_SCRIPT_FILE
     "${PROJECT_SOURCE_DIR}/packaging/rpm/post-install.sh"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "device/BatteryDecoder.h"
+#include "device/BatteryProtocol.h"
 #include "device/DeviceCatalog.h"
 #include "device/HidMonitor.h"
 
@@ -12,11 +12,15 @@
 
 class QAction;
 class QActionGroup;
+class QBoxLayout;
+class QCloseEvent;
 class QEvent;
+class QFrame;
 class QLabel;
 class QListWidget;
 class QListWidgetItem;
 class QMenu;
+class QVBoxLayout;
 class QWidget;
 
 namespace strikepro {
@@ -35,6 +39,7 @@ class MainWindow final : public QMainWindow {
 
   protected:
     void changeEvent(QEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
   private slots:
     void updateInterfaces(const QList<strikepro::HidInterface> &interfaces);
@@ -43,6 +48,7 @@ class MainWindow final : public QMainWindow {
     void reloadProtocolProfile();
     void requestBattery();
     void selectDevice(QListWidgetItem *current, QListWidgetItem *previous);
+    void selectDeviceFromTray(const QString &deviceId);
     void showDeviceArtwork(QListWidgetItem *item);
     void showDebugLogs();
     void showDebugTelemetry();
@@ -54,6 +60,12 @@ class MainWindow final : public QMainWindow {
         Connected,
         AccessDenied,
         Unresponsive,
+    };
+
+    enum class UiDesign {
+        Balanced,
+        Compact,
+        Showcase,
     };
 
     struct DeviceRuntime {
@@ -74,7 +86,13 @@ class MainWindow final : public QMainWindow {
     void setStatus(
         QLabel *dot, QLabel *detail, const QString &tone, const QString &text);
     void logDebug(const QString &message);
+    void activateDevice(const QString &deviceId);
+    void setKeepInTray(bool enabled, bool persist);
+    void setDesign(UiDesign design, bool persist);
+    void applyDesign();
     [[nodiscard]] QString profilePath() const;
+    [[nodiscard]] const ProtocolProfile *
+    profileForDevice(const SupportedDevice &device) const;
     [[nodiscard]] QString deviceName(const SupportedDevice &device) const;
     [[nodiscard]] QString transportName(const SupportedDevice &device) const;
     [[nodiscard]] QString
@@ -88,7 +106,7 @@ class MainWindow final : public QMainWindow {
     HidMonitor *m_monitor = nullptr;
     DebugWindow *m_debugWindow = nullptr;
     TrayIndicator *m_trayIndicator = nullptr;
-    std::optional<ProtocolProfile> m_profile;
+    QHash<QString, ProtocolProfile> m_profiles;
     QHash<QString, DeviceRuntime> m_devices;
     QStringList m_deviceOrder;
     QString m_selectedDeviceId;
@@ -96,16 +114,30 @@ class MainWindow final : public QMainWindow {
     QTimer m_batteryPollTimer;
     quint64 m_batteryRequestGeneration = 0;
     bool m_batteryRequestPending = false;
+    bool m_keepInTray = false;
+    UiDesign m_design = UiDesign::Balanced;
 
     QMenu *m_settingsMenu = nullptr;
     QMenu *m_languageMenu = nullptr;
+    QMenu *m_designMenu = nullptr;
     QMenu *m_debugMenu = nullptr;
     QActionGroup *m_languageActions = nullptr;
+    QActionGroup *m_designActions = nullptr;
     QAction *m_englishAction = nullptr;
     QAction *m_russianAction = nullptr;
+    QAction *m_balancedDesignAction = nullptr;
+    QAction *m_compactDesignAction = nullptr;
+    QAction *m_showcaseDesignAction = nullptr;
+    QAction *m_keepInTrayAction = nullptr;
     QAction *m_logsAction = nullptr;
     QAction *m_telemetryAction = nullptr;
+    QWidget *m_content = nullptr;
+    QFrame *m_deviceListCard = nullptr;
+    QFrame *m_detailCard = nullptr;
+    QVBoxLayout *m_contentLayout = nullptr;
+    QBoxLayout *m_dashboardLayout = nullptr;
     QLabel *m_title = nullptr;
+    QLabel *m_subtitle = nullptr;
     QLabel *m_deviceListCaption = nullptr;
     QLabel *m_emptyDevices = nullptr;
     QListWidget *m_deviceList = nullptr;

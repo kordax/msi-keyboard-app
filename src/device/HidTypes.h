@@ -17,6 +17,7 @@ struct HidInterface {
     QString devNode;
     QString sysfsPath;
     QString name;
+    QString uniqueId;
     quint16 vendorId = 0;
     quint16 productId = 0;
     int interfaceNumber = -1;

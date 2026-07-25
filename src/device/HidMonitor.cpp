@@ -1,6 +1,8 @@
 #include "HidMonitor.h"
 
+#include "BatteryProtocol.h"
 #include "HidDeviceScanner.h"
+#include "HidUevent.h"
 
 #include <QSet>
 #include <QSocketNotifier>
@@ -21,8 +23,9 @@ QString interfaceSignature(const QList<HidInterface> &interfaces)
 {
     QStringList parts;
     for (const HidInterface &interface : interfaces) {
-        parts.push_back(QStringLiteral("%1:%2:%3:%4:%5:%6")
+        parts.push_back(QStringLiteral("%1:%2:%3:%4:%5:%6:%7")
                             .arg(interface.devNode)
+                            .arg(interface.uniqueId)
                             .arg(interface.vendorId)
                             .arg(interface.productId)
                             .arg(interface.interfaceNumber)
@@ -70,56 +73,6 @@ const HidInterface *findPreferredInterface(
     return nullptr;
 }
 
-QByteArray batteryQueryForDefinition(const DeviceDefinition &definition)
-{
-    if (definition.batteryProtocol != std::string_view{"strike-pro-v1"}) {
-        return {};
-    }
-
-    // Interface 1 has an unnumbered 64-byte output report. hidraw requires
-    // a leading zero report ID, followed by the confirmed MSI Center query.
-    QByteArray report(65, '\0');
-    report[1] = static_cast<char>(0x0d);
-    report[2] = static_cast<char>(0xb0);
-    report[3] = static_cast<char>(0x01);
-    report[7] = static_cast<char>(0x05);
-    return report;
-}
-
-bool isTargetDeviceEvent(const QByteArray &event)
-{
-    const QByteArray lower = event.toLower();
-    const bool relevantSubsystem = lower.contains("subsystem=hidraw")
-                                   || lower.contains("subsystem=hid")
-                                   || lower.contains("subsystem=usb");
-    const bool relevantAction =
-        lower.startsWith("add@") || lower.startsWith("remove@")
-        || lower.startsWith("change@") || lower.startsWith("bind@")
-        || lower.startsWith("unbind@") || lower.contains("action=add")
-        || lower.contains("action=remove") || lower.contains("action=change")
-        || lower.contains("action=bind") || lower.contains("action=unbind");
-    bool supportedDevice = false;
-    for (const DeviceDefinition &definition : supportedDeviceDefinitions()) {
-        const QByteArray vendorId =
-            QByteArray::number(definition.vendorId, 16).rightJustified(4, '0');
-        if (!lower.contains(vendorId)) {
-            continue;
-        }
-        for (const quint16 productId : transportProductIds(definition)) {
-            const QByteArray product =
-                QByteArray::number(productId, 16).rightJustified(4, '0');
-            if (lower.contains(product)) {
-                supportedDevice = true;
-                break;
-            }
-        }
-        if (supportedDevice) {
-            break;
-        }
-    }
-    return relevantSubsystem && relevantAction && supportedDevice;
-}
-
 } // namespace
 
 HidMonitor::HidMonitor(QObject *parent)
@@ -160,7 +113,7 @@ bool HidMonitor::requestBattery(const QString &devNode, QString *error)
         if (!definition.supportsBattery()) {
             continue;
         }
-        const QByteArray report = batteryQueryForDefinition(definition);
+        const QByteArray report = batteryQueryFor(definition);
         if (report.isEmpty()) {
             continue;
         }
@@ -319,7 +272,7 @@ void HidMonitor::readUevents()
             ::recv(m_ueventFd, buffer, sizeof(buffer), MSG_DONTWAIT);
         if (count > 0) {
             targetEventReceived |=
-                isTargetDeviceEvent(QByteArray(buffer, count));
+                isSupportedDeviceUevent(QByteArray(buffer, count));
             continue;
         }
         if (count < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {

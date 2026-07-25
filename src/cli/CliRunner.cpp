@@ -59,21 +59,33 @@ CliRunner::CliRunner(CliOptions options, QObject *parent)
         this,
         &CliRunner::handleDiagnostic);
 
-    QString profileError;
-    m_profile =
-        BatteryDecoder::loadProfile(m_options.profilePath, &profileError);
-    if (m_profile.has_value() && m_profile->canDecodePercentage()) {
-        log(QStringLiteral("info"),
-            QStringLiteral("profile_loaded"),
-            tr("Battery profile loaded"),
-            {{QStringLiteral("path"), m_profile->path}});
-    } else {
-        m_profile.reset();
-        log(QStringLiteral("info"),
-            QStringLiteral("profile_unavailable"),
-            tr("The battery decoder is not configured"),
-            {{QStringLiteral("path"), m_options.profilePath},
-             {QStringLiteral("reason"), profileError}});
+    for (const DeviceDefinition &definition : supportedDeviceDefinitions()) {
+        if (!definition.supportsBattery()) {
+            continue;
+        }
+        const QString protocolId = definition.batteryProtocolString();
+        if (m_profiles.contains(protocolId)) {
+            continue;
+        }
+
+        QString profileError;
+        std::optional<ProtocolProfile> profile =
+            batteryProfileFor(definition, m_options.profilePath, &profileError);
+        if (profile.has_value() && profile->canDecodePercentage()) {
+            log(QStringLiteral("info"),
+                QStringLiteral("profile_loaded"),
+                tr("Battery profile loaded"),
+                {{QStringLiteral("protocol"), protocolId},
+                 {QStringLiteral("path"), profile->path}});
+            m_profiles.insert(protocolId, std::move(*profile));
+        } else {
+            log(QStringLiteral("info"),
+                QStringLiteral("profile_unavailable"),
+                tr("The battery decoder is not configured"),
+                {{QStringLiteral("protocol"), protocolId},
+                 {QStringLiteral("path"), m_options.profilePath},
+                 {QStringLiteral("reason"), profileError}});
+        }
     }
 }
 
@@ -211,10 +223,20 @@ void CliRunner::handleReport(const HidReport &report)
               QString::fromLatin1(report.data.toHex())}});
     }
 
-    if (!m_profile.has_value()) {
+    const DeviceDefinition *definition =
+        findDeviceDefinition(report.vendorId, report.productId);
+    if (definition == nullptr && report.vendorId == 0) {
+        definition = findDeviceDefinitionByProductId(report.productId);
+    }
+    if (definition == nullptr) {
         return;
     }
-    const auto reading = BatteryDecoder::decode(report, *m_profile);
+    const auto profile =
+        m_profiles.constFind(definition->batteryProtocolString());
+    if (profile == m_profiles.cend()) {
+        return;
+    }
+    const auto reading = BatteryDecoder::decode(report, profile.value());
     if (!reading.has_value()) {
         return;
     }

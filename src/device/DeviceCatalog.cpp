@@ -1,9 +1,11 @@
 #include "DeviceCatalog.h"
 
+#include <QCryptographicHash>
 #include <QMap>
 #include <QRegularExpression>
 
 #include <algorithm>
+#include <optional>
 
 namespace strikepro {
 namespace {
@@ -11,9 +13,15 @@ namespace {
 struct PhysicalEndpoint {
     QString id;
     QString name;
+    QString uniqueId;
     quint16 vendorId = 0;
     quint16 productId = 0;
     QList<HidInterface> interfaces;
+};
+
+struct EndpointPair {
+    std::optional<PhysicalEndpoint> usb;
+    std::optional<PhysicalEndpoint> dongle;
 };
 
 QString physicalEndpointId(const HidInterface &interface)
@@ -39,6 +47,14 @@ QString physicalEndpointId(const HidInterface &interface)
         .arg(interface.vendorId, 4, 16, QLatin1Char('0'))
         .arg(interface.productId, 4, 16, QLatin1Char('0'))
         .arg(interface.name);
+}
+
+QString stableToken(const QString &value)
+{
+    return QString::fromLatin1(
+        QCryptographicHash::hash(value.toUtf8(), QCryptographicHash::Sha256)
+            .toHex()
+            .first(12));
 }
 
 void sortInterfaces(QList<HidInterface> &interfaces)
@@ -71,6 +87,109 @@ const DeviceDefinition *findDefinition(
             return definition.matches(interface.vendorId, interface.productId);
         });
     return found == definitions.end() ? nullptr : &*found;
+}
+
+QString logicalDeviceId(
+    const DeviceDefinition &definition,
+    const EndpointPair &pair,
+    const bool onlyLogicalCandidate)
+{
+    const QString definitionId = definition.idString();
+    const QString usbUnique =
+        pair.usb.has_value() ? pair.usb->uniqueId : QString();
+    const QString dongleUnique =
+        pair.dongle.has_value() ? pair.dongle->uniqueId : QString();
+    const QString sharedUnique =
+        !usbUnique.isEmpty() && usbUnique == dongleUnique ? usbUnique
+        : pair.usb.has_value() && !usbUnique.isEmpty()
+                && !pair.dongle.has_value()
+            ? usbUnique
+        : pair.dongle.has_value() && !dongleUnique.isEmpty()
+                && !pair.usb.has_value()
+            ? dongleUnique
+            : QString();
+    if (!sharedUnique.isEmpty()) {
+        return QStringLiteral("%1:id:%2")
+            .arg(definitionId, stableToken(sharedUnique));
+    }
+    if (onlyLogicalCandidate) {
+        return QStringLiteral("%1:0001").arg(definitionId);
+    }
+    if (pair.usb.has_value() && pair.dongle.has_value()) {
+        return QStringLiteral("%1:pair:%2")
+            .arg(
+                definitionId,
+                stableToken(pair.usb->id + QLatin1Char('|') + pair.dongle->id));
+    }
+    const PhysicalEndpoint &endpoint =
+        pair.usb.has_value() ? *pair.usb : *pair.dongle;
+    const QString transport =
+        pair.usb.has_value() ? QStringLiteral("usb") : QStringLiteral("dongle");
+    return QStringLiteral("%1:%2:%3")
+        .arg(definitionId, transport, stableToken(endpoint.id));
+}
+
+QList<EndpointPair> pairEndpoints(
+    const QList<PhysicalEndpoint> &usbEndpoints,
+    const QList<PhysicalEndpoint> &dongleEndpoints)
+{
+    QList<EndpointPair> pairs;
+    QList<bool> usbUsed(usbEndpoints.size(), false);
+    QList<bool> dongleUsed(dongleEndpoints.size(), false);
+
+    for (qsizetype usbIndex = 0; usbIndex < usbEndpoints.size(); ++usbIndex) {
+        const QString uniqueId = usbEndpoints.at(usbIndex).uniqueId;
+        if (uniqueId.isEmpty()) {
+            continue;
+        }
+        qsizetype matchingDongle = -1;
+        int matchCount = 0;
+        for (qsizetype dongleIndex = 0; dongleIndex < dongleEndpoints.size();
+             ++dongleIndex) {
+            if (!dongleUsed.at(dongleIndex)
+                && dongleEndpoints.at(dongleIndex).uniqueId == uniqueId) {
+                matchingDongle = dongleIndex;
+                ++matchCount;
+            }
+        }
+        if (matchCount != 1) {
+            continue;
+        }
+        usbUsed[usbIndex] = true;
+        dongleUsed[matchingDongle] = true;
+        pairs.push_back(EndpointPair{
+            usbEndpoints.at(usbIndex),
+            dongleEndpoints.at(matchingDongle)});
+    }
+
+    QList<PhysicalEndpoint> remainingUsb;
+    QList<PhysicalEndpoint> remainingDongles;
+    for (qsizetype index = 0; index < usbEndpoints.size(); ++index) {
+        if (!usbUsed.at(index)) {
+            remainingUsb.push_back(usbEndpoints.at(index));
+        }
+    }
+    for (qsizetype index = 0; index < dongleEndpoints.size(); ++index) {
+        if (!dongleUsed.at(index)) {
+            remainingDongles.push_back(dongleEndpoints.at(index));
+        }
+    }
+
+    // With one endpoint per transport there is only one possible pairing. With
+    // multiple endpoints and no shared HID_UNIQ, guessing would merge different
+    // physical keyboards, so ambiguous endpoints deliberately stay separate.
+    if (remainingUsb.size() == 1 && remainingDongles.size() == 1) {
+        pairs.push_back(EndpointPair{
+            remainingUsb.takeFirst(),
+            remainingDongles.takeFirst()});
+    }
+    for (const PhysicalEndpoint &endpoint : remainingUsb) {
+        pairs.push_back(EndpointPair{endpoint, std::nullopt});
+    }
+    for (const PhysicalEndpoint &endpoint : remainingDongles) {
+        pairs.push_back(EndpointPair{std::nullopt, endpoint});
+    }
+    return pairs;
 }
 
 } // namespace
@@ -143,6 +262,9 @@ QList<SupportedDevice> groupSupportedDevices(
         if (endpoint.name.isEmpty() && !interface.name.isEmpty()) {
             endpoint.name = interface.name;
         }
+        if (endpoint.uniqueId.isEmpty() && !interface.uniqueId.isEmpty()) {
+            endpoint.uniqueId = interface.uniqueId;
+        }
         endpoint.interfaces.push_back(interface);
     }
 
@@ -170,22 +292,21 @@ QList<SupportedDevice> groupSupportedDevices(
         std::ranges::sort(usbEndpoints, byId);
         std::ranges::sort(dongleEndpoints, byId);
 
-        const qsizetype deviceCount =
-            std::max(usbEndpoints.size(), dongleEndpoints.size());
-        devices.reserve(devices.size() + deviceCount);
-        for (qsizetype index = 0; index < deviceCount; ++index) {
+        const QList<EndpointPair> pairs =
+            pairEndpoints(usbEndpoints, dongleEndpoints);
+        const bool onlyLogicalCandidate = pairs.size() == 1;
+        devices.reserve(devices.size() + pairs.size());
+        for (const EndpointPair &pair : pairs) {
             SupportedDevice device;
             device.definition = definition;
-            device.id = QStringLiteral("%1:%2")
-                            .arg(definition.idString())
-                            .arg(index + 1, 4, 10, QLatin1Char('0'));
+            device.id = logicalDeviceId(definition, pair, onlyLogicalCandidate);
             device.name = definition.displayNameString();
-            if (index < usbEndpoints.size()) {
-                appendEndpoint(device, usbEndpoints.at(index));
+            if (pair.usb.has_value()) {
+                appendEndpoint(device, *pair.usb);
                 device.productId = definition.usbProductId;
             }
-            if (index < dongleEndpoints.size()) {
-                appendEndpoint(device, dongleEndpoints.at(index));
+            if (pair.dongle.has_value()) {
+                appendEndpoint(device, *pair.dongle);
                 if (device.productId == 0) {
                     device.productId = definition.dongleProductId;
                 }

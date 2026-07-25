@@ -79,6 +79,7 @@ QList<HidInterface> HidDeviceScanner::scan()
         interface.devNode = QStringLiteral("/dev/") + entry;
         interface.sysfsPath = QFileInfo(devicePath).canonicalFilePath();
         interface.name = properties.value(QStringLiteral("HID_NAME"));
+        interface.uniqueId = properties.value(QStringLiteral("HID_UNIQ"));
         interface.vendorId = vendorId;
         interface.productId = productId;
         interface.interfaceNumber =
