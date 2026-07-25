@@ -18,7 +18,7 @@ function(msi_keyboard_generate_device_files json_file output_header output_udev)
     file(READ "${json_file}" device_json)
 
     string(JSON schema_version GET "${device_json}" version)
-    if(NOT schema_version EQUAL 1)
+    if(NOT schema_version EQUAL 2)
         message(FATAL_ERROR "devices.json: unsupported version ${schema_version}")
     endif()
 
@@ -47,6 +47,10 @@ function(msi_keyboard_generate_device_files json_file output_header output_udev)
         string(JSON artwork GET "${device_json}" devices ${index} artwork)
         string(JSON battery_protocol GET "${device_json}" devices ${index} battery_protocol)
         string(JSON battery_interface GET "${device_json}" devices ${index} battery_interface)
+        string(JSON battery_query_over_usb
+            GET "${device_json}" devices ${index} battery_query_over_usb)
+        string(JSON battery_query_over_dongle
+            GET "${device_json}" devices ${index} battery_query_over_dongle)
 
         if(NOT device_id MATCHES "^[a-z0-9]+([a-z0-9-]*[a-z0-9])?$")
             message(FATAL_ERROR
@@ -104,9 +108,27 @@ function(msi_keyboard_generate_device_files json_file output_header output_udev)
                 message(FATAL_ERROR
                     "devices.json: ${device_id}.battery_interface must be -1 when no battery protocol is set")
             endif()
+            if(battery_query_over_usb OR battery_query_over_dongle)
+                message(FATAL_ERROR
+                    "devices.json: ${device_id} cannot enable battery queries without a battery protocol")
+            endif()
         elseif(battery_interface LESS 0)
             message(FATAL_ERROR
                 "devices.json: ${device_id}.battery_interface must be non-negative")
+        endif()
+        if(battery_query_over_dongle AND dongle_product_id STREQUAL "")
+            message(FATAL_ERROR
+                "devices.json: ${device_id} cannot query battery over a missing dongle transport")
+        endif()
+        if(battery_query_over_usb)
+            set(battery_query_over_usb_cpp true)
+        else()
+            set(battery_query_over_usb_cpp false)
+        endif()
+        if(battery_query_over_dongle)
+            set(battery_query_over_dongle_cpp true)
+        else()
+            set(battery_query_over_dongle_cpp false)
         endif()
 
         msi_keyboard_escape_cpp("${device_id}" device_id_cpp)
@@ -123,6 +145,8 @@ function(msi_keyboard_generate_device_files json_file output_header output_udev)
             "        .artworkResource = std::string_view{\"${artwork_cpp}\"},\n"
             "        .batteryProtocol = std::string_view{\"${battery_protocol_cpp}\"},\n"
             "        .batteryInterfaceNumber = ${battery_interface},\n"
+            "        .batteryQueryOverUsb = ${battery_query_over_usb_cpp},\n"
+            "        .batteryQueryOverDongle = ${battery_query_over_dongle_cpp},\n"
             "    },\n")
 
         string(APPEND udev_rules

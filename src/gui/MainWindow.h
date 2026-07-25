@@ -72,6 +72,7 @@ class MainWindow final : public QMainWindow {
         SupportedDevice device;
         ConnectionState connectionState = ConnectionState::Probing;
         quint16 activeProductId = 0;
+        quint16 failedProductId = 0;
         std::optional<BatteryReading> battery;
     };
 
@@ -81,6 +82,8 @@ class MainWindow final : public QMainWindow {
     void refreshConnectionUi();
     void refreshTrayIndicator();
     void clearBattery(DeviceRuntime &runtime);
+    void handleBatteryQueryFailure(
+        DeviceRuntime &runtime, quint16 failedProductId);
     void setConnectionState(DeviceRuntime &runtime, ConnectionState state);
     void setBattery(DeviceRuntime &runtime, const BatteryReading &reading);
     void setStatus(

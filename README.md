@@ -1,6 +1,6 @@
 # MSI Keyboard for Linux
 
-A simple Linux application to support several MSI keyboards.
+A simple Linux application to support several MSI keyboards with tray support.
 
 <img src="assets/screenshots/msi-keyboard.png"
      alt="MSI Keyboard for Linux"
@@ -17,16 +17,21 @@ A simple Linux application to support several MSI keyboards.
 Download the package for your distribution from
 [GitHub Releases](https://github.com/kordax/msi-keyboard-app/releases).
 
+Starting with version 0.1.2, the system package is named `msi-keyboard-app`.
+APT removes an installed `msi-keyboard` package before installing this app.
+This avoids accidentally upgrading an older project release to the unrelated
+Ubuntu lighting tool that used the same package and command name.
+
 Debian, Ubuntu, and Linux Mint:
 
 ```bash
-sudo apt install ./msi-keyboard_0.1.1-1_amd64.deb
+sudo apt install ./msi-keyboard-app_0.1.2-1_amd64.deb
 ```
 
 Fedora and other RPM-based distributions:
 
 ```bash
-sudo dnf install ./msi-keyboard-0.1.1-1.x86_64.rpm
+sudo dnf install ./msi-keyboard-app-0.1.2-1.x86_64.rpm
 ```
 
 ## Usage
@@ -34,18 +39,18 @@ sudo dnf install ./msi-keyboard-0.1.1-1.x86_64.rpm
 Start the GUI:
 
 ```bash
-msi-keyboard
+msi-keyboard-app
 ```
 
 Use the CLI:
 
 ```bash
-msi-keyboard --cli
-msi-keyboard --cli --battery
-msi-keyboard --cli --battery --json
-msi-keyboard --cli --logs
-msi-keyboard --language ru
-msi-keyboard upgrade
+msi-keyboard-app --cli
+msi-keyboard-app --cli --battery
+msi-keyboard-app --cli --battery --json
+msi-keyboard-app --cli --logs
+msi-keyboard-app --language ru
+msi-keyboard-app upgrade
 ```
 
 ## Development

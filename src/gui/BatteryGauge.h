@@ -16,12 +16,18 @@ class BatteryGauge final : public QWidget {
     explicit BatteryGauge(QWidget *parent = nullptr);
 
     void setValue(std::optional<int> value);
+    void setCharging(bool charging);
     void setDeviceConnected(bool connected);
+    void setPreferredSize(int edge);
 
     [[nodiscard]] static QColor colorForValue(qreal value);
     [[nodiscard]] std::optional<int> value() const
     {
         return m_value;
+    }
+    [[nodiscard]] bool isCharging() const
+    {
+        return m_charging;
     }
     [[nodiscard]] QSize sizeHint() const override;
     [[nodiscard]] QSize minimumSizeHint() const override;
@@ -37,7 +43,9 @@ class BatteryGauge final : public QWidget {
     void setDisplayedValue(qreal value);
 
     std::optional<int> m_value;
+    int m_preferredSize = 250;
     qreal m_displayedValue = 0.0;
+    bool m_charging = false;
     bool m_deviceConnected = false;
     QPropertyAnimation *m_animation = nullptr;
 };

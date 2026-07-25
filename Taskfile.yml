@@ -47,8 +47,8 @@ tasks:
     desc: Release build, tests and smoke run
     cmds:
       - task: test
-      - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --version'
-      - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --language ru --version'
+      - '"{{.RELEASE_DIR}}/msi-keyboard-app" --cli --version'
+      - '"{{.RELEASE_DIR}}/msi-keyboard-app" --cli --language ru --version'
 
   verify-desktop:
     desc: Verify light themes, HiDPI, and Wayland rendering
@@ -176,25 +176,25 @@ tasks:
     desc: Build and run GUI
     cmds:
       - task: build-release
-      - '"{{.RELEASE_DIR}}/msi-keyboard"'
+      - '"{{.RELEASE_DIR}}/msi-keyboard-app"'
 
   battery:
     desc: Build and read battery
     cmds:
       - task: build-release
-      - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --battery'
+      - '"{{.RELEASE_DIR}}/msi-keyboard-app" --cli --battery'
 
   logs:
     desc: Build and run continuous CLI logs
     cmds:
       - task: build-release
-      - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --logs'
+      - '"{{.RELEASE_DIR}}/msi-keyboard-app" --cli --logs'
 
   json:
     desc: Build and read battery as JSON
     cmds:
       - task: build-release
-      - '"{{.RELEASE_DIR}}/msi-keyboard" --cli --battery --json'
+      - '"{{.RELEASE_DIR}}/msi-keyboard-app" --cli --battery --json'
 
   udev:
     desc: Install local udev rule

@@ -1,7 +1,7 @@
 include_guard(GLOBAL)
 
 set(CPACK_GENERATOR "DEB;RPM")
-set(CPACK_PACKAGE_NAME "msi-keyboard")
+set(CPACK_PACKAGE_NAME "msi-keyboard-app")
 set(CPACK_PACKAGE_VENDOR "Dmitry Morozov")
 set(CPACK_PACKAGE_CONTACT "Dmitry Morozov <kordaxmint@gmail.com>")
 set(
@@ -14,7 +14,7 @@ set(
 )
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/kordax/msi-keyboard-app")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "msi-keyboard")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "msi-keyboard-app")
 set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
 set(CPACK_STRIP_FILES ON)
@@ -34,6 +34,9 @@ set(CPACK_DEBIAN_PACKAGE_RELEASE "1")
 set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_PACKAGE_BREAKS "msi-keyboard")
+set(CPACK_DEBIAN_PACKAGE_CONFLICTS "msi-keyboard")
+set(CPACK_DEBIAN_PACKAGE_REPLACES "msi-keyboard (<= 0.1.1-1)")
 set(
     CPACK_DEBIAN_PACKAGE_DEPENDS
     "libqt6svg6, qt6-image-formats-plugins"
@@ -49,6 +52,7 @@ set(CPACK_RPM_PACKAGE_RELEASE "1")
 set(CPACK_RPM_PACKAGE_LICENSE "MIT")
 set(CPACK_RPM_PACKAGE_GROUP "Applications/System")
 set(CPACK_RPM_PACKAGE_AUTOREQPROV ON)
+set(CPACK_RPM_PACKAGE_OBSOLETES "msi-keyboard < 0.1.2-1")
 set(CPACK_RPM_PACKAGE_REQUIRES "qt6-qtimageformats, qt6-qtsvg")
 set(
     CPACK_RPM_POST_INSTALL_SCRIPT_FILE
@@ -70,7 +74,7 @@ list(
     "/usr/share/icons/hicolor/scalable/apps"
     "/usr/share/metainfo"
     "/usr/share/licenses"
-    "/usr/share/licenses/msi-keyboard"
+    "/usr/share/licenses/msi-keyboard-app"
 )
 
 include(CPack)

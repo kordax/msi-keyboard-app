@@ -23,6 +23,8 @@ struct DeviceDefinition {
     std::string_view artworkResource;
     std::string_view batteryProtocol;
     int batteryInterfaceNumber = -1;
+    bool batteryQueryOverUsb = false;
+    bool batteryQueryOverDongle = false;
 
     [[nodiscard]] constexpr bool matches(
         const quint16 candidateVendorId, const quint16 candidateProductId) const
@@ -52,6 +54,16 @@ struct DeviceDefinition {
     [[nodiscard]] constexpr bool supportsBattery() const
     {
         return !batteryProtocol.empty() && batteryInterfaceNumber >= 0;
+    }
+
+    [[nodiscard]] constexpr bool
+    canQueryBatteryOver(const quint16 candidateProductId) const
+    {
+        if (candidateProductId == usbProductId) {
+            return batteryQueryOverUsb;
+        }
+        return dongleProductId != 0 && candidateProductId == dongleProductId
+               && batteryQueryOverDongle;
     }
 
     [[nodiscard]] QString idString() const;

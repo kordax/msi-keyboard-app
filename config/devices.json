@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "devices": [
     {
       "id": "strike-pro",
@@ -9,7 +9,9 @@
       "dongle_product_id": "1620",
       "artwork": ":/assets/keyboard/strike_pro.png",
       "battery_protocol": "strike-pro-v1",
-      "battery_interface": 1
+      "battery_interface": 1,
+      "battery_query_over_usb": false,
+      "battery_query_over_dongle": true
     }
   ]
 }

@@ -50,13 +50,13 @@ GitHubRelease stableRelease()
         .version = QStringLiteral("0.2.0"),
         .name = QStringLiteral("0.2.0"),
         .pageUrl = QUrl(QStringLiteral(
-            "https://github.com/kordax/msi-keyboard/releases/0.2.0")),
+            "https://github.com/kordax/msi-keyboard-app/releases/0.2.0")),
         .assets =
             {
-                asset(QStringLiteral("msi-keyboard_0.2.0-1_amd64.deb")),
-                asset(QStringLiteral("msi-keyboard_0.2.0-1_arm64.deb")),
-                asset(QStringLiteral("msi-keyboard-0.2.0-1.x86_64.rpm")),
-                asset(QStringLiteral("msi-keyboard-0.2.0-1.aarch64.rpm")),
+                asset(QStringLiteral("msi-keyboard-app_0.2.0-1_amd64.deb")),
+                asset(QStringLiteral("msi-keyboard-app_0.2.0-1_arm64.deb")),
+                asset(QStringLiteral("msi-keyboard-app-0.2.0-1.x86_64.rpm")),
+                asset(QStringLiteral("msi-keyboard-app-0.2.0-1.aarch64.rpm")),
                 asset(QStringLiteral("SHA256SUMS")),
             },
         .draft = false,
@@ -71,12 +71,12 @@ void UpdaterCoreTest::parsesGitHubRelease()
     const QByteArray json = R"json({
         "tag_name": "v1.2.3",
         "name": "MSI Keyboard 1.2.3",
-        "html_url": "https://github.com/kordax/msi-keyboard/releases/tag/v1.2.3",
+        "html_url": "https://github.com/kordax/msi-keyboard-app/releases/tag/v1.2.3",
         "draft": false,
         "prerelease": false,
         "assets": [{
-            "name": "msi-keyboard_1.2.3_amd64.deb",
-            "browser_download_url": "https://github.com/kordax/msi-keyboard/releases/download/v1.2.3/msi-keyboard.deb",
+            "name": "msi-keyboard-app_1.2.3_amd64.deb",
+            "browser_download_url": "https://github.com/kordax/msi-keyboard-app/releases/download/v1.2.3/msi-keyboard.deb",
             "size": 1234
         }]
     })json";
@@ -95,7 +95,7 @@ void UpdaterCoreTest::rejectsInsecureReleaseAsset()
     const QByteArray json = R"json({
         "tag_name": "1.0.0",
         "assets": [{
-            "name": "msi-keyboard_1.0.0_amd64.deb",
+            "name": "msi-keyboard-app_1.0.0_amd64.deb",
             "browser_download_url": "http://example.test/package.deb",
             "size": 1234
         }]
@@ -109,7 +109,7 @@ void UpdaterCoreTest::rejectsNonGitHubReleaseAsset()
     const QByteArray json = R"json({
         "tag_name": "1.0.0",
         "assets": [{
-            "name": "msi-keyboard_1.0.0_amd64.deb",
+            "name": "msi-keyboard-app_1.0.0_amd64.deb",
             "browser_download_url": "https://downloads.example.test/package.deb",
             "size": 1234
         }]
@@ -219,7 +219,7 @@ void UpdaterCoreTest::detectsDebianAndRpmPlatforms()
         .cpuArchitecture = QStringLiteral("amd64"),
         .availablePrograms =
             {QStringLiteral("/usr/bin/apt-get"), QStringLiteral("dpkg")},
-        .executablePath = QStringLiteral("/usr/bin/msi-keyboard"),
+        .executablePath = QStringLiteral("/usr/bin/msi-keyboard-app"),
     });
     QCOMPARE(debian.packageFormat, PackageFormat::Deb);
     QCOMPARE(debian.architecture, CpuArchitecture::X86_64);
@@ -260,13 +260,13 @@ void UpdaterCoreTest::selectsNativePackageAndChecksum()
         release,
         QStringLiteral("0.1.0"),
         debian,
-        QStringView(u"msi-keyboard"),
+        QStringView(u"msi-keyboard-app"),
         &error);
 
     QVERIFY2(selection.has_value(), qPrintable(error));
     QCOMPARE(
         selection->packageAsset.name,
-        QStringLiteral("msi-keyboard_0.2.0-1_amd64.deb"));
+        QStringLiteral("msi-keyboard-app_0.2.0-1_amd64.deb"));
     QCOMPARE(selection->checksumAsset.name, QStringLiteral("SHA256SUMS"));
 }
 
@@ -274,7 +274,7 @@ void UpdaterCoreTest::rejectsAmbiguousNativePackages()
 {
     GitHubRelease release = stableRelease();
     release.assets.append(
-        asset(QStringLiteral("msi-keyboard_0.2.0_linux_amd64.deb")));
+        asset(QStringLiteral("msi-keyboard-app_0.2.0_linux_amd64.deb")));
     const PlatformInfo debian{
         .packageFormat = PackageFormat::Deb,
         .architecture = CpuArchitecture::X86_64,
@@ -288,7 +288,7 @@ void UpdaterCoreTest::rejectsDebugPackage()
 {
     GitHubRelease release = stableRelease();
     release.assets = {
-        asset(QStringLiteral("msi-keyboard-debuginfo-0.2.0-1.x86_64.rpm")),
+        asset(QStringLiteral("msi-keyboard-app-debuginfo-0.2.0-1.x86_64.rpm")),
         asset(QStringLiteral("SHA256SUMS")),
     };
     const PlatformInfo fedora{
@@ -313,7 +313,7 @@ void UpdaterCoreTest::validatesPackageMetadata()
 {
     QString error;
     const auto metadata = parsePackageMetadata(
-        QByteArrayLiteral("msi-keyboard\n0.2.0-1\namd64\n"),
+        QByteArrayLiteral("msi-keyboard-app\n0.2.0-1\namd64\n"),
         &error);
     QVERIFY2(metadata.has_value(), qPrintable(error));
 
@@ -326,7 +326,7 @@ void UpdaterCoreTest::validatesPackageMetadata()
         *metadata,
         QStringView(u"0.2.0"),
         platform,
-        QStringView(u"msi-keyboard"),
+        QStringView(u"msi-keyboard-app"),
         &error));
 
     PackageMetadata wrong = *metadata;
@@ -338,7 +338,7 @@ void UpdaterCoreTest::validatesPackageMetadata()
     wrong = *metadata;
     wrong.architecture = QStringLiteral("arm64");
     QVERIFY(!packageMetadataMatches(wrong, QStringView(u"0.2.0"), platform));
-    QVERIFY(!parsePackageMetadata(QByteArrayLiteral("msi-keyboard\n0.2.0-1\n"))
+    QVERIFY(!parsePackageMetadata(QByteArrayLiteral("msi-keyboard-app\n0.2.0-1\n"))
                  .has_value());
 }
 
@@ -347,7 +347,7 @@ void UpdaterCoreTest::parsesAndResolvesChecksums()
     const QByteArray first(64, 'a');
     const QByteArray second(64, 'b');
     const QByteArray contents =
-        first + "  msi-keyboard_0.2.0_amd64.deb\nSHA256 (packages/other.rpm) = "
+        first + "  msi-keyboard-app_0.2.0_amd64.deb\nSHA256 (packages/other.rpm) = "
         + second + '\n';
 
     QString error;
@@ -356,7 +356,7 @@ void UpdaterCoreTest::parsesAndResolvesChecksums()
     QCOMPARE(
         checksumForAsset(
             *manifest,
-            QStringLiteral("msi-keyboard_0.2.0_amd64.deb")),
+            QStringLiteral("msi-keyboard-app_0.2.0_amd64.deb")),
         std::optional<QByteArray>(first));
     QCOMPARE(
         checksumForAsset(*manifest, QStringLiteral("other.rpm")),

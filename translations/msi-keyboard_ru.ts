@@ -968,7 +968,11 @@
     <message>
         <location filename="../src/gui/MainWindow.cpp" line="821"/>
         <source>The keyboard is charging.</source>
-        <translation>Клавиатура подключена к зарядке.</translation>
+        <translation>Клавиатура заряжается.</translation>
+    </message>
+    <message>
+        <source>Battery unavailable over USB</source>
+        <translation>Заряд недоступен через USB</translation>
     </message>
     <message>
         <location filename="../src/gui/MainWindow.cpp" line="822"/>

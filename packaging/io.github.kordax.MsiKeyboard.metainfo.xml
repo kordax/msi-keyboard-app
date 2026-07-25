@@ -21,7 +21,7 @@
 
   <launchable type="desktop-id">io.github.kordax.MsiKeyboard.desktop</launchable>
   <provides>
-    <binary>msi-keyboard</binary>
+    <binary>msi-keyboard-app</binary>
   </provides>
   <categories>
     <category>Settings</category>
@@ -46,6 +46,11 @@
 
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.1.2" date="2026-07-26">
+      <description>
+        <p>Prevents unsafe battery queries over direct USB, reports USB charging without a false percentage, improves window and tray rendering, enforces a single application instance, and fixes Cinnamon icon cache integration.</p>
+      </description>
+    </release>
     <release version="0.1.1" date="2026-07-26">
       <description>
         <p>Improves tray controls with close-to-tray behavior and a dedicated Quit command, and adds one-command DEB installation for contributors.</p>

@@ -111,7 +111,7 @@ PlatformProbe probeCurrentPlatform();
 std::optional<ReleaseAsset> selectPackageAsset(
     const GitHubRelease &release,
     const PlatformInfo &platform,
-    QStringView productName = QStringView(u"msi-keyboard"),
+    QStringView productName = QStringView(u"msi-keyboard-app"),
     QString *error = nullptr);
 
 std::optional<ReleaseAsset> selectChecksumAsset(
@@ -123,7 +123,7 @@ std::optional<UpgradeSelection> selectUpgrade(
     const GitHubRelease &release,
     QStringView currentVersion,
     const PlatformInfo &platform,
-    QStringView productName = QStringView(u"msi-keyboard"),
+    QStringView productName = QStringView(u"msi-keyboard-app"),
     QString *error = nullptr);
 
 std::optional<PackageMetadata>
@@ -133,7 +133,7 @@ bool packageMetadataMatches(
     const PackageMetadata &metadata,
     QStringView releaseVersion,
     const PlatformInfo &platform,
-    QStringView productName = QStringView(u"msi-keyboard"),
+    QStringView productName = QStringView(u"msi-keyboard-app"),
     QString *error = nullptr);
 
 std::optional<Sha256Manifest>

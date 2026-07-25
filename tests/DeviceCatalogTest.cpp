@@ -88,7 +88,46 @@ class DeviceCatalogTest final : public QObject {
         QVERIFY(devices.first().canQueryBattery());
         QCOMPARE(
             devices.first().batteryInterface()->productId,
-            strikepro::kStrikeProWiredProductId);
+            strikepro::kStrikeProWirelessProductId);
+    }
+
+    void neverSelectsUnsafeUsbForBatteryQueries()
+    {
+        const QList<SupportedDevice> devices = groupSupportedDevices({
+            makeInterface(
+                QStringLiteral("wired"),
+                strikepro::kStrikeProWiredProductId,
+                1),
+            makeInterface(
+                QStringLiteral("receiver"),
+                strikepro::kStrikeProWirelessProductId,
+                1),
+        });
+
+        QCOMPARE(devices.size(), 1);
+        const SupportedDevice &device = devices.first();
+        QCOMPARE(
+            device.batteryInterface(
+                      strikepro::kStrikeProWiredProductId,
+                      0)
+                ->productId,
+            strikepro::kStrikeProWirelessProductId);
+        QCOMPARE(
+            device.batteryInterface(
+                      0,
+                      strikepro::kStrikeProWirelessProductId)
+                ->productId,
+            strikepro::kStrikeProWirelessProductId);
+
+        const QList<SupportedDevice> wiredOnly = groupSupportedDevices({
+            makeInterface(
+                QStringLiteral("wired"),
+                strikepro::kStrikeProWiredProductId,
+                1),
+        });
+        QCOMPARE(wiredOnly.size(), 1);
+        QVERIFY(wiredOnly.first().batteryInterface() == nullptr);
+        QVERIFY(!wiredOnly.first().canQueryBattery());
     }
 
     void fallsBackToAccessibleDongleTransport()
@@ -117,7 +156,7 @@ class DeviceCatalogTest final : public QObject {
         device.interfaces.first().writable = true;
         QCOMPARE(
             device.batteryInterface()->productId,
-            strikepro::kStrikeProWiredProductId);
+            strikepro::kStrikeProWirelessProductId);
     }
 
     void exposesBatteryCapabilityAndAccess()

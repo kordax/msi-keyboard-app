@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 
 project(
     msi-keyboard
-    VERSION 0.1.1
+    VERSION 0.1.2
     DESCRIPTION "Linux application for MSI keyboards"
     LANGUAGES CXX
 )
@@ -158,16 +158,19 @@ add_library(strikepro_gui STATIC
     src/gui/DebugWindow.h
     src/gui/MainWindow.cpp
     src/gui/MainWindow.h
+    src/gui/SingleInstance.cpp
+    src/gui/SingleInstance.h
     src/gui/TrayIndicator.cpp
     src/gui/TrayIndicator.h
 )
 target_link_libraries(
     strikepro_gui
     PUBLIC strikepro_device strikepro_i18n Qt6::Widgets
-    PRIVATE strikepro_project_options
+    PRIVATE Qt6::Network strikepro_project_options
 )
 
 qt_add_executable(msi-keyboard src/main.cpp)
+set_target_properties(msi-keyboard PROPERTIES OUTPUT_NAME "msi-keyboard-app")
 qt_add_resources(
     msi-keyboard
     strikepro_assets
@@ -207,9 +210,9 @@ install(
     DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
 )
 install(FILES LICENSE
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/msi-keyboard)
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/msi-keyboard-app)
 install(FILES LICENSE
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/msi-keyboard
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/msi-keyboard-app
         RENAME copyright)
 install(
     FILES "${MSI_KEYBOARD_UDEV_RULE}"
@@ -308,6 +311,16 @@ if(BUILD_TESTING)
 
     add_test(NAME tray-indicator-tests COMMAND tray-indicator-tests)
 
+    qt_add_executable(single-instance-tests
+        tests/SingleInstanceTest.cpp
+    )
+    target_link_libraries(
+        single-instance-tests
+        PRIVATE strikepro_gui Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME single-instance-tests COMMAND single-instance-tests)
+
     qt_add_executable(application-icon-tests
         tests/ApplicationIconTest.cpp
     )
@@ -358,6 +371,12 @@ if(BUILD_TESTING)
         COMMAND desktop-environment-tests persistsTrayPreference
     )
     add_test(
+        NAME desktop-usb-battery-state-tests
+        COMMAND
+            desktop-environment-tests
+            showsChargingWithoutPercentageOverDirectUsb
+    )
+    add_test(
         NAME desktop-wayland-tests
         COMMAND
             bash
@@ -387,6 +406,7 @@ if(BUILD_TESTING)
     )
     set_tests_properties(
         desktop-tray-preference-tests
+        desktop-usb-battery-state-tests
         PROPERTIES
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
             LABELS "desktop"
@@ -490,6 +510,20 @@ if(BUILD_TESTING)
         )
     endif()
 
+    add_test(
+        NAME packaging-config-tests
+        COMMAND
+            ${CMAKE_COMMAND}
+            -DAPP_EXECUTABLE=$<TARGET_FILE:msi-keyboard>
+            -DCPACK_CONFIG=${CMAKE_BINARY_DIR}/CPackConfig.cmake
+            -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/PackagingConfigTest.cmake
+    )
+    set_tests_properties(
+        packaging-config-tests
+        PROPERTIES LABELS "metadata" TIMEOUT 10
+    )
+
     set_tests_properties(
         battery-decoder-tests
         hid-monitor-tests
@@ -497,6 +531,7 @@ if(BUILD_TESTING)
         device-definitions-tests
         battery-gauge-tests
         tray-indicator-tests
+        single-instance-tests
         application-icon-tests
         localization-tests
         updater-core-tests

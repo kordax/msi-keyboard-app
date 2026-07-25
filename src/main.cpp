@@ -2,6 +2,7 @@
 #include "device/AppPaths.h"
 #include "gui/ApplicationIcon.h"
 #include "gui/MainWindow.h"
+#include "gui/SingleInstance.h"
 #include "i18n/LanguageManager.h"
 #include "update/UpgradeRunner.h"
 
@@ -9,6 +10,8 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QCoreApplication>
+#include <QCryptographicHash>
+#include <QDir>
 #include <QIcon>
 #include <QTextStream>
 
@@ -45,6 +48,17 @@ std::optional<QString> requestedLanguage(int argc, char *argv[])
         }
     }
     return std::nullopt;
+}
+
+QString singleInstanceServerName()
+{
+    const QByteArray userScope = QCryptographicHash::hash(
+                                     QDir::homePath().toUtf8(),
+                                     QCryptographicHash::Sha256)
+                                     .toHex()
+                                     .left(12);
+    return QStringLiteral("io.github.kordax.MsiKeyboard.%1")
+        .arg(QString::fromLatin1(userScope));
 }
 
 } // namespace
@@ -185,7 +199,33 @@ int main(int argc, char *argv[])
         parser.showHelp(1);
     }
 
+    strikepro::SingleInstance singleInstance(singleInstanceServerName());
+    QString singleInstanceError;
+    switch (singleInstance.start(&singleInstanceError)) {
+    case strikepro::SingleInstance::Role::Secondary:
+        return 0;
+    case strikepro::SingleInstance::Role::Error:
+        QTextStream(stderr)
+            << "Could not start MSI Keyboard: " << singleInstanceError << '\n';
+        return 1;
+    case strikepro::SingleInstance::Role::Primary:
+        break;
+    }
+
     strikepro::MainWindow window(&languageManager);
+    QObject::connect(
+        &singleInstance,
+        &strikepro::SingleInstance::activationRequested,
+        &window,
+        [&window] {
+            if (window.isMinimized()) {
+                window.showNormal();
+            } else {
+                window.show();
+            }
+            window.raise();
+            window.activateWindow();
+        });
     window.show();
     return application->exec();
 }

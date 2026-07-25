@@ -120,6 +120,9 @@ bool HidMonitor::requestBattery(const QString &devNode, QString *error)
         requestedInterfaceNumber = definition.batteryInterfaceNumber;
 
         for (const quint16 productId : transportProductIds(definition)) {
+            if (!definition.canQueryBatteryOver(productId)) {
+                continue;
+            }
             const auto found = std::ranges::find_if(
                 m_interfaces,
                 [&definition, &devNode, productId](

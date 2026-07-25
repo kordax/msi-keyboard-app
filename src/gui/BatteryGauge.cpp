@@ -2,7 +2,9 @@
 
 #include <QLinearGradient>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPropertyAnimation>
+#include <QSizePolicy>
 
 #include <algorithm>
 #include <cmath>
@@ -21,6 +23,7 @@ BatteryGauge::BatteryGauge(QWidget *parent)
     , m_animation(new QPropertyAnimation(this, "displayedValue", this))
 {
     setAttribute(Qt::WA_TranslucentBackground);
+    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     m_animation->setDuration(1600);
     m_animation->setEasingCurve(QEasingCurve::InOutCubic);
 }
@@ -62,6 +65,15 @@ void BatteryGauge::setValue(std::optional<int> value)
     m_animation->start();
 }
 
+void BatteryGauge::setCharging(const bool charging)
+{
+    if (m_charging == charging) {
+        return;
+    }
+    m_charging = charging;
+    update();
+}
+
 void BatteryGauge::setDeviceConnected(bool connected)
 {
     if (m_deviceConnected == connected) {
@@ -71,14 +83,24 @@ void BatteryGauge::setDeviceConnected(bool connected)
     update();
 }
 
+void BatteryGauge::setPreferredSize(const int edge)
+{
+    const int bounded = std::clamp(edge, 120, 400);
+    if (m_preferredSize == bounded) {
+        return;
+    }
+    m_preferredSize = bounded;
+    updateGeometry();
+}
+
 QSize BatteryGauge::sizeHint() const
 {
-    return {250, 250};
+    return {m_preferredSize, m_preferredSize};
 }
 
 QSize BatteryGauge::minimumSizeHint() const
 {
-    return {210, 210};
+    return {120, 120};
 }
 
 void BatteryGauge::setDisplayedValue(qreal value)
@@ -148,19 +170,45 @@ void BatteryGauge::paintEvent(QPaintEvent *event)
     const QColor primary = m_deviceConnected
                                ? QColor(QStringLiteral("#f7f8fb"))
                                : QColor(QStringLiteral("#777e8d"));
-    painter.setPen(primary);
-    QFont valueFont = font();
-    valueFont.setPixelSize(static_cast<int>(side * 0.22));
-    valueFont.setWeight(QFont::DemiBold);
-    painter.setFont(valueFont);
-    const QString valueText =
-        m_value.has_value()
-            ? QStringLiteral("%1%").arg(qRound(m_displayedValue))
-            : QStringLiteral("—");
-    painter.drawText(
-        QRectF(0.0, center.y() - side * 0.16, width(), side * 0.25),
-        Qt::AlignCenter,
-        valueText);
+    if (!m_value.has_value() && m_charging) {
+        const qreal boltWidth = side * 0.17;
+        const qreal boltHeight = side * 0.22;
+        const qreal top = center.y() - side * 0.15;
+        QPainterPath bolt;
+        bolt.moveTo(center.x() + boltWidth * 0.10, top);
+        bolt.lineTo(
+            center.x() - boltWidth * 0.50, top + boltHeight * 0.54);
+        bolt.lineTo(
+            center.x() - boltWidth * 0.08, top + boltHeight * 0.54);
+        bolt.lineTo(
+            center.x() - boltWidth * 0.27, top + boltHeight);
+        bolt.lineTo(
+            center.x() + boltWidth * 0.52, top + boltHeight * 0.38);
+        bolt.lineTo(
+            center.x() + boltWidth * 0.10, top + boltHeight * 0.38);
+        bolt.closeSubpath();
+
+        const QColor chargingColor(QStringLiteral("#f2c94c"));
+        QColor glowColor = chargingColor;
+        glowColor.setAlpha(54);
+        painter.setPen(QPen(glowColor, side * 0.045, Qt::SolidLine, Qt::RoundCap));
+        painter.setBrush(chargingColor);
+        painter.drawPath(bolt);
+    } else {
+        painter.setPen(primary);
+        QFont valueFont = font();
+        valueFont.setPixelSize(static_cast<int>(side * 0.22));
+        valueFont.setWeight(QFont::DemiBold);
+        painter.setFont(valueFont);
+        const QString valueText =
+            m_value.has_value()
+                ? QStringLiteral("%1%").arg(qRound(m_displayedValue))
+                : QStringLiteral("—");
+        painter.drawText(
+            QRectF(0.0, center.y() - side * 0.16, width(), side * 0.25),
+            Qt::AlignCenter,
+            valueText);
+    }
 
     painter.setPen(QColor(QStringLiteral("#969696")));
     QFont captionFont = font();

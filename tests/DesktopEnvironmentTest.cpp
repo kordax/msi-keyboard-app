@@ -1,3 +1,4 @@
+#include "gui/BatteryGauge.h"
 #include "gui/MainWindow.h"
 
 #include <QAction>
@@ -5,6 +6,7 @@
 #include <QEventLoop>
 #include <QGuiApplication>
 #include <QKeySequence>
+#include <QLabel>
 #include <QMenu>
 #include <QPalette>
 #include <QPixmap>
@@ -12,6 +14,8 @@
 #include <QSystemTrayIcon>
 #include <QWidget>
 #include <QtTest>
+
+#include <algorithm>
 
 namespace {
 
@@ -80,30 +84,51 @@ class DesktopEnvironmentTest final : public QObject {
     {
         QTest::addColumn<QString>("design");
         QTest::addColumn<int>("maximumWidth");
-        QTest::newRow("balanced") << QStringLiteral("balanced") << 1280;
-        QTest::newRow("compact") << QStringLiteral("compact") << 1060;
-        QTest::newRow("showcase") << QStringLiteral("showcase") << 1440;
+        QTest::addColumn<QSize>("minimumWindowSize");
+        QTest::addColumn<int>("maximumGaugeSize");
+        QTest::newRow("balanced")
+            << QStringLiteral("balanced") << 1280 << QSize(840, 620) << 240;
+        QTest::newRow("compact")
+            << QStringLiteral("compact") << 1060 << QSize(760, 540) << 210;
+        QTest::newRow("showcase")
+            << QStringLiteral("showcase") << 1440 << QSize(920, 680) << 280;
     }
 
     void rendersDesignVariants()
     {
         QFETCH(QString, design);
         QFETCH(int, maximumWidth);
+        QFETCH(QSize, minimumWindowSize);
+        QFETCH(int, maximumGaugeSize);
 
         QSettings settings;
         const QVariant previous = settings.value(QStringLiteral("ui/design"));
         settings.setValue(QStringLiteral("ui/design"), design);
 
         strikepro::MainWindow window;
-        const QPixmap capture = renderWindow(window);
+        QCOMPARE(window.minimumSize(), minimumWindowSize);
+        window.resize(window.minimumSize());
         QWidget *content =
             window.findChild<QWidget *>(QStringLiteral("content"));
+        QWidget *batterySection =
+            window.findChild<QWidget *>(QStringLiteral("batterySection"));
+        QWidget *batteryGauge =
+            window.findChild<QWidget *>(QStringLiteral("batteryGauge"));
         QMenu *designMenu =
             window.findChild<QMenu *>(QStringLiteral("designMenu"));
         QVERIFY(content != nullptr);
+        QVERIFY(batterySection != nullptr);
+        QVERIFY(batteryGauge != nullptr);
         QVERIFY(designMenu != nullptr);
+        batterySection->show();
+        batteryGauge->show();
+        const QPixmap capture = renderWindow(window);
         QVERIFY(!designMenu->menuAction()->isVisible());
         QCOMPARE(content->maximumWidth(), maximumWidth);
+        QVERIFY(batterySection->rect().contains(batteryGauge->geometry()));
+        QVERIFY(batteryGauge->width() <= maximumGaugeSize);
+        QVERIFY(batteryGauge->height() <= maximumGaugeSize);
+        QVERIFY(std::min(batteryGauge->width(), batteryGauge->height()) >= 120);
         QVERIFY(!capture.isNull());
 
         if (previous.isValid()) {
@@ -111,6 +136,52 @@ class DesktopEnvironmentTest final : public QObject {
         } else {
             settings.remove(QStringLiteral("ui/design"));
         }
+    }
+
+    void showsChargingWithoutPercentageOverDirectUsb()
+    {
+        strikepro::MainWindow window;
+        const QList<strikepro::HidInterface> interfaces{
+            strikepro::HidInterface{
+                .devNode = QStringLiteral("/dev/hidraw-direct-usb-test"),
+                .sysfsPath = QStringLiteral("/sys/devices/direct-usb-test"),
+                .name = QStringLiteral("MSI Strike Pro"),
+                .uniqueId = QStringLiteral("direct-usb-test"),
+                .vendorId = strikepro::kMsiVendorId,
+                .productId = strikepro::kStrikeProWiredProductId,
+                .interfaceNumber = 1,
+                .readable = true,
+                .writable = true,
+                .reportDescriptor = QByteArray(),
+            },
+        };
+
+        QVERIFY(QMetaObject::invokeMethod(
+            &window,
+            "updateInterfaces",
+            Qt::DirectConnection,
+            Q_ARG(QList<strikepro::HidInterface>, interfaces)));
+
+        QWidget *batterySection =
+            window.findChild<QWidget *>(QStringLiteral("batterySection"));
+        QLabel *batteryHeadline =
+            window.findChild<QLabel *>(QStringLiteral("batteryHeadline"));
+        QLabel *batteryState =
+            window.findChild<QLabel *>(QStringLiteral("batteryState"));
+        QVERIFY(batterySection != nullptr);
+        QVERIFY(batteryHeadline != nullptr);
+        QVERIFY(batteryState != nullptr);
+        QVERIFY(!batterySection->isHidden());
+        QCOMPARE(
+            batteryHeadline->text(),
+            QStringLiteral("Battery unavailable over USB"));
+        QCOMPARE(
+            batteryState->text(), QStringLiteral("The keyboard is charging."));
+        QCOMPARE(batteryHeadline->property("compactHeadline").toBool(), true);
+        auto *batteryGauge = window.findChild<strikepro::BatteryGauge *>(
+            QStringLiteral("batteryGauge"));
+        QVERIFY(batteryGauge != nullptr);
+        QVERIFY(batteryGauge->isCharging());
     }
 
     void persistsTrayPreference()

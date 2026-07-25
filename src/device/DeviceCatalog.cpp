@@ -201,14 +201,33 @@ bool SupportedDevice::supportsBattery() const
 
 const HidInterface *SupportedDevice::batteryInterface() const
 {
+    return batteryInterface(0, 0);
+}
+
+const HidInterface *SupportedDevice::batteryInterface(
+    const quint16 preferredProductId, const quint16 avoidedProductId) const
+{
     if (!supportsBattery()) {
         return nullptr;
     }
 
-    QList<quint16> preferredProducts{definition.usbProductId};
-    if (definition.dongleProductId != 0) {
-        preferredProducts.push_back(definition.dongleProductId);
+    QList<quint16> preferredProducts;
+    const auto appendProduct =
+        [this, &preferredProducts](const quint16 productId) {
+            if (productId != 0
+                && definition.canQueryBatteryOver(productId)
+                && !preferredProducts.contains(productId)) {
+                preferredProducts.push_back(productId);
+            }
+        };
+    appendProduct(preferredProductId);
+    appendProduct(definition.usbProductId);
+    appendProduct(definition.dongleProductId);
+    if (avoidedProductId != 0 && preferredProducts.size() > 1
+        && preferredProducts.removeOne(avoidedProductId)) {
+        preferredProducts.push_back(avoidedProductId);
     }
+
     for (const bool requireAccess : {true, false}) {
         for (const quint16 preferredProduct : preferredProducts) {
             const auto found = std::ranges::find_if(

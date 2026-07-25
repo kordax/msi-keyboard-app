@@ -16,6 +16,8 @@ struct SupportedDevice {
 
     [[nodiscard]] bool supportsBattery() const;
     [[nodiscard]] const HidInterface *batteryInterface() const;
+    [[nodiscard]] const HidInterface *batteryInterface(
+        quint16 preferredProductId, quint16 avoidedProductId) const;
     [[nodiscard]] bool canQueryBattery() const;
 };
 

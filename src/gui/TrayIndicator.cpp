@@ -3,6 +3,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QFont>
+#include <QFontMetricsF>
 #include <QIcon>
 #include <QMenu>
 #include <QPainter>
@@ -51,14 +52,14 @@ QPixmap renderTrayPixmap(const TrayIndicator::State &state, const int edge)
     painter.setRenderHint(QPainter::Antialiasing);
     painter.scale(edge / 64.0, edge / 64.0);
 
-    const QRectF body(4.5, 13.5, 51.0, 37.0);
-    const QRectF interior(8.5, 17.5, 43.0, 29.0);
+    const QRectF body(1.5, 14.5, 55.0, 35.0);
+    const QRectF interior(5.5, 18.5, 47.0, 27.0);
     const QColor status = statusColor(state);
 
     painter.setPen(Qt::NoPen);
     painter.setBrush(QColor(QStringLiteral("#15171b")));
     painter.drawRoundedRect(body, 7.0, 7.0);
-    painter.drawRoundedRect(QRectF(55.0, 24.0, 6.0, 16.0), 2.0, 2.0);
+    painter.drawRoundedRect(QRectF(56.0, 24.5, 6.5, 15.0), 2.0, 2.0);
 
     if (state.connectionState == TrayIndicator::ConnectionState::Connected
         && state.batteryPercent.has_value()) {
@@ -79,36 +80,64 @@ QPixmap renderTrayPixmap(const TrayIndicator::State &state, const int edge)
     painter.setPen(
         QPen(status, 3.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter.drawRoundedRect(body, 7.0, 7.0);
-    painter.drawLine(QPointF(56.0, 25.0), QPointF(59.0, 25.0));
-    painter.drawLine(QPointF(59.5, 25.0), QPointF(59.5, 39.0));
-    painter.drawLine(QPointF(59.0, 39.0), QPointF(56.0, 39.0));
+    painter.drawLine(QPointF(57.0, 25.5), QPointF(61.0, 25.5));
+    painter.drawLine(QPointF(61.5, 25.5), QPointF(61.5, 38.5));
+    painter.drawLine(QPointF(61.0, 38.5), QPointF(57.0, 38.5));
 
-    QRectF textRect(7.0, 14.0, 46.0, 35.0);
-    if (state.connectionState == TrayIndicator::ConnectionState::Connected
-        && state.charging == true && state.batteryPercent.has_value()) {
+    const bool charging =
+        state.connectionState == TrayIndicator::ConnectionState::Connected
+        && state.charging == true;
+    const bool chargingWithoutPercentage =
+        charging && !state.batteryPercent.has_value();
+
+    QRectF textRect(4.0, 15.0, 50.0, 34.0);
+    if (charging) {
         painter.setPen(Qt::NoPen);
-        painter.setBrush(QColor(QStringLiteral("#ffffff")));
-        painter.drawPolygon(QPolygonF{
-            QPointF(12.5, 22.0),
-            QPointF(8.0, 31.0),
-            QPointF(11.5, 31.0),
-            QPointF(9.5, 39.5),
-            QPointF(18.0, 28.5),
-            QPointF(14.5, 28.5),
-            QPointF(17.0, 22.0),
-        });
-        textRect = QRectF(16.0, 14.0, 37.0, 35.0);
+        if (chargingWithoutPercentage) {
+            painter.setBrush(QColor(QStringLiteral("#f2c94c")));
+            painter.drawPolygon(QPolygonF{
+                QPointF(32.0, 19.0),
+                QPointF(21.0, 33.0),
+                QPointF(29.0, 33.0),
+                QPointF(25.0, 45.0),
+                QPointF(43.0, 27.0),
+                QPointF(34.0, 27.0),
+                QPointF(39.0, 19.0),
+            });
+        } else {
+            painter.setBrush(QColor(QStringLiteral("#ffffff")));
+            painter.drawPolygon(QPolygonF{
+                QPointF(10.5, 22.0),
+                QPointF(6.0, 31.0),
+                QPointF(9.5, 31.0),
+                QPointF(7.5, 39.5),
+                QPointF(16.0, 28.5),
+                QPointF(12.5, 28.5),
+                QPointF(15.0, 22.0),
+            });
+            textRect = QRectF(14.0, 15.0, 40.0, 34.0);
+        }
     }
 
-    QFont font = painter.font();
-    font.setBold(true);
-    const QString text = TrayIndicator::iconTextForState(state);
-    font.setPixelSize(text.size() >= 4 ? 20 : 24);
-    painter.setFont(font);
-    painter.setPen(QColor(0, 0, 0, 180));
-    painter.drawText(textRect.translated(1.0, 1.0), Qt::AlignCenter, text);
-    painter.setPen(QColor(QStringLiteral("#ffffff")));
-    painter.drawText(textRect, Qt::AlignCenter, text);
+    if (!chargingWithoutPercentage) {
+        QFont font = painter.font();
+        font.setBold(true);
+        const QString text = TrayIndicator::iconTextForState(state);
+        int fontPixelSize = text.size() >= 4 ? 21 : 24;
+        for (; fontPixelSize > 10; --fontPixelSize) {
+            font.setPixelSize(fontPixelSize);
+            const QRectF bounds = QFontMetricsF(font).boundingRect(text);
+            if (bounds.width() <= textRect.width() - 3.0
+                && bounds.height() <= textRect.height() - 3.0) {
+                break;
+            }
+        }
+        painter.setFont(font);
+        painter.setPen(QColor(0, 0, 0, 180));
+        painter.drawText(textRect.translated(1.0, 1.0), Qt::AlignCenter, text);
+        painter.setPen(QColor(QStringLiteral("#ffffff")));
+        painter.drawText(textRect, Qt::AlignCenter, text);
+    }
 
     return pixmap;
 }
@@ -197,7 +226,7 @@ void TrayIndicator::retranslateUi()
 QIcon TrayIndicator::iconForState(const State &state)
 {
     QIcon icon;
-    for (const int edge : {16, 22, 32, 64, 128}) {
+    for (const int edge : {16, 22, 24, 32, 64, 128}) {
         icon.addPixmap(renderTrayPixmap(state, edge));
     }
     return icon;
@@ -213,10 +242,12 @@ QString TrayIndicator::iconTextForState(const State &state)
     case ConnectionState::Unavailable:
         return QStringLiteral("—");
     case ConnectionState::Connected:
-        return state.batteryPercent.has_value()
-                   ? QStringLiteral("%1%").arg(
-                         std::clamp(*state.batteryPercent, 0, 100))
-                   : QStringLiteral("—");
+        if (state.batteryPercent.has_value()) {
+            return QStringLiteral("%1%").arg(
+                std::clamp(*state.batteryPercent, 0, 100));
+        }
+        return state.charging == true ? QStringLiteral("⚡")
+                                      : QStringLiteral("—");
     }
     return QStringLiteral("—");
 }

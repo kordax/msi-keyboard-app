@@ -52,6 +52,16 @@ QFrame *makeCard(QWidget *parent)
     return card;
 }
 
+bool hasTransport(const SupportedDevice &device, const quint16 productId)
+{
+    return productId != 0
+           && std::ranges::any_of(
+               device.interfaces,
+               [productId](const HidInterface &interface) {
+                   return interface.productId == productId;
+               });
+}
+
 QWidget *makeStatusRow(
     const QString &title,
     QLabel **titleOutput,
@@ -333,12 +343,13 @@ void MainWindow::buildUi()
     auto *batteryCard = new QWidget(detailCard);
     batteryCard->setObjectName(QStringLiteral("batterySection"));
     m_batterySection = batteryCard;
-    batteryCard->setMinimumHeight(300);
+    batteryCard->setMinimumHeight(180);
     auto *batteryLayout = new QHBoxLayout(batteryCard);
     batteryLayout->setContentsMargins(25, 24, 25, 24);
     batteryLayout->setSpacing(24);
 
     m_batteryGauge = new BatteryGauge(batteryCard);
+    m_batteryGauge->setObjectName(QStringLiteral("batteryGauge"));
     batteryLayout->addWidget(m_batteryGauge, 0, Qt::AlignCenter);
 
     auto *batteryDetails = new QVBoxLayout;
@@ -349,6 +360,7 @@ void MainWindow::buildUi()
     m_batteryValue->setObjectName(QStringLiteral("batteryHeadline"));
     m_batteryValue->setWordWrap(true);
     m_batteryState = new QLabel(batteryCard);
+    m_batteryState->setObjectName(QStringLiteral("batteryState"));
     m_batteryState->setProperty("role", QStringLiteral("muted"));
     m_batteryState->setWordWrap(true);
     batteryDetails->addWidget(m_batteryCaption);
@@ -484,6 +496,7 @@ void MainWindow::buildUi()
             font-size: 24px;
             font-weight: 700;
         }
+        QLabel#batteryHeadline[compactHeadline="true"] { font-size: 18px; }
         QLabel#deviceName {
             color: #ffffff;
             font-size: 17px;
@@ -712,30 +725,34 @@ void MainWindow::applyDesign()
     }
 
     int maximumWidth = 1280;
+    int minimumWindowWidth = 840;
+    int minimumWindowHeight = 620;
     int sidebarWidth = 270;
     int outerMargin = 24;
     int dashboardGap = 16;
     int artworkHeight = 170;
     int gaugeSize = 240;
-    int batteryHeight = 290;
     if (m_design == UiDesign::Compact) {
         maximumWidth = 1060;
+        minimumWindowWidth = 760;
+        minimumWindowHeight = 540;
         sidebarWidth = 235;
         outerMargin = 18;
         dashboardGap = 12;
         artworkHeight = 130;
         gaugeSize = 210;
-        batteryHeight = 250;
     } else if (m_design == UiDesign::Showcase) {
         maximumWidth = 1440;
+        minimumWindowWidth = 920;
+        minimumWindowHeight = 680;
         sidebarWidth = 300;
         outerMargin = 32;
         dashboardGap = 22;
         artworkHeight = 220;
         gaugeSize = 280;
-        batteryHeight = 330;
     }
 
+    setMinimumSize(minimumWindowWidth, minimumWindowHeight);
     m_content->setMaximumWidth(maximumWidth);
     m_contentLayout->setContentsMargins(
         outerMargin,
@@ -747,8 +764,9 @@ void MainWindow::applyDesign()
     m_deviceListCard->setMinimumWidth(sidebarWidth);
     m_deviceListCard->setMaximumWidth(sidebarWidth);
     m_deviceImage->setMinimumHeight(artworkHeight);
-    m_batterySection->setMinimumHeight(batteryHeight);
-    m_batteryGauge->setFixedSize(gaugeSize, gaugeSize);
+    m_batterySection->setMinimumHeight(180);
+    m_batteryGauge->setPreferredSize(gaugeSize);
+    m_batteryGauge->setMaximumSize(gaugeSize, gaugeSize);
 
     m_balancedDesignAction->setChecked(m_design == UiDesign::Balanced);
     m_compactDesignAction->setChecked(m_design == UiDesign::Compact);
@@ -948,6 +966,10 @@ void MainWindow::activateDevice(const QString &deviceId)
     if (DeviceRuntime *runtime = selectedDevice()) {
         if (!runtime->device.supportsBattery()) {
             runtime->connectionState = ConnectionState::Connected;
+        } else if (runtime->device.batteryInterface() == nullptr) {
+            runtime->connectionState = ConnectionState::Connected;
+            runtime->activeProductId = runtime->device.productId;
+            runtime->battery.reset();
         } else if (!runtime->device.canQueryBattery()) {
             runtime->connectionState = ConnectionState::AccessDenied;
         } else if (!runtime->battery.has_value()) {
@@ -992,6 +1014,24 @@ void MainWindow::clearBattery(DeviceRuntime &runtime)
     if (runtime.device.id == m_selectedDeviceId) {
         m_batteryGauge->setValue(std::nullopt);
     }
+}
+
+void MainWindow::handleBatteryQueryFailure(
+    DeviceRuntime &runtime, const quint16 failedProductId)
+{
+    runtime.failedProductId = failedProductId;
+    clearBattery(runtime);
+
+    const quint16 usbProductId = runtime.device.definition.usbProductId;
+    if (failedProductId != usbProductId
+        && hasTransport(runtime.device, usbProductId)) {
+        runtime.activeProductId = usbProductId;
+        setConnectionState(runtime, ConnectionState::Connected);
+        return;
+    }
+
+    runtime.activeProductId = 0;
+    setConnectionState(runtime, ConnectionState::Unresponsive);
 }
 
 void MainWindow::setConnectionState(
@@ -1084,6 +1124,7 @@ void MainWindow::refreshConnectionUi()
         m_deviceImage->setVisible(false);
         m_batterySection->setVisible(false);
         m_batteryGauge->setDeviceConnected(false);
+        m_batteryGauge->setCharging(false);
         m_batteryGauge->setValue(std::nullopt);
         setStatus(
             m_deviceDot,
@@ -1118,8 +1159,25 @@ void MainWindow::refreshConnectionUi()
     const bool supportsBattery = runtime->device.supportsBattery();
     const bool connected =
         runtime->connectionState == ConnectionState::Connected;
+    const bool batteryUnavailableOverUsb =
+        connected && !runtime->battery.has_value()
+        && runtime->activeProductId
+               == runtime->device.definition.usbProductId
+        && !runtime->device.definition.canQueryBatteryOver(
+            runtime->activeProductId);
+    const bool charging =
+        batteryUnavailableOverUsb
+        || (runtime->battery.has_value()
+            && runtime->battery->charging.value_or(false));
     m_batterySection->setVisible(supportsBattery);
     m_batteryGauge->setDeviceConnected(connected);
+    m_batteryGauge->setCharging(charging);
+    const bool compactHeadline = batteryUnavailableOverUsb;
+    if (m_batteryValue->property("compactHeadline").toBool()
+        != compactHeadline) {
+        m_batteryValue->setProperty("compactHeadline", compactHeadline);
+        refreshStyle(m_batteryValue);
+    }
     if (supportsBattery) {
         if (runtime->battery.has_value()) {
             const BatteryReading &reading = *runtime->battery;
@@ -1136,21 +1194,27 @@ void MainWindow::refreshConnectionUi()
             }
         } else {
             m_batteryGauge->setValue(std::nullopt);
-            switch (runtime->connectionState) {
-            case ConnectionState::AccessDenied:
-                m_batteryValue->setText(tr("HID access required"));
-                m_batteryState->setText(
-                    tr("The device is present, but Linux denied HID access."));
-                break;
-            case ConnectionState::Unresponsive:
-                m_batteryValue->setText(tr("No response"));
-                m_batteryState->setText(tr("The USB transport is present, but "
-                                           "the keyboard did not answer."));
-                break;
-            default:
-                m_batteryValue->setText(tr("Reading battery…"));
-                m_batteryState->setText(tr("Waiting for battery data."));
-                break;
+            if (batteryUnavailableOverUsb) {
+                m_batteryValue->setText(tr("Battery unavailable over USB"));
+                m_batteryState->setText(tr("The keyboard is charging."));
+            } else {
+                switch (runtime->connectionState) {
+                case ConnectionState::AccessDenied:
+                    m_batteryValue->setText(tr("HID access required"));
+                    m_batteryState->setText(tr(
+                        "The device is present, but Linux denied HID access."));
+                    break;
+                case ConnectionState::Unresponsive:
+                    m_batteryValue->setText(tr("No response"));
+                    m_batteryState->setText(
+                        tr("The USB transport is present, but "
+                           "the keyboard did not answer."));
+                    break;
+                default:
+                    m_batteryValue->setText(tr("Reading battery…"));
+                    m_batteryState->setText(tr("Waiting for battery data."));
+                    break;
+                }
             }
         }
     }
@@ -1210,14 +1274,14 @@ void MainWindow::updateInterfaces(const QList<HidInterface> &interfaces)
         runtime.device = device;
         const bool activeTransportPresent =
             runtime.activeProductId == 0
-            || std::ranges::any_of(
-                device.interfaces,
-                [&runtime](const HidInterface &interface) {
-                    return interface.productId == runtime.activeProductId;
-                });
+            || hasTransport(device, runtime.activeProductId);
         if (!device.supportsBattery()) {
             runtime.connectionState = ConnectionState::Connected;
             runtime.activeProductId = device.productId;
+        } else if (device.batteryInterface() == nullptr) {
+            runtime.connectionState = ConnectionState::Connected;
+            runtime.activeProductId = device.productId;
+            runtime.battery.reset();
         } else if (!device.canQueryBattery()) {
             runtime.connectionState = ConnectionState::AccessDenied;
             runtime.activeProductId = 0;
@@ -1286,7 +1350,10 @@ void MainWindow::requestBattery()
 {
     DeviceRuntime *runtime = selectedDevice();
     const HidInterface *batteryInterface =
-        runtime == nullptr ? nullptr : runtime->device.batteryInterface();
+        runtime == nullptr
+            ? nullptr
+            : runtime->device.batteryInterface(
+                  runtime->activeProductId, runtime->failedProductId);
     const ProtocolProfile *profile =
         runtime == nullptr ? nullptr : profileForDevice(runtime->device);
     if (runtime == nullptr || batteryInterface == nullptr || profile == nullptr
@@ -1301,24 +1368,20 @@ void MainWindow::requestBattery()
         ++m_batteryRequestGeneration;
         m_batteryRequestPending = false;
         m_pendingBatteryDeviceId.clear();
-        runtime->activeProductId = 0;
-        clearBattery(*runtime);
-        setConnectionState(
-            *runtime,
-            runtime->device.canQueryBattery() ? ConnectionState::Unresponsive
-                                              : ConnectionState::AccessDenied);
+        handleBatteryQueryFailure(*runtime, batteryInterface->productId);
         return;
     }
 
     m_batteryRequestPending = true;
     m_pendingBatteryDeviceId = runtime->device.id;
+    const quint16 productId = batteryInterface->productId;
     const QString deviceId = runtime->device.id;
     const quint64 generation = ++m_batteryRequestGeneration;
 
     QTimer::singleShot(
         kBatteryResponseTimeoutMs,
         this,
-        [this, generation, deviceId] {
+        [this, generation, deviceId, productId] {
             if (!m_batteryRequestPending
                 || generation != m_batteryRequestGeneration
                 || m_pendingBatteryDeviceId != deviceId) {
@@ -1331,9 +1394,7 @@ void MainWindow::requestBattery()
             if (found == m_devices.end()) {
                 return;
             }
-            found->activeProductId = 0;
-            clearBattery(found.value());
-            setConnectionState(found.value(), ConnectionState::Unresponsive);
+            handleBatteryQueryFailure(found.value(), productId);
         });
 }
 
@@ -1386,6 +1447,7 @@ void MainWindow::recordReport(const HidReport &report)
     }
     runtime->connectionState = ConnectionState::Connected;
     runtime->activeProductId = report.productId;
+    runtime->failedProductId = 0;
     setBattery(runtime.value(), *reading);
     rebuildDeviceList();
     if (runtime->device.id == m_selectedDeviceId) {

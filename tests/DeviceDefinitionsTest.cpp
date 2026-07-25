@@ -63,6 +63,13 @@ class DeviceDefinitionsTest final : public QObject {
                 QVERIFY(strikepro::builtInBatteryProfileFor(definition)
                             .has_value());
             }
+            if (definition.batteryQueryOverUsb) {
+                QVERIFY(definition.supportsBattery());
+            }
+            if (definition.batteryQueryOverDongle) {
+                QVERIFY(definition.supportsBattery());
+                QVERIFY(definition.dongleProductId != 0);
+            }
         }
     }
 
@@ -76,6 +83,8 @@ class DeviceDefinitionsTest final : public QObject {
         QCOMPARE(
             strikepro::kStrikeProWirelessProductId,
             definition.dongleProductId);
+        QVERIFY(!definition.canQueryBatteryOver(definition.usbProductId));
+        QVERIFY(definition.canQueryBatteryOver(definition.dongleProductId));
     }
 };
 

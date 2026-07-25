@@ -17,8 +17,10 @@ class BatteryGaugeTest final : public QObject {
     void loadsKeyboardArtwork();
     void keepsTelemetryOptional();
     void rendersUnknownState();
+    void rendersChargingState();
     void boundsPercentage();
     void usesBatteryLevelColors();
+    void scalesPreferredSize();
     void animatesPercentageChangesSmoothly();
 };
 
@@ -90,6 +92,33 @@ void BatteryGaugeTest::rendersUnknownState()
     QVERIFY(!gauge.value().has_value());
 }
 
+void BatteryGaugeTest::rendersChargingState()
+{
+    BatteryGauge gauge;
+    gauge.resize(250, 250);
+    gauge.setDeviceConnected(true);
+    gauge.setCharging(true);
+
+    QImage image(gauge.size(), QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    gauge.render(&painter);
+
+    int chargingPixels = 0;
+    for (int y = 0; y < image.height(); ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            const QColor pixel = image.pixelColor(x, y);
+            if (pixel.alpha() > 0 && pixel.red() > 200
+                && pixel.green() > 140 && pixel.blue() < 140) {
+                ++chargingPixels;
+            }
+        }
+    }
+    QVERIFY(gauge.isCharging());
+    QVERIFY(!gauge.value().has_value());
+    QVERIFY(chargingPixels > 100);
+}
+
 void BatteryGaugeTest::boundsPercentage()
 {
     BatteryGauge gauge;
@@ -117,6 +146,21 @@ void BatteryGaugeTest::usesBatteryLevelColors()
     QVERIFY(high.green() > high.red());
     QCOMPARE(BatteryGauge::colorForValue(-20.0), low);
     QCOMPARE(BatteryGauge::colorForValue(120.0), high);
+}
+
+void BatteryGaugeTest::scalesPreferredSize()
+{
+    BatteryGauge gauge;
+    QCOMPARE(gauge.minimumSizeHint(), QSize(120, 120));
+
+    gauge.setPreferredSize(280);
+    QCOMPARE(gauge.sizeHint(), QSize(280, 280));
+
+    gauge.setPreferredSize(40);
+    QCOMPARE(gauge.sizeHint(), QSize(120, 120));
+
+    gauge.setPreferredSize(900);
+    QCOMPARE(gauge.sizeHint(), QSize(400, 400));
 }
 
 void BatteryGaugeTest::animatesPercentageChangesSmoothly()
