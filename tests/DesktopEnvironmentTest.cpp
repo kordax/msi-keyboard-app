@@ -4,10 +4,12 @@
 #include <QApplication>
 #include <QEventLoop>
 #include <QGuiApplication>
+#include <QKeySequence>
 #include <QMenu>
 #include <QPalette>
 #include <QPixmap>
 #include <QSettings>
+#include <QSystemTrayIcon>
 #include <QWidget>
 #include <QtTest>
 
@@ -120,16 +122,47 @@ class DesktopEnvironmentTest final : public QObject {
 
         {
             strikepro::MainWindow window;
-            QAction *keepInTray =
+            QAction *closeToTray =
                 window.findChild<QAction *>(QStringLiteral("keepInTrayAction"));
-            QVERIFY(keepInTray != nullptr);
-            QVERIFY(!keepInTray->isChecked());
+            QSystemTrayIcon *trayIcon = window.findChild<QSystemTrayIcon *>();
+            QAction *mainQuitAction =
+                window.findChild<QAction *>(QStringLiteral("mainQuitAction"));
+            QAction *trayQuitAction =
+                window.findChild<QAction *>(QStringLiteral("trayQuitAction"));
+            QVERIFY(closeToTray != nullptr);
+            QVERIFY(trayIcon != nullptr);
+            QVERIFY(mainQuitAction != nullptr);
+            QVERIFY(trayQuitAction != nullptr);
+            QVERIFY(mainQuitAction != trayQuitAction);
+            QCOMPARE(closeToTray->text(), QStringLiteral("Close to Tray"));
+            QCOMPARE(mainQuitAction->text(), QStringLiteral("Quit"));
+            QCOMPARE(trayQuitAction->text(), QStringLiteral("Quit"));
+            QCOMPARE(
+                mainQuitAction->shortcut(), QKeySequence(QKeySequence::Quit));
+            QCOMPARE(mainQuitAction->menuRole(), QAction::QuitRole);
+            QVERIFY(!closeToTray->isChecked());
+            QVERIFY(QApplication::quitOnLastWindowClosed());
 
-            keepInTray->setChecked(true);
+            closeToTray->setChecked(true);
             QCOMPARE(
                 settings.value(QStringLiteral("ui/keepInTray")).toBool(),
                 true);
-            keepInTray->setChecked(false);
+            QVERIFY(!QApplication::quitOnLastWindowClosed());
+            QVERIFY(trayIcon->isVisible());
+
+            if (QSystemTrayIcon::isSystemTrayAvailable()) {
+                window.show();
+                QTRY_VERIFY(window.isVisible());
+                QVERIFY(!window.close());
+                QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+                QVERIFY(!window.isVisible());
+                QVERIFY(trayIcon->isVisible());
+                QCOMPARE(trayQuitAction->text(), QStringLiteral("Quit"));
+            }
+
+            closeToTray->setChecked(false);
+            QVERIFY(QApplication::quitOnLastWindowClosed());
+            QVERIFY(!trayIcon->isVisible());
         }
 
         if (previous.isValid()) {

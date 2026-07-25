@@ -15,6 +15,7 @@
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
+#include <QKeySequence>
 #include <QLabel>
 #include <QListWidget>
 #include <QMenu>
@@ -229,6 +230,13 @@ void MainWindow::buildUi()
         &QAction::toggled,
         this,
         [this](const bool enabled) { setKeepInTray(enabled, true); });
+
+    m_settingsMenu->addSeparator();
+    m_quitAction = m_settingsMenu->addAction(QString());
+    m_quitAction->setObjectName(QStringLiteral("mainQuitAction"));
+    m_quitAction->setShortcut(QKeySequence::Quit);
+    m_quitAction->setMenuRole(QAction::QuitRole);
+    connect(m_quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
 
     m_debugMenu = menuBar()->addMenu(QString());
     m_logsAction = m_debugMenu->addAction(QString());
@@ -623,7 +631,8 @@ void MainWindow::retranslateUi()
     m_balancedDesignAction->setText(tr("Balanced"));
     m_compactDesignAction->setText(tr("Compact"));
     m_showcaseDesignAction->setText(tr("Showcase"));
-    m_keepInTrayAction->setText(tr("Keep running in tray"));
+    m_keepInTrayAction->setText(tr("Close to Tray"));
+    m_quitAction->setText(tr("Quit"));
     m_debugMenu->setTitle(tr("Debug"));
     m_logsAction->setText(tr("Logs"));
     m_telemetryAction->setText(tr("Telemetry"));

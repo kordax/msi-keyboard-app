@@ -126,6 +126,7 @@ TrayIndicator::TrayIndicator(QWidget *window, QObject *parent)
     m_devicesMenu->setObjectName(QStringLiteral("trayDevicesMenu"));
     m_menu->addSeparator();
     m_quitAction = m_menu->addAction(QString());
+    m_quitAction->setObjectName(QStringLiteral("trayQuitAction"));
 
     connect(m_showAction, &QAction::triggered, this, [this] { showWindow(); });
     connect(m_quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);

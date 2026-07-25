@@ -129,6 +129,7 @@ class MainWindow final : public QMainWindow {
     QAction *m_compactDesignAction = nullptr;
     QAction *m_showcaseDesignAction = nullptr;
     QAction *m_keepInTrayAction = nullptr;
+    QAction *m_quitAction = nullptr;
     QAction *m_logsAction = nullptr;
     QAction *m_telemetryAction = nullptr;
     QWidget *m_content = nullptr;

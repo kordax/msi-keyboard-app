@@ -1047,8 +1047,12 @@
         <translation>Компоновка</translation>
     </message>
     <message>
-        <source>Keep running in tray</source>
-        <translation>Оставлять приложение в трее</translation>
+        <source>Close to Tray</source>
+        <translation>Сворачивать в трей при закрытии</translation>
+    </message>
+    <message>
+        <source>Quit</source>
+        <translation>Выйти</translation>
     </message>
     <message>
         <source>Balanced</source>
