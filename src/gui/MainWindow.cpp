@@ -811,7 +811,7 @@ void MainWindow::reloadProtocolProfile()
             batteryProfileFor(definition, profilePath(), &error);
         if (profile.has_value() && profile->canDecodePercentage()) {
             logDebug(tr("Protocol profile loaded: %1").arg(profile->path));
-            m_profiles.insert(protocolId, std::move(*profile));
+            m_profiles.insert(protocolId, *profile);
         } else {
             logDebug(
                 error.isEmpty() ? tr("Battery profile unavailable")

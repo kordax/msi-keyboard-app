@@ -338,8 +338,9 @@ void UpdaterCoreTest::validatesPackageMetadata()
     wrong = *metadata;
     wrong.architecture = QStringLiteral("arm64");
     QVERIFY(!packageMetadataMatches(wrong, QStringView(u"0.2.0"), platform));
-    QVERIFY(!parsePackageMetadata(QByteArrayLiteral("msi-keyboard-app\n0.2.0-1\n"))
-                 .has_value());
+    QVERIFY(
+        !parsePackageMetadata(QByteArrayLiteral("msi-keyboard-app\n0.2.0-1\n"))
+             .has_value());
 }
 
 void UpdaterCoreTest::parsesAndResolvesChecksums()
@@ -347,7 +348,8 @@ void UpdaterCoreTest::parsesAndResolvesChecksums()
     const QByteArray first(64, 'a');
     const QByteArray second(64, 'b');
     const QByteArray contents =
-        first + "  msi-keyboard-app_0.2.0_amd64.deb\nSHA256 (packages/other.rpm) = "
+        first
+        + "  msi-keyboard-app_0.2.0_amd64.deb\nSHA256 (packages/other.rpm) = "
         + second + '\n';
 
     QString error;

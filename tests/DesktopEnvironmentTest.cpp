@@ -183,6 +183,10 @@ class DesktopEnvironmentTest final : public QObject {
         QVERIFY(batterySection != nullptr);
         QVERIFY(batteryHeadline != nullptr);
         QVERIFY(batteryState != nullptr);
+        if (batterySection == nullptr || batteryHeadline == nullptr
+            || batteryState == nullptr) {
+            return;
+        }
         QVERIFY(!batterySection->isHidden());
         QCOMPARE(
             batteryHeadline->text(),

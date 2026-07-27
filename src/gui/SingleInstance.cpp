@@ -25,7 +25,8 @@ SingleInstance::SingleInstance(QString serverName, QObject *parent)
             QStandardPaths::writableLocation(QStandardPaths::TempLocation);
     }
     m_lockFile = std::make_unique<QLockFile>(
-        QDir(runtimeDirectory).filePath(m_serverName + QStringLiteral(".lock")));
+        QDir(runtimeDirectory)
+            .filePath(m_serverName + QStringLiteral(".lock")));
     connect(
         m_server,
         &QLocalServer::newConnection,

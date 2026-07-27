@@ -26,7 +26,8 @@ class SingleInstanceTest final : public QObject {
         SingleInstance primary(serverName);
         QCOMPARE(primary.start(), SingleInstance::Role::Primary);
         QSignalSpy activationRequested(
-            &primary, &SingleInstance::activationRequested);
+            &primary,
+            &SingleInstance::activationRequested);
 
         SingleInstance secondary(serverName);
         QCOMPARE(secondary.start(), SingleInstance::Role::Secondary);

@@ -77,7 +77,7 @@ CliRunner::CliRunner(CliOptions options, QObject *parent)
                 tr("Battery profile loaded"),
                 {{QStringLiteral("protocol"), protocolId},
                  {QStringLiteral("path"), profile->path}});
-            m_profiles.insert(protocolId, std::move(*profile));
+            m_profiles.insert(protocolId, *profile);
         } else {
             log(QStringLiteral("info"),
                 QStringLiteral("profile_unavailable"),

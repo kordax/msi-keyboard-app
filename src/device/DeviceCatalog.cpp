@@ -212,14 +212,13 @@ const HidInterface *SupportedDevice::batteryInterface(
     }
 
     QList<quint16> preferredProducts;
-    const auto appendProduct =
-        [this, &preferredProducts](const quint16 productId) {
-            if (productId != 0
-                && definition.canQueryBatteryOver(productId)
-                && !preferredProducts.contains(productId)) {
-                preferredProducts.push_back(productId);
-            }
-        };
+    const auto appendProduct = [this,
+                                &preferredProducts](const quint16 productId) {
+        if (productId != 0 && definition.canQueryBatteryOver(productId)
+            && !preferredProducts.contains(productId)) {
+            preferredProducts.push_back(productId);
+        }
+    };
     appendProduct(preferredProductId);
     appendProduct(definition.usbProductId);
     appendProduct(definition.dongleProductId);

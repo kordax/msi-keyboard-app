@@ -107,15 +107,11 @@ class DeviceCatalogTest final : public QObject {
         QCOMPARE(devices.size(), 1);
         const SupportedDevice &device = devices.first();
         QCOMPARE(
-            device.batteryInterface(
-                      strikepro::kStrikeProWiredProductId,
-                      0)
+            device.batteryInterface(strikepro::kStrikeProWiredProductId, 0)
                 ->productId,
             strikepro::kStrikeProWirelessProductId);
         QCOMPARE(
-            device.batteryInterface(
-                      0,
-                      strikepro::kStrikeProWirelessProductId)
+            device.batteryInterface(0, strikepro::kStrikeProWirelessProductId)
                 ->productId,
             strikepro::kStrikeProWirelessProductId);
 

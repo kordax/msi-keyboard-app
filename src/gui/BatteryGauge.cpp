@@ -176,22 +176,18 @@ void BatteryGauge::paintEvent(QPaintEvent *event)
         const qreal top = center.y() - side * 0.15;
         QPainterPath bolt;
         bolt.moveTo(center.x() + boltWidth * 0.10, top);
-        bolt.lineTo(
-            center.x() - boltWidth * 0.50, top + boltHeight * 0.54);
-        bolt.lineTo(
-            center.x() - boltWidth * 0.08, top + boltHeight * 0.54);
-        bolt.lineTo(
-            center.x() - boltWidth * 0.27, top + boltHeight);
-        bolt.lineTo(
-            center.x() + boltWidth * 0.52, top + boltHeight * 0.38);
-        bolt.lineTo(
-            center.x() + boltWidth * 0.10, top + boltHeight * 0.38);
+        bolt.lineTo(center.x() - boltWidth * 0.50, top + boltHeight * 0.54);
+        bolt.lineTo(center.x() - boltWidth * 0.08, top + boltHeight * 0.54);
+        bolt.lineTo(center.x() - boltWidth * 0.27, top + boltHeight);
+        bolt.lineTo(center.x() + boltWidth * 0.52, top + boltHeight * 0.38);
+        bolt.lineTo(center.x() + boltWidth * 0.10, top + boltHeight * 0.38);
         bolt.closeSubpath();
 
         const QColor chargingColor(QStringLiteral("#f2c94c"));
         QColor glowColor = chargingColor;
         glowColor.setAlpha(54);
-        painter.setPen(QPen(glowColor, side * 0.045, Qt::SolidLine, Qt::RoundCap));
+        painter.setPen(
+            QPen(glowColor, side * 0.045, Qt::SolidLine, Qt::RoundCap));
         painter.setBrush(chargingColor);
         painter.drawPath(bolt);
     } else {

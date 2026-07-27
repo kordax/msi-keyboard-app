@@ -51,8 +51,7 @@ class TrayIndicatorTest final : public QObject {
             for (int y = 0; y < image.height(); ++y) {
                 for (int x = 0; x < image.width(); ++x) {
                     if (image.pixelColor(x, y).alpha() > 32) {
-                        opaqueBounds =
-                            opaqueBounds.united(QRect(x, y, 1, 1));
+                        opaqueBounds = opaqueBounds.united(QRect(x, y, 1, 1));
                     }
                 }
             }

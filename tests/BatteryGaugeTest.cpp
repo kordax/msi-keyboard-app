@@ -108,8 +108,8 @@ void BatteryGaugeTest::rendersChargingState()
     for (int y = 0; y < image.height(); ++y) {
         for (int x = 0; x < image.width(); ++x) {
             const QColor pixel = image.pixelColor(x, y);
-            if (pixel.alpha() > 0 && pixel.red() > 200
-                && pixel.green() > 140 && pixel.blue() < 140) {
+            if (pixel.alpha() > 0 && pixel.red() > 200 && pixel.green() > 140
+                && pixel.blue() < 140) {
                 ++chargingPixels;
             }
         }

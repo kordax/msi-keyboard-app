@@ -82,8 +82,8 @@ class MainWindow final : public QMainWindow {
     void refreshConnectionUi();
     void refreshTrayIndicator();
     void clearBattery(DeviceRuntime &runtime);
-    void handleBatteryQueryFailure(
-        DeviceRuntime &runtime, quint16 failedProductId);
+    void
+    handleBatteryQueryFailure(DeviceRuntime &runtime, quint16 failedProductId);
     void setConnectionState(DeviceRuntime &runtime, ConnectionState state);
     void setBattery(DeviceRuntime &runtime, const BatteryReading &reading);
     void setStatus(
