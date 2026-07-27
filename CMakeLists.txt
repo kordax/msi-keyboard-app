@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 
 project(
     msi-keyboard
-    VERSION 0.1.2
+    VERSION 0.1.3
     DESCRIPTION "Linux application for MSI keyboards"
     LANGUAGES CXX
 )
@@ -102,6 +102,8 @@ add_library(strikepro_device STATIC
     src/device/BatteryDecoder.h
     src/device/BatteryProtocol.cpp
     src/device/BatteryProtocol.h
+    src/device/BatteryQueryGuard.cpp
+    src/device/BatteryQueryGuard.h
     src/device/DeviceCatalog.cpp
     src/device/DeviceCatalog.h
     src/device/DeviceDefinitions.cpp
@@ -243,6 +245,16 @@ if(BUILD_TESTING)
     )
 
     add_test(NAME battery-protocol-tests COMMAND battery-protocol-tests)
+
+    qt_add_executable(battery-query-guard-tests
+        tests/BatteryQueryGuardTest.cpp
+    )
+    target_link_libraries(
+        battery-query-guard-tests
+        PRIVATE strikepro_device Qt6::Test strikepro_project_options
+    )
+
+    add_test(NAME battery-query-guard-tests COMMAND battery-query-guard-tests)
 
     qt_add_executable(hid-monitor-tests
         tests/HidMonitorTest.cpp

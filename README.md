@@ -25,13 +25,13 @@ Ubuntu lighting tool that used the same package and command name.
 Debian, Ubuntu, and Linux Mint:
 
 ```bash
-sudo apt install ./msi-keyboard-app_0.1.2-1_amd64.deb
+sudo apt install ./msi-keyboard-app_0.1.3-1_amd64.deb
 ```
 
 Fedora and other RPM-based distributions:
 
 ```bash
-sudo dnf install ./msi-keyboard-app-0.1.2-1.x86_64.rpm
+sudo dnf install ./msi-keyboard-app-0.1.3-1.x86_64.rpm
 ```
 
 ## Usage

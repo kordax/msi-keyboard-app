@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BatteryQueryGuard.h"
 #include "HidTypes.h"
 
 #include <QHash>
@@ -22,6 +23,7 @@ class HidMonitor final : public QObject {
     {
         return m_interfaces;
     }
+    [[nodiscard]] bool canRequestBattery(const QString &devNode) const;
     [[nodiscard]] bool requestBattery(QString *error = nullptr);
     [[nodiscard]] bool
     requestBattery(const QString &devNode, QString *error = nullptr);
@@ -43,7 +45,12 @@ class HidMonitor final : public QObject {
     void rebuildReaders();
     void closeReaders();
     void readAvailable(const QString &devNode);
+    [[nodiscard]] BatteryQueryBlockReason
+    batteryQueryBlockReason(const HidInterface &interface) const;
+    [[nodiscard]] QString
+    batteryQueryBlockMessage(BatteryQueryBlockReason reason) const;
 
+    BatteryQueryGuard m_batteryQueryGuard;
     QTimer m_refreshTimer;
     QTimer m_eventRefreshTimer;
     QList<HidInterface> m_interfaces;

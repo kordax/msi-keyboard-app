@@ -96,6 +96,52 @@ HidMonitor::~HidMonitor()
     closeReaders();
 }
 
+bool HidMonitor::canRequestBattery(const QString &devNode) const
+{
+    const HidInterface *interface = findInterface(m_interfaces, devNode);
+    return interface != nullptr && interface->readable && interface->writable
+           && batteryQueryBlockReason(*interface)
+                  == BatteryQueryBlockReason::None;
+}
+
+BatteryQueryBlockReason
+HidMonitor::batteryQueryBlockReason(const HidInterface &interface) const
+{
+    const DeviceDefinition *definition =
+        findDeviceDefinition(interface.vendorId, interface.productId);
+    if (definition == nullptr) {
+        return BatteryQueryBlockReason::TransportDisabled;
+    }
+
+    const bool wiredUsbMayBePresent =
+        interface.productId == definition->dongleProductId
+        && HidDeviceScanner::usbDeviceMayBePresent(
+            definition->vendorId,
+            definition->usbProductId);
+    return m_batteryQueryGuard.blockReason(
+        *definition,
+        interface.productId,
+        wiredUsbMayBePresent);
+}
+
+QString
+HidMonitor::batteryQueryBlockMessage(const BatteryQueryBlockReason reason) const
+{
+    switch (reason) {
+    case BatteryQueryBlockReason::None:
+        return {};
+    case BatteryQueryBlockReason::TopologySettling:
+        return tr("Battery query deferred while USB topology settles");
+    case BatteryQueryBlockReason::TransportDisabled:
+        return tr("Battery queries are disabled for this transport");
+    case BatteryQueryBlockReason::WiredUsbMayBePresent:
+        return tr(
+            "Battery query blocked while wired USB is present or still being "
+            "detected");
+    }
+    return tr("Battery query blocked by the USB safety policy");
+}
+
 bool HidMonitor::requestBattery(QString *error)
 {
     return requestBattery(QString(), error);
@@ -149,6 +195,13 @@ bool HidMonitor::requestBattery(const QString &devNode, QString *error)
             }
             accessibleInterfaceFound = true;
 
+            const BatteryQueryBlockReason initialBlock =
+                batteryQueryBlockReason(*found);
+            if (initialBlock != BatteryQueryBlockReason::None) {
+                lastError = batteryQueryBlockMessage(initialBlock);
+                continue;
+            }
+
             const QByteArray nativePath = found->devNode.toLocal8Bit();
             const int fd =
                 ::open(nativePath.constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
@@ -158,6 +211,14 @@ bool HidMonitor::requestBattery(const QString &devNode, QString *error)
                         .arg(
                             found->devNode,
                             QString::fromLocal8Bit(std::strerror(errno)));
+                continue;
+            }
+
+            const BatteryQueryBlockReason finalBlock =
+                batteryQueryBlockReason(*found);
+            if (finalBlock != BatteryQueryBlockReason::None) {
+                lastError = batteryQueryBlockMessage(finalBlock);
+                ::close(fd);
                 continue;
             }
 
@@ -200,9 +261,13 @@ bool HidMonitor::requestBattery(const QString &devNode, QString *error)
 void HidMonitor::refresh()
 {
     const QList<HidInterface> current = HidDeviceScanner::scan();
+    const bool hadRefreshed = m_hasRefreshed;
     const bool changed =
-        !m_hasRefreshed
+        !hadRefreshed
         || interfaceSignature(current) != interfaceSignature(m_interfaces);
+    if (hadRefreshed && changed) {
+        m_batteryQueryGuard.observeTopologyEvent();
+    }
     m_hasRefreshed = true;
     m_interfaces = current;
     if (!changed) {
@@ -287,6 +352,7 @@ void HidMonitor::readUevents()
     }
 
     if (targetEventReceived) {
+        m_batteryQueryGuard.observeTopologyEvent();
         emit deviceEvent();
         m_eventRefreshTimer.start();
     }

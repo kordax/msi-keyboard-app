@@ -16,7 +16,7 @@ endif()
 file(READ "${CPACK_CONFIG}" cpack_config)
 foreach(expected IN ITEMS
     "set(CPACK_PACKAGE_NAME \"msi-keyboard-app\")"
-    "set(CPACK_PACKAGE_VERSION \"0.1.2\")"
+    "set(CPACK_PACKAGE_VERSION \"0.1.3\")"
     "set(CPACK_DEBIAN_PACKAGE_BREAKS \"msi-keyboard\")"
     "set(CPACK_DEBIAN_PACKAGE_CONFLICTS \"msi-keyboard\")"
     "set(CPACK_DEBIAN_PACKAGE_REPLACES \"msi-keyboard (<= 0.1.1-1)\")")

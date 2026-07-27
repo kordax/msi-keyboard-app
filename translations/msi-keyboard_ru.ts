@@ -701,6 +701,26 @@
 <context>
     <name>strikepro::HidMonitor</name>
     <message>
+        <location filename="../src/device/HidMonitor.cpp" line="131"/>
+        <source>Battery query deferred while USB topology settles</source>
+        <translation>Отправка запроса батареи отложена до стабилизации топологии USB</translation>
+    </message>
+    <message>
+        <location filename="../src/device/HidMonitor.cpp" line="133"/>
+        <source>Battery queries are disabled for this transport</source>
+        <translation>Запросы батареи отключены для этого транспорта</translation>
+    </message>
+    <message>
+        <location filename="../src/device/HidMonitor.cpp" line="135"/>
+        <source>Battery query blocked while wired USB is present or still being detected</source>
+        <translation>Запрос батареи заблокирован, пока проводное USB-подключение присутствует или ещё определяется</translation>
+    </message>
+    <message>
+        <location filename="../src/device/HidMonitor.cpp" line="139"/>
+        <source>Battery query blocked by the USB safety policy</source>
+        <translation>Запрос батареи заблокирован политикой безопасности USB</translation>
+    </message>
+    <message>
         <location filename="../src/device/HidMonitor.cpp" line="130"/>
         <source>No access to interface %1 of device %2:%3. Reinstall the udev rule.</source>
         <translation>Нет доступа к интерфейсу %1 устройства %2:%3. Переустановите правило udev.</translation>

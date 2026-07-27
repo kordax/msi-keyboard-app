@@ -37,6 +37,21 @@ QMap<QString, QString> readProperties(const QString &path)
     return result;
 }
 
+bool readHexAttribute(const QString &path, quint16 *output)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return false;
+    }
+    bool ok = false;
+    const quint16 value = file.readAll().trimmed().toUShort(&ok, 16);
+    if (!ok) {
+        return false;
+    }
+    *output = value;
+    return true;
+}
+
 int interfaceNumberFromPath(const QString &canonicalPath)
 {
     static const QRegularExpression pattern(
@@ -46,6 +61,52 @@ int interfaceNumberFromPath(const QString &canonicalPath)
 }
 
 } // namespace
+
+bool HidDeviceScanner::usbDeviceMayBePresent(
+    const quint16 vendorId, const quint16 productId)
+{
+    return usbDeviceMayBePresent(
+        vendorId,
+        productId,
+        QStringLiteral("/sys/bus/usb/devices"));
+}
+
+bool HidDeviceScanner::usbDeviceMayBePresent(
+    const quint16 vendorId,
+    const quint16 productId,
+    const QString &usbDevicesPath)
+{
+    const QFileInfo rootInfo(usbDevicesPath);
+    if (!rootInfo.isDir() || !rootInfo.isReadable()) {
+        return true;
+    }
+
+    const QDir usbDevices(usbDevicesPath);
+    for (const QString &entry :
+         usbDevices.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
+        const QString devicePath = usbDevices.absoluteFilePath(entry);
+        quint16 candidateVendorId = 0;
+        if (!readHexAttribute(
+                devicePath + QStringLiteral("/idVendor"),
+                &candidateVendorId)) {
+            continue;
+        }
+        if (candidateVendorId != vendorId) {
+            continue;
+        }
+
+        quint16 candidateProductId = 0;
+        if (!readHexAttribute(
+                devicePath + QStringLiteral("/idProduct"),
+                &candidateProductId)) {
+            return true;
+        }
+        if (candidateProductId == productId) {
+            return true;
+        }
+    }
+    return false;
+}
 
 QList<HidInterface> HidDeviceScanner::scan()
 {

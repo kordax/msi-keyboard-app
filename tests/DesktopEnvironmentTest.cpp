@@ -154,6 +154,18 @@ class DesktopEnvironmentTest final : public QObject {
                 .writable = true,
                 .reportDescriptor = QByteArray(),
             },
+            strikepro::HidInterface{
+                .devNode = QStringLiteral("/dev/hidraw-receiver-test"),
+                .sysfsPath = QStringLiteral("/sys/devices/receiver-test"),
+                .name = QStringLiteral("MSI Strike Pro receiver"),
+                .uniqueId = QStringLiteral("receiver-test"),
+                .vendorId = strikepro::kMsiVendorId,
+                .productId = strikepro::kStrikeProWirelessProductId,
+                .interfaceNumber = 1,
+                .readable = true,
+                .writable = true,
+                .reportDescriptor = QByteArray(),
+            },
         };
 
         QVERIFY(QMetaObject::invokeMethod(
@@ -176,7 +188,8 @@ class DesktopEnvironmentTest final : public QObject {
             batteryHeadline->text(),
             QStringLiteral("Battery unavailable over USB"));
         QCOMPARE(
-            batteryState->text(), QStringLiteral("The keyboard is charging."));
+            batteryState->text(),
+            QStringLiteral("The keyboard is charging."));
         QCOMPARE(batteryHeadline->property("compactHeadline").toBool(), true);
         auto *batteryGauge = window.findChild<strikepro::BatteryGauge *>(
             QStringLiteral("batteryGauge"));
@@ -209,7 +222,8 @@ class DesktopEnvironmentTest final : public QObject {
             QCOMPARE(mainQuitAction->text(), QStringLiteral("Quit"));
             QCOMPARE(trayQuitAction->text(), QStringLiteral("Quit"));
             QCOMPARE(
-                mainQuitAction->shortcut(), QKeySequence(QKeySequence::Quit));
+                mainQuitAction->shortcut(),
+                QKeySequence(QKeySequence::Quit));
             QCOMPARE(mainQuitAction->menuRole(), QAction::QuitRole);
             QVERIFY(!closeToTray->isChecked());
             QVERIFY(QApplication::quitOnLastWindowClosed());

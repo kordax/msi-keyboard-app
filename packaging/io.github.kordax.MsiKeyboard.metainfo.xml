@@ -46,6 +46,11 @@
 
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.1.3" date="2026-07-27">
+      <description>
+        <p>Blocks battery HID writes during USB topology changes and whenever direct USB is present, keeps wired mode read-only before hidraw binds, and documents the transport safety policy.</p>
+      </description>
+    </release>
     <release version="0.1.2" date="2026-07-26">
       <description>
         <p>Prevents unsafe battery queries over direct USB, reports USB charging without a false percentage, improves window and tray rendering, enforces a single application instance, and fixes Cinnamon icon cache integration.</p>

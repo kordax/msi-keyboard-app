@@ -1161,14 +1161,12 @@ void MainWindow::refreshConnectionUi()
         runtime->connectionState == ConnectionState::Connected;
     const bool batteryUnavailableOverUsb =
         connected && !runtime->battery.has_value()
-        && runtime->activeProductId
-               == runtime->device.definition.usbProductId
+        && runtime->activeProductId == runtime->device.definition.usbProductId
         && !runtime->device.definition.canQueryBatteryOver(
             runtime->activeProductId);
-    const bool charging =
-        batteryUnavailableOverUsb
-        || (runtime->battery.has_value()
-            && runtime->battery->charging.value_or(false));
+    const bool charging = batteryUnavailableOverUsb
+                          || (runtime->battery.has_value()
+                              && runtime->battery->charging.value_or(false));
     m_batterySection->setVisible(supportsBattery);
     m_batteryGauge->setDeviceConnected(connected);
     m_batteryGauge->setCharging(charging);
@@ -1275,9 +1273,17 @@ void MainWindow::updateInterfaces(const QList<HidInterface> &interfaces)
         const bool activeTransportPresent =
             runtime.activeProductId == 0
             || hasTransport(device, runtime.activeProductId);
+        const bool readOnlyWiredTransportPresent =
+            hasTransport(device, device.definition.usbProductId)
+            && !device.definition.canQueryBatteryOver(
+                device.definition.usbProductId);
         if (!device.supportsBattery()) {
             runtime.connectionState = ConnectionState::Connected;
             runtime.activeProductId = device.productId;
+        } else if (readOnlyWiredTransportPresent) {
+            runtime.connectionState = ConnectionState::Connected;
+            runtime.activeProductId = device.definition.usbProductId;
+            runtime.battery.reset();
         } else if (device.batteryInterface() == nullptr) {
             runtime.connectionState = ConnectionState::Connected;
             runtime.activeProductId = device.productId;
@@ -1343,22 +1349,25 @@ void MainWindow::handleDeviceEvent()
     ++m_batteryRequestGeneration;
     m_batteryRequestPending = false;
     m_pendingBatteryDeviceId.clear();
-    QTimer::singleShot(125, this, &MainWindow::requestBattery);
 }
 
 void MainWindow::requestBattery()
 {
     DeviceRuntime *runtime = selectedDevice();
     const HidInterface *batteryInterface =
-        runtime == nullptr
-            ? nullptr
-            : runtime->device.batteryInterface(
-                  runtime->activeProductId, runtime->failedProductId);
+        runtime == nullptr ? nullptr
+                           : runtime->device.batteryInterface(
+                                 runtime->activeProductId,
+                                 runtime->failedProductId);
     const ProtocolProfile *profile =
         runtime == nullptr ? nullptr : profileForDevice(runtime->device);
     if (runtime == nullptr || batteryInterface == nullptr || profile == nullptr
         || !runtime->device.canQueryBattery() || m_batteryRequestPending
-        || !profile->canDecodePercentage()) {
+        || !profile->canDecodePercentage()
+        || (runtime->activeProductId != 0
+            && !runtime->device.definition.canQueryBatteryOver(
+                runtime->activeProductId))
+        || !m_monitor->canRequestBattery(batteryInterface->devNode)) {
         return;
     }
 
